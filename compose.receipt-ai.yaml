@@ -1,0 +1,12 @@
+services:
+  app:
+    environment:
+      AI_RECEIPT_ENABLED: "true"
+      AI_ANALYTICS_ENABLED: "true"
+      AI_EXPENSE_PROPOSALS_ENABLED: "true"
+    networks:
+      inference:
+networks:
+  inference:
+    external: true
+    name: ${AIDTRACE_AI_PROJECT:-aidtrace-judge-ai}_inference

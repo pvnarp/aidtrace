@@ -1,0 +1,22 @@
+AidTrace
+Copyright (c) 2026 Pavan Aripakula
+
+AidTrace application source is provided under the MIT license in LICENSE.
+This notice does not change the terms of LICENSE or any third-party license.
+
+Third-party packages retain their own licenses and copyright notices. See
+THIRD_PARTY_NOTICES.txt, DEPENDENCY_LICENSES.json and UPSTREAM_LICENSE_SOURCES.json.
+Model/runtime artifact pins and separate licenses are in docs/THIRD_PARTY_MODELS.md.
+No dependency binaries, container images or model weights are distributed here.
+This is the separately prepared native dashboard variant. The Studio implementation and
+its commercial notices remain preserved in the original private source/history. This
+variant makes no AG sponsor-use claim and grants no rights in the separate Studio version.
+
+Codex assisted implementation, testing and documentation under Pavan's direction.
+Pavan performed the recorded owner acceptance and assigned gate verdicts.
+This does not assert that Pavan manually reviewed every line or certify ownership
+of all third-party components. Those components retain their original attribution.
+
+PayPal and other product names identify integrations and their respective owners.
+No sponsorship or endorsement is claimed. This is a sandbox demonstration with
+invented receipts and accounting fixtures, not production accounting software.

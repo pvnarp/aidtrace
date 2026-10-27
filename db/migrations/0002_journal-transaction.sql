@@ -1,0 +1,2 @@
+ALTER TABLE "allocation_decisions" ADD COLUMN "created_transaction_id" bigint DEFAULT txid_current() NOT NULL;--> statement-breakpoint
+ALTER TABLE "journal_entries" ADD COLUMN "created_transaction_id" bigint DEFAULT txid_current() NOT NULL;

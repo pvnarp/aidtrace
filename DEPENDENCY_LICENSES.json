@@ -1,0 +1,1479 @@
+{
+  "scope": "Installed Linux ARM64 dependency packages in the pnpm volume, including development dependencies and nested license/notice files. Not absent optional platforms, registry ownership validation, image filesystem SBOM or a legal compatibility opinion.",
+  "packages": [
+    {
+      "name": "@drizzle-team/brocli",
+      "version": "0.10.2",
+      "declaredLicense": "Apache-2.0",
+      "repository": "git+https://github.com/drizzle-team/brocli.git",
+      "notices": []
+    },
+    {
+      "name": "@esbuild-kit/core-utils",
+      "version": "3.3.2",
+      "declaredLicense": "MIT",
+      "repository": "esbuild-kit/core-utils",
+      "notices": [
+        {
+          "file": "LICENSE",
+          "sha256": "8dded67841a9261a622c739fb61c81785e93765de852828ceeb9403d20a74581"
+        }
+      ]
+    },
+    {
+      "name": "@esbuild-kit/esm-loader",
+      "version": "2.6.5",
+      "declaredLicense": "MIT",
+      "repository": "esbuild-kit/esm-loader",
+      "notices": [
+        {
+          "file": "LICENSE",
+          "sha256": "8dded67841a9261a622c739fb61c81785e93765de852828ceeb9403d20a74581"
+        }
+      ]
+    },
+    {
+      "name": "@esbuild/linux-arm64",
+      "version": "0.25.12",
+      "declaredLicense": "MIT",
+      "repository": "git+https://github.com/evanw/esbuild.git",
+      "notices": []
+    },
+    {
+      "name": "@esbuild/linux-arm64",
+      "version": "0.28.2",
+      "declaredLicense": "MIT",
+      "repository": "git+https://github.com/evanw/esbuild.git",
+      "notices": []
+    },
+    {
+      "name": "@img/colour",
+      "version": "1.1.0",
+      "declaredLicense": "MIT",
+      "repository": "git+https://github.com/lovell/colour.git",
+      "notices": [
+        {
+          "file": "LICENSE.md",
+          "sha256": "e2eaa4603c14cb26f301e88648c12a853fa3f0f5da6d4b0972958c666e7f2ab8"
+        }
+      ]
+    },
+    {
+      "name": "@img/sharp-libvips-linux-arm64",
+      "version": "1.3.4",
+      "declaredLicense": "LGPL-3.0-or-later",
+      "repository": "git+https://github.com/lovell/sharp-libvips.git",
+      "notices": []
+    },
+    {
+      "name": "@img/sharp-libvips-linuxmusl-arm64",
+      "version": "1.3.4",
+      "declaredLicense": "LGPL-3.0-or-later",
+      "repository": "git+https://github.com/lovell/sharp-libvips.git",
+      "notices": []
+    },
+    {
+      "name": "@img/sharp-linux-arm64",
+      "version": "0.35.5",
+      "declaredLicense": "Apache-2.0",
+      "repository": "git+https://github.com/lovell/sharp.git",
+      "notices": [
+        {
+          "file": "LICENSE",
+          "sha256": "73ba74dfaa520b49a401b5d21459a8523a146f3b7518a833eea5efa85130bf68"
+        }
+      ]
+    },
+    {
+      "name": "@img/sharp-linuxmusl-arm64",
+      "version": "0.35.5",
+      "declaredLicense": "Apache-2.0",
+      "repository": "git+https://github.com/lovell/sharp.git",
+      "notices": [
+        {
+          "file": "LICENSE",
+          "sha256": "73ba74dfaa520b49a401b5d21459a8523a146f3b7518a833eea5efa85130bf68"
+        }
+      ]
+    },
+    {
+      "name": "@jridgewell/resolve-uri",
+      "version": "3.1.2",
+      "declaredLicense": "MIT",
+      "repository": "https://github.com/jridgewell/resolve-uri",
+      "notices": [
+        {
+          "file": "LICENSE",
+          "sha256": "b8778b155bfde5a28b023a558753c0fa058a52bb9de35c343c250be1bbcdedab"
+        }
+      ]
+    },
+    {
+      "name": "@jridgewell/sourcemap-codec",
+      "version": "1.6.0",
+      "declaredLicense": "MIT",
+      "repository": "git+https://github.com/jridgewell/sourcemaps.git",
+      "notices": [
+        {
+          "file": "LICENSE",
+          "sha256": "769d154fbde32a915af110b1123650bc79f4cbe675acc66e005265bf069c6c6c"
+        }
+      ]
+    },
+    {
+      "name": "@jridgewell/trace-mapping",
+      "version": "0.3.31",
+      "declaredLicense": "MIT",
+      "repository": "git+https://github.com/jridgewell/sourcemaps.git",
+      "notices": [
+        {
+          "file": "LICENSE",
+          "sha256": "769d154fbde32a915af110b1123650bc79f4cbe675acc66e005265bf069c6c6c"
+        }
+      ]
+    },
+    {
+      "name": "@next/env",
+      "version": "16.4.2",
+      "declaredLicense": "MIT",
+      "repository": "https://github.com/vercel/next.js",
+      "notices": []
+    },
+    {
+      "name": "@next/swc-linux-arm64-gnu",
+      "version": "16.4.2",
+      "declaredLicense": "MIT",
+      "repository": "https://github.com/vercel/next.js",
+      "notices": []
+    },
+    {
+      "name": "@next/swc-linux-arm64-musl",
+      "version": "16.4.2",
+      "declaredLicense": "MIT",
+      "repository": "https://github.com/vercel/next.js",
+      "notices": []
+    },
+    {
+      "name": "@playwright/test",
+      "version": "1.64.1",
+      "declaredLicense": "Apache-2.0",
+      "repository": "git+https://github.com/microsoft/playwright.git",
+      "notices": [
+        {
+          "file": "LICENSE",
+          "sha256": "45873d00a0dd243596deb4aa23b2493b3d1f0671921bf2538ea431d7380220eb"
+        },
+        {
+          "file": "NOTICE",
+          "sha256": "6d602191187b35b9b01d2cffa01c8469c2c8d9de8a96f1bf868e0f264f51c81d"
+        }
+      ]
+    },
+    {
+      "name": "@rollup/rollup-linux-arm64-gnu",
+      "version": "4.65.0",
+      "declaredLicense": "MIT",
+      "repository": "git+https://github.com/rollup/rollup.git",
+      "notices": []
+    },
+    {
+      "name": "@rollup/rollup-linux-arm64-musl",
+      "version": "4.65.0",
+      "declaredLicense": "MIT",
+      "repository": "git+https://github.com/rollup/rollup.git",
+      "notices": []
+    },
+    {
+      "name": "@swc/helpers",
+      "version": "0.5.23",
+      "declaredLicense": "Apache-2.0",
+      "repository": "git+https://github.com/swc-project/swc.git",
+      "notices": [
+        {
+          "file": "LICENSE",
+          "sha256": "d96eba1f1881334d50ffc144276dfa98e147a415e7c591ecdfcb81680361dc91"
+        }
+      ]
+    },
+    {
+      "name": "@types/chai",
+      "version": "5.2.3",
+      "declaredLicense": "MIT",
+      "repository": "https://github.com/DefinitelyTyped/DefinitelyTyped.git",
+      "notices": [
+        {
+          "file": "LICENSE",
+          "sha256": "c2cfccb812fe482101a8f04597dfc5a9991a6b2748266c47ac91b6a5aae15383"
+        }
+      ]
+    },
+    {
+      "name": "@types/deep-eql",
+      "version": "4.0.2",
+      "declaredLicense": "MIT",
+      "repository": "https://github.com/DefinitelyTyped/DefinitelyTyped.git",
+      "notices": [
+        {
+          "file": "LICENSE",
+          "sha256": "c2cfccb812fe482101a8f04597dfc5a9991a6b2748266c47ac91b6a5aae15383"
+        }
+      ]
+    },
+    {
+      "name": "@types/estree",
+      "version": "1.0.9",
+      "declaredLicense": "MIT",
+      "repository": "https://github.com/DefinitelyTyped/DefinitelyTyped.git",
+      "notices": [
+        {
+          "file": "LICENSE",
+          "sha256": "c2cfccb812fe482101a8f04597dfc5a9991a6b2748266c47ac91b6a5aae15383"
+        }
+      ]
+    },
+    {
+      "name": "@types/node",
+      "version": "22.20.5",
+      "declaredLicense": "MIT",
+      "repository": "https://github.com/DefinitelyTyped/DefinitelyTyped.git",
+      "notices": [
+        {
+          "file": "LICENSE",
+          "sha256": "c2cfccb812fe482101a8f04597dfc5a9991a6b2748266c47ac91b6a5aae15383"
+        }
+      ]
+    },
+    {
+      "name": "@types/react-dom",
+      "version": "19.3.0",
+      "declaredLicense": "MIT",
+      "repository": "https://github.com/DefinitelyTyped/DefinitelyTyped.git",
+      "notices": [
+        {
+          "file": "LICENSE",
+          "sha256": "c2cfccb812fe482101a8f04597dfc5a9991a6b2748266c47ac91b6a5aae15383"
+        }
+      ]
+    },
+    {
+      "name": "@types/react",
+      "version": "19.3.0",
+      "declaredLicense": "MIT",
+      "repository": "https://github.com/DefinitelyTyped/DefinitelyTyped.git",
+      "notices": [
+        {
+          "file": "LICENSE",
+          "sha256": "c2cfccb812fe482101a8f04597dfc5a9991a6b2748266c47ac91b6a5aae15383"
+        }
+      ]
+    },
+    {
+      "name": "@vitest/mocker",
+      "version": "5.0.5",
+      "declaredLicense": "MIT",
+      "repository": "git+https://github.com/vitest-dev/vitest.git",
+      "notices": [
+        {
+          "file": "LICENSE",
+          "sha256": "04575fc5bfae19a9b63100f8691f901a2e15a399011ac02db435a9ef27295551"
+        }
+      ]
+    },
+    {
+      "name": "@vitest/spy",
+      "version": "5.0.5",
+      "declaredLicense": "MIT",
+      "repository": "git+https://github.com/vitest-dev/vitest.git",
+      "notices": [
+        {
+          "file": "LICENSE",
+          "sha256": "04575fc5bfae19a9b63100f8691f901a2e15a399011ac02db435a9ef27295551"
+        }
+      ]
+    },
+    {
+      "name": "assertion-error",
+      "version": "2.0.1",
+      "declaredLicense": "MIT",
+      "repository": "git@github.com:chaijs/assertion-error.git",
+      "notices": [
+        {
+          "file": "LICENSE",
+          "sha256": "2130216d5ab4c02134f8247f32999feda0abe1eaf028218baeac445c19ce4cea"
+        }
+      ]
+    },
+    {
+      "name": "baseline-browser-mapping",
+      "version": "2.11.30",
+      "declaredLicense": "Apache-2.0",
+      "repository": "git+https://github.com/web-platform-dx/baseline-browser-mapping.git",
+      "notices": [
+        {
+          "file": "LICENSE.txt",
+          "sha256": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4"
+        }
+      ]
+    },
+    {
+      "name": "bcryptjs",
+      "version": "3.0.3",
+      "declaredLicense": "BSD-3-Clause",
+      "repository": "https://github.com/dcodeIO/bcrypt.js.git",
+      "notices": [
+        {
+          "file": "LICENSE",
+          "sha256": "095017ef78d2c818465eea7d71ebed918eb415aee9d38d36ce0b1240ae5781ee"
+        }
+      ]
+    },
+    {
+      "name": "buffer-from",
+      "version": "1.1.2",
+      "declaredLicense": "MIT",
+      "repository": "LinusU/buffer-from",
+      "notices": [
+        {
+          "file": "LICENSE",
+          "sha256": "14275f5c8139d02054c5259d52a88ccbba662a86af18c30f071c8d082dc6004c"
+        }
+      ]
+    },
+    {
+      "name": "caniuse-lite",
+      "version": "1.0.30001819",
+      "declaredLicense": "CC-BY-4.0",
+      "repository": "browserslist/caniuse-lite",
+      "notices": [
+        {
+          "file": "LICENSE",
+          "sha256": "fd3a263fe19ed8faa9068b43abaebafc02c77897b0c6fc09abc04bb592e5f16e"
+        }
+      ]
+    },
+    {
+      "name": "canonicalize",
+      "version": "5.1.0",
+      "declaredLicense": "Apache-2.0",
+      "repository": "git+https://github.com/erdtman/canonicalize.git",
+      "notices": [
+        {
+          "file": "LICENSE",
+          "sha256": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4"
+        }
+      ]
+    },
+    {
+      "name": "chai",
+      "version": "6.3.0",
+      "declaredLicense": "MIT",
+      "repository": "https://github.com/chaijs/chai",
+      "notices": [
+        {
+          "file": "LICENSE",
+          "sha256": "b181da80336ff9dd1043fc8be1a764d7382363433319aa872e4d2cb5ce2a3066"
+        }
+      ]
+    },
+    {
+      "name": "client-only",
+      "version": "0.0.1",
+      "declaredLicense": "MIT",
+      "repository": null,
+      "notices": []
+    },
+    {
+      "name": "csstype",
+      "version": "3.2.3",
+      "declaredLicense": "MIT",
+      "repository": "https://github.com/frenic/csstype",
+      "notices": [
+        {
+          "file": "LICENSE",
+          "sha256": "11d55bd4541c75ee7879547ac49089c489163dae49551389713c3d026cab383e"
+        }
+      ]
+    },
+    {
+      "name": "detect-libc",
+      "version": "2.1.2",
+      "declaredLicense": "Apache-2.0",
+      "repository": "git://github.com/lovell/detect-libc.git",
+      "notices": [
+        {
+          "file": "LICENSE",
+          "sha256": "b40930bbcf80744c86c46a12bc9da056641d722716c378f5659b9e555ef833e1"
+        }
+      ]
+    },
+    {
+      "name": "drizzle-kit",
+      "version": "0.31.11",
+      "declaredLicense": "MIT",
+      "repository": "git+https://github.com/drizzle-team/drizzle-orm.git",
+      "notices": []
+    },
+    {
+      "name": "drizzle-orm",
+      "version": "0.45.4",
+      "declaredLicense": "Apache-2.0",
+      "repository": "git+https://github.com/drizzle-team/drizzle-orm.git",
+      "notices": []
+    },
+    {
+      "name": "es-module-lexer",
+      "version": "2.3.2",
+      "declaredLicense": "MIT",
+      "repository": "git+https://github.com/guybedford/es-module-lexer.git",
+      "notices": [
+        {
+          "file": "LICENSE",
+          "sha256": "8a4b6c44eebfb026d23719a348145a661a555568dbfdc11618ff2d0dd9306b00"
+        }
+      ]
+    },
+    {
+      "name": "esbuild",
+      "version": "0.25.12",
+      "declaredLicense": "MIT",
+      "repository": "git+https://github.com/evanw/esbuild.git",
+      "notices": [
+        {
+          "file": "LICENSE.md",
+          "sha256": "b40ec5baec7bb34fa5b1c09521fa3cd52d5fad7adafed74932a2010d3612a681"
+        }
+      ]
+    },
+    {
+      "name": "esbuild",
+      "version": "0.28.2",
+      "declaredLicense": "MIT",
+      "repository": "git+https://github.com/evanw/esbuild.git",
+      "notices": [
+        {
+          "file": "LICENSE.md",
+          "sha256": "b40ec5baec7bb34fa5b1c09521fa3cd52d5fad7adafed74932a2010d3612a681"
+        }
+      ]
+    },
+    {
+      "name": "estree-walker",
+      "version": "3.0.3",
+      "declaredLicense": "MIT",
+      "repository": "https://github.com/Rich-Harris/estree-walker",
+      "notices": [
+        {
+          "file": "LICENSE",
+          "sha256": "8a6dcbabe7179f9c8489c08a7d874d0f1e093ae7449e03756ccf87cb9d0e296e"
+        }
+      ]
+    },
+    {
+      "name": "expect-type",
+      "version": "1.4.0",
+      "declaredLicense": "Apache-2.0",
+      "repository": "https://github.com/mmkal/expect-type.git",
+      "notices": [
+        {
+          "file": "LICENSE",
+          "sha256": "7c6cc83c84eaa249a85bf12fe3eedd831bb50c696e8890b5248223ae68c7b408"
+        }
+      ]
+    },
+    {
+      "name": "fast-check",
+      "version": "4.3.0",
+      "declaredLicense": "MIT",
+      "repository": "git+https://github.com/dubzzz/fast-check.git",
+      "notices": [
+        {
+          "file": "LICENSE",
+          "sha256": "b2bd24f5c975f659433271170b17e0a769b12ef8065bbca6dcd5511d57e94ce0"
+        }
+      ]
+    },
+    {
+      "name": "fdir",
+      "version": "6.5.0",
+      "declaredLicense": "MIT",
+      "repository": "git+https://github.com/thecodrr/fdir.git",
+      "notices": [
+        {
+          "file": "LICENSE",
+          "sha256": "9a39f2aadab11a3697edd668ff2d8ad885b649737b7ab4d3bf12b34e5ada0c86"
+        }
+      ]
+    },
+    {
+      "name": "get-tsconfig",
+      "version": "4.14.3",
+      "declaredLicense": "MIT",
+      "repository": "privatenumber/get-tsconfig",
+      "notices": [
+        {
+          "file": "LICENSE",
+          "sha256": "10c904a49af44409b073532e45a53fd4df19bdf26eaf9afc7917258c2b354382"
+        }
+      ]
+    },
+    {
+      "name": "magic-string",
+      "version": "1.4.3",
+      "declaredLicense": "MIT",
+      "repository": "git+https://github.com/Rich-Harris/magic-string.git",
+      "notices": [
+        {
+          "file": "LICENSE",
+          "sha256": "1cbe51b907662f6cb1492b16c359384a595180bf0e4d101603ed525e75c4e484"
+        }
+      ]
+    },
+    {
+      "name": "nanoid",
+      "version": "3.3.20",
+      "declaredLicense": "MIT",
+      "repository": "ai/nanoid",
+      "notices": [
+        {
+          "file": "LICENSE",
+          "sha256": "da4db1480d9beea3483a2eda5c53b22238d0827d57da162b48f122e04d2d9987"
+        }
+      ]
+    },
+    {
+      "name": "next",
+      "version": "16.4.2",
+      "declaredLicense": "MIT",
+      "repository": "vercel/next.js",
+      "notices": [
+        {
+          "file": "dist/compiled/@babel/runtime/LICENSE",
+          "sha256": "117da2af0d4ce0fe1c8e19b5cff9dcd806adf973d328d27b11d4448c4ff24f76"
+        },
+        {
+          "file": "dist/compiled/@hapi/accept/LICENSE",
+          "sha256": "ff96bbd6a7408c166f16dbed7f2c87a8061e5a21289ec8f2d3069f8d3b15fc0a"
+        },
+        {
+          "file": "dist/compiled/@mswjs/interceptors/ClientRequest/LICENSE",
+          "sha256": "bb3a5cb8fb224f632970e31425348f556f7a83b165d5384ea5e142575f5c412e"
+        },
+        {
+          "file": "dist/compiled/@napi-rs/triples/LICENSE",
+          "sha256": "7b34e99bc43641767fded49f7f03563ffd50c689b1f3b0d50700b4727bc4ae24"
+        },
+        {
+          "file": "dist/compiled/@opentelemetry/api/LICENSE",
+          "sha256": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4"
+        },
+        {
+          "file": "dist/compiled/@vercel/blob/LICENSE",
+          "sha256": "2b6fc3f4a995e6ad29f4e2ed8881a32979058b8d6557efaa6d86b7e985849f40"
+        },
+        {
+          "file": "dist/compiled/@vercel/detect-agent/LICENSE",
+          "sha256": "b070d77bfb2c52a1dd6996de0ce5f64c49a0ca55c889b163a963ddf5cb001ee2"
+        },
+        {
+          "file": "dist/compiled/@vercel/nft/LICENSE",
+          "sha256": "0b31f3a6ab66b272b7de451df39835f310a309a06b1a8aafb3a2fdab20adc166"
+        },
+        {
+          "file": "dist/compiled/@vercel/og/LICENSE",
+          "sha256": "1f256ecad192880510e84ad60474eab7589218784b9a50bc7ceee34c2b91f1d5"
+        },
+        {
+          "file": "dist/compiled/@vercel/og/satori/LICENSE",
+          "sha256": "1f256ecad192880510e84ad60474eab7589218784b9a50bc7ceee34c2b91f1d5"
+        },
+        {
+          "file": "dist/compiled/@vercel/routing-utils/LICENSE",
+          "sha256": "b070d77bfb2c52a1dd6996de0ce5f64c49a0ca55c889b163a963ddf5cb001ee2"
+        },
+        {
+          "file": "dist/compiled/acorn/LICENSE",
+          "sha256": "76a876cf886ff9be2a8b5e2e86514fed06223c8c9f0c1e9ee9606e93841e00b7"
+        },
+        {
+          "file": "dist/compiled/anser/LICENSE",
+          "sha256": "6d2abc90a426cf65bbf84f7cedf9487f7ff86a3daf0e130b335a45c112f040d0"
+        },
+        {
+          "file": "dist/compiled/assert/LICENSE",
+          "sha256": "6239c6144c31e58cf925c34483606969c555574d64ffa96518ab5d7f45c75d43"
+        },
+        {
+          "file": "dist/compiled/async-retry/LICENSE",
+          "sha256": "8cec82f7beeab8459fa6165c973f5cd6f89aceea7a07de0aa8fc30a9dd339a05"
+        },
+        {
+          "file": "dist/compiled/async-sema/LICENSE",
+          "sha256": "291ff3e2bd22891edef553930da53ba64adf79d83f0bd1c5b7f6fe9727526b37"
+        },
+        {
+          "file": "dist/compiled/babel/LICENSE",
+          "sha256": "117da2af0d4ce0fe1c8e19b5cff9dcd806adf973d328d27b11d4448c4ff24f76"
+        },
+        {
+          "file": "dist/compiled/browserify-zlib/LICENSE",
+          "sha256": "ddd770379e07bf0574dfaa4485be80a23b3248b36d09f33ec79276c09b829daf"
+        },
+        {
+          "file": "dist/compiled/browserslist/LICENSE",
+          "sha256": "f25bf9bf3ae8984bcd43bf7fb8f78e7eec8d577081fb8d0989cfa7c67ecebb8e"
+        },
+        {
+          "file": "dist/compiled/buffer/LICENSE",
+          "sha256": "06bafa45fdad2579ba0e43b0c9b2c6290287c99c4203c300254a462b38a307f6"
+        },
+        {
+          "file": "dist/compiled/busboy/LICENSE",
+          "sha256": "d06b5d27bbbbe22c36b1fd88406b1208876e2d37d795f5b8eaed951a459a3111"
+        },
+        {
+          "file": "dist/compiled/bytes/LICENSE",
+          "sha256": "e3b44af066615de2ea48d18d852d0762f18c0b2efcea714fa48a6f729d405b85"
+        },
+        {
+          "file": "dist/compiled/ci-info/LICENSE",
+          "sha256": "25bd22427e27b0d3f1c3da2670bb44b622bcced22ebdf4777d5488ac129370a1"
+        },
+        {
+          "file": "dist/compiled/cli-select/LICENSE",
+          "sha256": "a8e260b5b60eb27746ff2c5967489e6878c5a6ba99400cbec84c89a9b49a46ca"
+        },
+        {
+          "file": "dist/compiled/commander/LICENSE",
+          "sha256": "04512a63dce4d2d506ad612dc0bd7681ccf6e3655f7b6eaef7dfac8323d1ec0b"
+        },
+        {
+          "file": "dist/compiled/comment-json/LICENSE",
+          "sha256": "9dbd86998d3cdafc1d8c298aea636146568d05d429b81386e60cfce11e6cedb6"
+        },
+        {
+          "file": "dist/compiled/compression/LICENSE",
+          "sha256": "23d466b1b134b415b66fa50c6526b4cf3e7b9258554da88d3abb371721e7ce68"
+        },
+        {
+          "file": "dist/compiled/conf/LICENSE",
+          "sha256": "48da2f39e100d4085767e94966b43f4fa95ff6a0698fba57ed460914e35f94a0"
+        },
+        {
+          "file": "dist/compiled/content-disposition/LICENSE",
+          "sha256": "bd47ce7b88c7759630d1e2b9fcfa170a0f1fde522be09e13fb1581a79d090400"
+        },
+        {
+          "file": "dist/compiled/content-type/LICENSE",
+          "sha256": "257aed98914108e91a337912727b6a802eef218248507f74b76faffaff517a38"
+        },
+        {
+          "file": "dist/compiled/cookie/LICENSE",
+          "sha256": "c02110eedc16c7114f1a9bdc026c65626ce1d9c7e27fd51a8e0feee8a48a6858"
+        },
+        {
+          "file": "dist/compiled/cross-spawn/LICENSE",
+          "sha256": "aaa78451b6fecd1b9c4594c796c133c0e90cad100372ff8bc6de615e9ef9adf1"
+        },
+        {
+          "file": "dist/compiled/crypto-browserify/LICENSE",
+          "sha256": "6134c69bc22c8289252e70de3af20bd67071233459055be74d83acfcc4865e7e"
+        },
+        {
+          "file": "dist/compiled/debug/LICENSE",
+          "sha256": "98c970de440dcfc77471610aec2377c9d9b0db2b3be6d1add524a586e1d7f422"
+        },
+        {
+          "file": "dist/compiled/devalue/LICENSE",
+          "sha256": "e399db7e952e45cae84f1b53d72ba8dbad2daaa7ab8cd1f0ab72fea5ab73b225"
+        },
+        {
+          "file": "dist/compiled/domain-browser/LICENSE",
+          "sha256": "fc06db8dd5e7840db84ab328d9f58bdb91a56fbbf045bb977c11fcd07e2d8e3e"
+        },
+        {
+          "file": "dist/compiled/edge-runtime/LICENSE",
+          "sha256": "e4f76a7a19ef2989dd79339bd3abf8afcf1d6f065e5a10c76c19415ffd727eb3"
+        },
+        {
+          "file": "dist/compiled/events/LICENSE",
+          "sha256": "631987b7616a325a5b97566c232418481ddf7dbb5ecadefb991e791876cc2599"
+        },
+        {
+          "file": "dist/compiled/find-up/LICENSE",
+          "sha256": "48da2f39e100d4085767e94966b43f4fa95ff6a0698fba57ed460914e35f94a0"
+        },
+        {
+          "file": "dist/compiled/fresh/LICENSE",
+          "sha256": "a0ec0dab16b3666f24950f86d257930ac2ad475557b4bfe245620e0817d8a45d"
+        },
+        {
+          "file": "dist/compiled/glob/LICENSE",
+          "sha256": "6236fa0b88a4a0cce3dda0367979491b2052b3c8d6b1c10b3668de083e86a7f0"
+        },
+        {
+          "file": "dist/compiled/gzip-size/LICENSE",
+          "sha256": "48da2f39e100d4085767e94966b43f4fa95ff6a0698fba57ed460914e35f94a0"
+        },
+        {
+          "file": "dist/compiled/hash.js/sha256/LICENSE",
+          "sha256": "7261b3ab93df04c6d8f3398f87275d28f0e87d88cbd0033b788fb50402de03c5"
+        },
+        {
+          "file": "dist/compiled/https-browserify/LICENSE",
+          "sha256": "ff151c00207c908581639851dd8504ce4255be0650b2b236edec2aa90342b0cd"
+        },
+        {
+          "file": "dist/compiled/httpxy/LICENSE",
+          "sha256": "4249bd020d1b5c503d20a196c1b686b3bdebcd1c7ac06909c546d9624c64f79b"
+        },
+        {
+          "file": "dist/compiled/icss-utils/LICENSE",
+          "sha256": "b2b54c738525e98cc42d4a1c239c9d8421507816acce98950e81d0943daae68e"
+        },
+        {
+          "file": "dist/compiled/ignore-loader/LICENSE",
+          "sha256": "62ba766e9b50f9b175b0229f4ea03e93730c9180408acec50dd617e9ae1fa059"
+        },
+        {
+          "file": "dist/compiled/image-size/LICENSE",
+          "sha256": "3109783dad7527b490aabc49c3cb148573c19b41b843e70cf9388a93f3d7fccd"
+        },
+        {
+          "file": "dist/compiled/ipaddr.js/LICENSE",
+          "sha256": "62568a2d1337b77171ecca9db10579163446de1ba6151678e81f06cdc199971b"
+        },
+        {
+          "file": "dist/compiled/is-animated/LICENSE",
+          "sha256": "e08c030e1274fadc495c71e0489612f0c74673b69ae8e41460526c233a94a728"
+        },
+        {
+          "file": "dist/compiled/is-docker/LICENSE",
+          "sha256": "48da2f39e100d4085767e94966b43f4fa95ff6a0698fba57ed460914e35f94a0"
+        },
+        {
+          "file": "dist/compiled/is-wsl/LICENSE",
+          "sha256": "48da2f39e100d4085767e94966b43f4fa95ff6a0698fba57ed460914e35f94a0"
+        },
+        {
+          "file": "dist/compiled/jest-worker/LICENSE",
+          "sha256": "52412d7bc7ce4157ea628bbaacb8829e0a9cb3c58f57f99176126bc8cf2bfc85"
+        },
+        {
+          "file": "dist/compiled/json5/LICENSE",
+          "sha256": "53e59feb13058722d977c699eb0407c7bce2f93c949b681bbd2ff31698535927"
+        },
+        {
+          "file": "dist/compiled/jsonwebtoken/LICENSE",
+          "sha256": "2144eb6894cb440fde6b2b3aaae3b617c8f1dc9bb19813079dcf62ec6c517042"
+        },
+        {
+          "file": "dist/compiled/loader-runner/LICENSE",
+          "sha256": "498d39c83164cf8de195090f5564fc0308ab271344ca2f95484a7f1020952d00"
+        },
+        {
+          "file": "dist/compiled/loader-utils2/LICENSE",
+          "sha256": "9068a8782d2fb4c6e432cfa25334efa56f722822180570802bf86e71b6003b1e"
+        },
+        {
+          "file": "dist/compiled/loader-utils3/LICENSE",
+          "sha256": "9068a8782d2fb4c6e432cfa25334efa56f722822180570802bf86e71b6003b1e"
+        },
+        {
+          "file": "dist/compiled/lodash.curry/LICENSE",
+          "sha256": "ffd8b33b354585f4ce119f19c53728281e48a97b074491eb6bf6d5c5ff305272"
+        },
+        {
+          "file": "dist/compiled/lru-cache/LICENSE",
+          "sha256": "451ec07eeb9c4e1b86de9abdaa426462a8be48f887ec7421cf0bbb9c769555ab"
+        },
+        {
+          "file": "dist/compiled/mini-css-extract-plugin/LICENSE",
+          "sha256": "9068a8782d2fb4c6e432cfa25334efa56f722822180570802bf86e71b6003b1e"
+        },
+        {
+          "file": "dist/compiled/nanoid/LICENSE",
+          "sha256": "da4db1480d9beea3483a2eda5c53b22238d0827d57da162b48f122e04d2d9987"
+        },
+        {
+          "file": "dist/compiled/native-url/LICENSE",
+          "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+        },
+        {
+          "file": "dist/compiled/neo-async/LICENSE",
+          "sha256": "811238ba7d85f6fe6b820703a32f92705bcf77bc352ddc3476783491c64a129a"
+        },
+        {
+          "file": "dist/compiled/node-html-parser/LICENSE",
+          "sha256": "ea75e9321945b7f0bc4644da1e404ad76ce55e9bc05cae3b2f5f2d973aede83b"
+        },
+        {
+          "file": "dist/compiled/ora/LICENSE",
+          "sha256": "5c932d88256b4ab958f64a856fa48e8bd1f55bc1d96b8149c65689e0c61789d3"
+        },
+        {
+          "file": "dist/compiled/os-browserify/LICENSE",
+          "sha256": "d25d1d6d28c35cb6f358e2833e405c4e53fec2fa24d156323ddea5cd438d3407"
+        },
+        {
+          "file": "dist/compiled/p-limit/LICENSE",
+          "sha256": "5c932d88256b4ab958f64a856fa48e8bd1f55bc1d96b8149c65689e0c61789d3"
+        },
+        {
+          "file": "dist/compiled/p-queue/LICENSE",
+          "sha256": "5c932d88256b4ab958f64a856fa48e8bd1f55bc1d96b8149c65689e0c61789d3"
+        },
+        {
+          "file": "dist/compiled/path-browserify/LICENSE",
+          "sha256": "a22b9d5763f574e5db347c30acc0b33eaf4846767c03d2e27d012e864e79a824"
+        },
+        {
+          "file": "dist/compiled/path-to-regexp/LICENSE",
+          "sha256": "4eeb3271453a891df609e5a9f4ee79a68307f730c13417a3bfeffa604ac8cf25"
+        },
+        {
+          "file": "dist/compiled/picomatch/LICENSE",
+          "sha256": "d0cd141b0c322fded5dfad1d4645bb2fedfc05b7321fe1009469638190d59ef9"
+        },
+        {
+          "file": "dist/compiled/postcss-flexbugs-fixes/LICENSE",
+          "sha256": "f26c92c1c16e78c6b1f7474792f7195b7abc851caccb4a73dcc5b3c31efc7321"
+        },
+        {
+          "file": "dist/compiled/postcss-modules-extract-imports/LICENSE",
+          "sha256": "9e534cfb7f7ae1300e16fe1ee7d203fdfe707dc932429c37246f747c3699ee14"
+        },
+        {
+          "file": "dist/compiled/postcss-modules-local-by-default/LICENSE",
+          "sha256": "dd40f37957ddcb6a6157f40b677d6f43697583f956144fbce25443e35630453e"
+        },
+        {
+          "file": "dist/compiled/postcss-modules-scope/LICENSE",
+          "sha256": "7774c8c4a3f750b294b416818062201a404fc2d6c8756d8b89a1688e24b5d5a7"
+        },
+        {
+          "file": "dist/compiled/postcss-modules-values/LICENSE",
+          "sha256": "655287aefbf8e292057318c385d77767b1dd9819c87709fd26730b7090efe4d9"
+        },
+        {
+          "file": "dist/compiled/postcss-preset-env/LICENSE",
+          "sha256": "597756adcb51f243ef4fb386920377f61d012ace0904364e1a8ee9aaec6afc84"
+        },
+        {
+          "file": "dist/compiled/postcss-safe-parser/LICENSE",
+          "sha256": "c4630ac8b89cb317ac5bdd60ac5e4e185eab9bd5151a0c7b3afa41aa83d7ec9b"
+        },
+        {
+          "file": "dist/compiled/postcss-scss/LICENSE",
+          "sha256": "c4630ac8b89cb317ac5bdd60ac5e4e185eab9bd5151a0c7b3afa41aa83d7ec9b"
+        },
+        {
+          "file": "dist/compiled/postcss-value-parser/LICENSE",
+          "sha256": "3687447039151857a6ba378db062172c7f33d4aa70a615c87a43a9c50e990485"
+        },
+        {
+          "file": "dist/compiled/process/LICENSE",
+          "sha256": "59a400d04c5078579acc27ddd6452c1bdf763f9506e01364700935fbb1a7c91b"
+        },
+        {
+          "file": "dist/compiled/querystring-es3/LICENSE",
+          "sha256": "cb72d9714ddc21e758d63f423be0caddf909d23ccbb10a2f5201a870818e4f57"
+        },
+        {
+          "file": "dist/compiled/raw-body/LICENSE",
+          "sha256": "c8e6bca7230689d536a3bd7158f66e9c4f89f95d0748743a0370ac229e9023ad"
+        },
+        {
+          "file": "dist/compiled/react-dom-experimental/LICENSE",
+          "sha256": "da6d3703ed11cbe42bd212c725957c98da23cbff1998c05fa4b3d976d1a58e93"
+        },
+        {
+          "file": "dist/compiled/react-dom/LICENSE",
+          "sha256": "da6d3703ed11cbe42bd212c725957c98da23cbff1998c05fa4b3d976d1a58e93"
+        },
+        {
+          "file": "dist/compiled/react-experimental/LICENSE",
+          "sha256": "da6d3703ed11cbe42bd212c725957c98da23cbff1998c05fa4b3d976d1a58e93"
+        },
+        {
+          "file": "dist/compiled/react-is/LICENSE",
+          "sha256": "da6d3703ed11cbe42bd212c725957c98da23cbff1998c05fa4b3d976d1a58e93"
+        },
+        {
+          "file": "dist/compiled/react-refresh/LICENSE",
+          "sha256": "52412d7bc7ce4157ea628bbaacb8829e0a9cb3c58f57f99176126bc8cf2bfc85"
+        },
+        {
+          "file": "dist/compiled/react-server-dom-turbopack-experimental/LICENSE",
+          "sha256": "da6d3703ed11cbe42bd212c725957c98da23cbff1998c05fa4b3d976d1a58e93"
+        },
+        {
+          "file": "dist/compiled/react-server-dom-turbopack/LICENSE",
+          "sha256": "da6d3703ed11cbe42bd212c725957c98da23cbff1998c05fa4b3d976d1a58e93"
+        },
+        {
+          "file": "dist/compiled/react-server-dom-webpack-experimental/LICENSE",
+          "sha256": "da6d3703ed11cbe42bd212c725957c98da23cbff1998c05fa4b3d976d1a58e93"
+        },
+        {
+          "file": "dist/compiled/react-server-dom-webpack/LICENSE",
+          "sha256": "da6d3703ed11cbe42bd212c725957c98da23cbff1998c05fa4b3d976d1a58e93"
+        },
+        {
+          "file": "dist/compiled/react/LICENSE",
+          "sha256": "da6d3703ed11cbe42bd212c725957c98da23cbff1998c05fa4b3d976d1a58e93"
+        },
+        {
+          "file": "dist/compiled/regenerator-runtime/LICENSE",
+          "sha256": "51887a3d47051ac2fce1210562e5b9fe0830a8a8fabeb272c2d586eeb18a05fd"
+        },
+        {
+          "file": "dist/compiled/safe-stable-stringify/LICENSE",
+          "sha256": "3a6d6de49d284a36c5d271ef0e62eca1838cc460dd7630e3f2c347c8f5b2232a"
+        },
+        {
+          "file": "dist/compiled/sass-loader/LICENSE",
+          "sha256": "2af12ca8b612a22e6659ae68e0e59ee7ac792718c45524a989b512c49c5f5879"
+        },
+        {
+          "file": "dist/compiled/scheduler-experimental/LICENSE",
+          "sha256": "da6d3703ed11cbe42bd212c725957c98da23cbff1998c05fa4b3d976d1a58e93"
+        },
+        {
+          "file": "dist/compiled/scheduler/LICENSE",
+          "sha256": "da6d3703ed11cbe42bd212c725957c98da23cbff1998c05fa4b3d976d1a58e93"
+        },
+        {
+          "file": "dist/compiled/schema-utils2/LICENSE",
+          "sha256": "9068a8782d2fb4c6e432cfa25334efa56f722822180570802bf86e71b6003b1e"
+        },
+        {
+          "file": "dist/compiled/schema-utils3/LICENSE",
+          "sha256": "9068a8782d2fb4c6e432cfa25334efa56f722822180570802bf86e71b6003b1e"
+        },
+        {
+          "file": "dist/compiled/semver/LICENSE",
+          "sha256": "4ec3d4c66cd87f5c8d8ad911b10f99bf27cb00cdfcff82621956e379186b016b"
+        },
+        {
+          "file": "dist/compiled/send/LICENSE",
+          "sha256": "25a328069fe771f8ed5b6f983ed4b0e6c84b3312ac0f69b28c3d52dc277962c9"
+        },
+        {
+          "file": "dist/compiled/serve-handler/LICENSE",
+          "sha256": "be8ba42db3b7c3dbb064bcdc1bbbb191c0a39c8851c2a53564e97c7eea301bca"
+        },
+        {
+          "file": "dist/compiled/shell-quote/LICENSE",
+          "sha256": "8bb16db1b047019e4395965f2cf3611b06c34bf86dc2d0210b3c3f91b53c21fe"
+        },
+        {
+          "file": "dist/compiled/source-map/LICENSE",
+          "sha256": "6cb0631f71c7749763fd3dd1d5bee52dd1070ec17f2edc1710079ad070bd2fbd"
+        },
+        {
+          "file": "dist/compiled/source-map08/LICENSE",
+          "sha256": "6cb0631f71c7749763fd3dd1d5bee52dd1070ec17f2edc1710079ad070bd2fbd"
+        },
+        {
+          "file": "dist/compiled/stacktrace-parser/LICENSE",
+          "sha256": "e1898814043cb5500483d9c8517edda824b352f696d35e5043fcfb537c221531"
+        },
+        {
+          "file": "dist/compiled/stream-browserify/LICENSE",
+          "sha256": "96e5193183476a03da6667d217ce14110191d26ee105338086e94339edf40d5a"
+        },
+        {
+          "file": "dist/compiled/stream-http/LICENSE",
+          "sha256": "a0e6357a5e8ea65827addeb383e0948a1874d2f46bc7feaf6349b7a376ed6e98"
+        },
+        {
+          "file": "dist/compiled/string_decoder/LICENSE",
+          "sha256": "11f2aafb37d06b3ee5bdaf06e9811141d0da05263c316f3d627f45c20d43261b"
+        },
+        {
+          "file": "dist/compiled/strip-ansi/LICENSE",
+          "sha256": "48da2f39e100d4085767e94966b43f4fa95ff6a0698fba57ed460914e35f94a0"
+        },
+        {
+          "file": "dist/compiled/superstruct/LICENSE",
+          "sha256": "0f644bc01d85e4b1958bdfe5a851704bd886404c78188d4d6fba43dc8293bc91"
+        },
+        {
+          "file": "dist/compiled/tar/LICENSE",
+          "sha256": "8a1af140fdfbf5afd3df27f7e662f989c5b963a300020dfafce42033cae9e004"
+        },
+        {
+          "file": "dist/compiled/terser/LICENSE",
+          "sha256": "901d0a7fcaccaae9917d165039c0473c354e5da2e0e94140dde67aad9ffb19da"
+        },
+        {
+          "file": "dist/compiled/text-table/LICENSE",
+          "sha256": "435a6722c786b0a56fbe7387028f1d9d3f3a2d0fb615bb8fee118727c3f59b7b"
+        },
+        {
+          "file": "dist/compiled/timers-browserify/LICENSE",
+          "sha256": "d5f14c3258420dfe5a3b641a143d6e6dd90eabb5962244d937e25699c3a45ec9"
+        },
+        {
+          "file": "dist/compiled/tty-browserify/LICENSE",
+          "sha256": "435a6722c786b0a56fbe7387028f1d9d3f3a2d0fb615bb8fee118727c3f59b7b"
+        },
+        {
+          "file": "dist/compiled/ua-parser-js/LICENSE",
+          "sha256": "fb9548e36708f09ae0cc1047ebd8153928bfe5bed67e4051f0ace552bdcbf0b3"
+        },
+        {
+          "file": "dist/compiled/util/LICENSE",
+          "sha256": "6239c6144c31e58cf925c34483606969c555574d64ffa96518ab5d7f45c75d43"
+        },
+        {
+          "file": "dist/compiled/vm-browserify/LICENSE",
+          "sha256": "3a62887f73cd035ac1068bc0127ce94291f7a03843391f56df3520e2ca2037f8"
+        },
+        {
+          "file": "dist/compiled/watchpack/LICENSE",
+          "sha256": "9068a8782d2fb4c6e432cfa25334efa56f722822180570802bf86e71b6003b1e"
+        },
+        {
+          "file": "dist/compiled/web-vitals-attribution/LICENSE",
+          "sha256": "bfdeded4040e05da31ca9b6239dc83bd23fa26ac8db87342a7ca4363f68916ff"
+        },
+        {
+          "file": "dist/compiled/web-vitals/LICENSE",
+          "sha256": "bfdeded4040e05da31ca9b6239dc83bd23fa26ac8db87342a7ca4363f68916ff"
+        },
+        {
+          "file": "dist/compiled/webpack-sources1/LICENSE",
+          "sha256": "214d0ac13edb475ec426df1979d96fd46b443debc466c0fb592e32152ae5a940"
+        },
+        {
+          "file": "dist/compiled/webpack-sources3/LICENSE",
+          "sha256": "214d0ac13edb475ec426df1979d96fd46b443debc466c0fb592e32152ae5a940"
+        },
+        {
+          "file": "dist/compiled/webpack/LICENSE",
+          "sha256": "9068a8782d2fb4c6e432cfa25334efa56f722822180570802bf86e71b6003b1e"
+        },
+        {
+          "file": "dist/compiled/write-file-atomic/LICENSE",
+          "sha256": "ea7f376fe7a1fc28572b83ac8f806d92effb31852b9981bc9ba9d5266caa6b28"
+        },
+        {
+          "file": "dist/compiled/ws/LICENSE",
+          "sha256": "dcd0a622a3a2c94fe3aa6238b76363f87df442afe788cbad966afe943ed62281"
+        },
+        {
+          "file": "dist/compiled/zod-validation-error/LICENSE",
+          "sha256": "03cc9a630489a2544b799548a0e8b134f382fe09fa06dc22b339091b28b8f4a8"
+        },
+        {
+          "file": "dist/compiled/zod/LICENSE",
+          "sha256": "3f1189b28e3866e0d979968d466b78f813f76827cfdca1fbb124cc0a5c8841f8"
+        },
+        {
+          "file": "license.md",
+          "sha256": "ee765244e2d59f5234d474f62e0766fa0c8b99af967fdd4c0cb8dcb0c76ea224"
+        }
+      ]
+    },
+    {
+      "name": "obug",
+      "version": "3.0.0",
+      "declaredLicense": "MIT",
+      "repository": "git+https://github.com/sxzz/obug.git",
+      "notices": [
+        {
+          "file": "LICENSE",
+          "sha256": "ee48679d379ca6b4493d5e231094d85f818dd9be40b1a4f234fb7ff657ee35d9"
+        }
+      ]
+    },
+    {
+      "name": "picocolors",
+      "version": "1.1.1",
+      "declaredLicense": "ISC",
+      "repository": "alexeyraspopov/picocolors",
+      "notices": [
+        {
+          "file": "LICENSE",
+          "sha256": "6582629e2979466878f6014313dcc2f3756c9616148682227ce3063dde310750"
+        }
+      ]
+    },
+    {
+      "name": "picomatch",
+      "version": "4.0.7",
+      "declaredLicense": "MIT",
+      "repository": "micromatch/picomatch",
+      "notices": [
+        {
+          "file": "LICENSE",
+          "sha256": "d0cd141b0c322fded5dfad1d4645bb2fedfc05b7321fe1009469638190d59ef9"
+        }
+      ]
+    },
+    {
+      "name": "playwright-core",
+      "version": "1.64.1",
+      "declaredLicense": "Apache-2.0",
+      "repository": "git+https://github.com/microsoft/playwright.git",
+      "notices": [
+        {
+          "file": "lib/serverRegistry.js.LICENSE",
+          "sha256": "3098a6efcbc11752cbdf6075fa65480f5470f78c8d981fab9c0796dc9a41cefe"
+        },
+        {
+          "file": "lib/utilsBundle.js.LICENSE",
+          "sha256": "1362b7f413c08083af537384162ab69a323d019fe26e0a2cd78536fafd6b9cbf"
+        },
+        {
+          "file": "lib/webp_codec.LICENSE",
+          "sha256": "995c7ee35aceb7666829b7a501ca89c0864e12b493c1174b155774ab1e03d831"
+        },
+        {
+          "file": "LICENSE",
+          "sha256": "45873d00a0dd243596deb4aa23b2493b3d1f0671921bf2538ea431d7380220eb"
+        },
+        {
+          "file": "NOTICE",
+          "sha256": "6d602191187b35b9b01d2cffa01c8469c2c8d9de8a96f1bf868e0f264f51c81d"
+        }
+      ]
+    },
+    {
+      "name": "playwright",
+      "version": "1.64.1",
+      "declaredLicense": "Apache-2.0",
+      "repository": "git+https://github.com/microsoft/playwright.git",
+      "notices": [
+        {
+          "file": "lib/matchers/expect.js.LICENSE",
+          "sha256": "78b2f60563d28cb3f9ea17e4cdc0657681e641e2f72766771d9e2da9ca94c065"
+        },
+        {
+          "file": "lib/transform/babelBundle.js.LICENSE",
+          "sha256": "2018f402988d0cff56531005b77bce7c2816a34d0c157ecb510043abd41b1ad3"
+        },
+        {
+          "file": "lib/transform/esmLoader.js.LICENSE",
+          "sha256": "3cec0c446526a449e4613b0defee0adb585f88f1d7fdba919421226d69be078e"
+        },
+        {
+          "file": "LICENSE",
+          "sha256": "45873d00a0dd243596deb4aa23b2493b3d1f0671921bf2538ea431d7380220eb"
+        },
+        {
+          "file": "NOTICE",
+          "sha256": "6d602191187b35b9b01d2cffa01c8469c2c8d9de8a96f1bf868e0f264f51c81d"
+        }
+      ]
+    },
+    {
+      "name": "postcss",
+      "version": "8.5.23",
+      "declaredLicense": "MIT",
+      "repository": "postcss/postcss",
+      "notices": [
+        {
+          "file": "LICENSE",
+          "sha256": "5be1f3465bba68a626777f984878814aaf35e7ef8e9fd314d469bcf887050fb8"
+        }
+      ]
+    },
+    {
+      "name": "postcss",
+      "version": "8.5.31",
+      "declaredLicense": "MIT",
+      "repository": "postcss/postcss",
+      "notices": [
+        {
+          "file": "LICENSE",
+          "sha256": "5be1f3465bba68a626777f984878814aaf35e7ef8e9fd314d469bcf887050fb8"
+        }
+      ]
+    },
+    {
+      "name": "postgres",
+      "version": "3.4.9",
+      "declaredLicense": "Unlicense",
+      "repository": "porsager/postgres",
+      "notices": []
+    },
+    {
+      "name": "pure-rand",
+      "version": "7.0.1",
+      "declaredLicense": "MIT",
+      "repository": "git+https://github.com/dubzzz/pure-rand.git",
+      "notices": [
+        {
+          "file": "LICENSE",
+          "sha256": "e9d6a94ab01c6c9ab68c099d3ba8dd9f8aca60f2e2250c2302275405fca9e806"
+        }
+      ]
+    },
+    {
+      "name": "react-dom",
+      "version": "19.3.1",
+      "declaredLicense": "MIT",
+      "repository": "https://github.com/react/react.git",
+      "notices": [
+        {
+          "file": "LICENSE",
+          "sha256": "da6d3703ed11cbe42bd212c725957c98da23cbff1998c05fa4b3d976d1a58e93"
+        }
+      ]
+    },
+    {
+      "name": "react",
+      "version": "19.3.1",
+      "declaredLicense": "MIT",
+      "repository": "https://github.com/react/react.git",
+      "notices": [
+        {
+          "file": "LICENSE",
+          "sha256": "da6d3703ed11cbe42bd212c725957c98da23cbff1998c05fa4b3d976d1a58e93"
+        }
+      ]
+    },
+    {
+      "name": "resolve-pkg-maps",
+      "version": "1.0.0",
+      "declaredLicense": "MIT",
+      "repository": "privatenumber/resolve-pkg-maps",
+      "notices": [
+        {
+          "file": "LICENSE",
+          "sha256": "10c904a49af44409b073532e45a53fd4df19bdf26eaf9afc7917258c2b354382"
+        }
+      ]
+    },
+    {
+      "name": "rollup",
+      "version": "4.65.0",
+      "declaredLicense": "MIT",
+      "repository": "git+https://github.com/rollup/rollup.git",
+      "notices": [
+        {
+          "file": "LICENSE.md",
+          "sha256": "fa1bd040c5bdeefe65b3821cebf474f2733ce65df13089bd151dda1778e62fe8"
+        }
+      ]
+    },
+    {
+      "name": "scheduler",
+      "version": "0.28.0",
+      "declaredLicense": "MIT",
+      "repository": "https://github.com/react/react.git",
+      "notices": [
+        {
+          "file": "LICENSE",
+          "sha256": "da6d3703ed11cbe42bd212c725957c98da23cbff1998c05fa4b3d976d1a58e93"
+        }
+      ]
+    },
+    {
+      "name": "semver",
+      "version": "7.8.5",
+      "declaredLicense": "ISC",
+      "repository": "git+https://github.com/npm/node-semver.git",
+      "notices": [
+        {
+          "file": "LICENSE",
+          "sha256": "4ec3d4c66cd87f5c8d8ad911b10f99bf27cb00cdfcff82621956e379186b016b"
+        }
+      ]
+    },
+    {
+      "name": "sharp",
+      "version": "0.35.5",
+      "declaredLicense": "Apache-2.0",
+      "repository": "git+https://github.com/lovell/sharp.git",
+      "notices": [
+        {
+          "file": "LICENSE",
+          "sha256": "73ba74dfaa520b49a401b5d21459a8523a146f3b7518a833eea5efa85130bf68"
+        }
+      ]
+    },
+    {
+      "name": "source-map-js",
+      "version": "1.2.2",
+      "declaredLicense": "BSD-3-Clause",
+      "repository": "7rulnik/source-map-js",
+      "notices": [
+        {
+          "file": "LICENSE",
+          "sha256": "6cb0631f71c7749763fd3dd1d5bee52dd1070ec17f2edc1710079ad070bd2fbd"
+        }
+      ]
+    },
+    {
+      "name": "source-map-support",
+      "version": "0.5.21",
+      "declaredLicense": "MIT",
+      "repository": "https://github.com/evanw/node-source-map-support",
+      "notices": [
+        {
+          "file": "LICENSE.md",
+          "sha256": "3a7d3bb198e909ed642bd68bd29a7d7c09a636d27a51ec663d35f00c4760ec42"
+        }
+      ]
+    },
+    {
+      "name": "source-map",
+      "version": "0.6.1",
+      "declaredLicense": "BSD-3-Clause",
+      "repository": "http://github.com/mozilla/source-map.git",
+      "notices": [
+        {
+          "file": "LICENSE",
+          "sha256": "6cb0631f71c7749763fd3dd1d5bee52dd1070ec17f2edc1710079ad070bd2fbd"
+        }
+      ]
+    },
+    {
+      "name": "std-env",
+      "version": "4.3.0",
+      "declaredLicense": "MIT",
+      "repository": "unjs/std-env",
+      "notices": [
+        {
+          "file": "LICENCE",
+          "sha256": "a6f36438e46fb911859f3b9c4cad045ba64e1af3d8f4512c60258fa2d7552d28"
+        }
+      ]
+    },
+    {
+      "name": "styled-jsx",
+      "version": "5.1.6",
+      "declaredLicense": "MIT",
+      "repository": "vercel/styled-jsx",
+      "notices": [
+        {
+          "file": "license.md",
+          "sha256": "24d4a4580df855c345705b3016404f0c9da7e7674dc3b21a3ce7d0e5d0c37e2d"
+        }
+      ]
+    },
+    {
+      "name": "tinybench",
+      "version": "6.2.2",
+      "declaredLicense": "MIT",
+      "repository": "tinylibs/tinybench",
+      "notices": [
+        {
+          "file": "LICENSE",
+          "sha256": "cebc084d54e6dd99e53292ddb4bc1cdb63d9bfcd9ce438fe3aa6eb106d79e2ea"
+        }
+      ]
+    },
+    {
+      "name": "tinyexec",
+      "version": "1.3.1",
+      "declaredLicense": "MIT",
+      "repository": "git+https://github.com/tinylibs/tinyexec.git",
+      "notices": [
+        {
+          "file": "LICENSE",
+          "sha256": "f95f668fe64081ddb4153b322e34fdd719b991285ed08177d5ad7133b7988d92"
+        }
+      ]
+    },
+    {
+      "name": "tinyglobby",
+      "version": "0.2.17",
+      "declaredLicense": "MIT",
+      "repository": "git+https://github.com/SuperchupuDev/tinyglobby.git",
+      "notices": [
+        {
+          "file": "LICENSE",
+          "sha256": "22c68811e174cbbfb3813d4135918df4f540959c14d872e601d9abe83d3cde8f"
+        }
+      ]
+    },
+    {
+      "name": "tslib",
+      "version": "2.8.1",
+      "declaredLicense": "0BSD",
+      "repository": "https://github.com/Microsoft/tslib.git",
+      "notices": [
+        {
+          "file": "LICENSE.txt",
+          "sha256": "210b19e543130388c68654b7497e967119ce17145f66ab7d85688fbd70f08751"
+        }
+      ]
+    },
+    {
+      "name": "tsx",
+      "version": "4.23.15",
+      "declaredLicense": "MIT",
+      "repository": "privatenumber/tsx",
+      "notices": [
+        {
+          "file": "LICENSE",
+          "sha256": "8dded67841a9261a622c739fb61c81785e93765de852828ceeb9403d20a74581"
+        }
+      ]
+    },
+    {
+      "name": "typescript",
+      "version": "5.9.3",
+      "declaredLicense": "Apache-2.0",
+      "repository": "https://github.com/microsoft/TypeScript.git",
+      "notices": [
+        {
+          "file": "LICENSE.txt",
+          "sha256": "a7d00bfd54525bc694b6e32f64c7ebcf5e6b7ae3657be5cc12767bce74654a47"
+        }
+      ]
+    },
+    {
+      "name": "undici-types",
+      "version": "6.21.0",
+      "declaredLicense": "MIT",
+      "repository": "git+https://github.com/nodejs/undici.git",
+      "notices": [
+        {
+          "file": "LICENSE",
+          "sha256": "a6db8096b2707bc0102d256917d4d33f298ba36d8c3f25de067a2b5bb379db27"
+        }
+      ]
+    },
+    {
+      "name": "vite",
+      "version": "7.3.7",
+      "declaredLicense": "MIT",
+      "repository": "git+https://github.com/vitejs/vite.git",
+      "notices": [
+        {
+          "file": "LICENSE.md",
+          "sha256": "a77a1c089806b39ad339535bdf3677f636c91d96693e8ad7b11fe733f650ea64"
+        }
+      ]
+    },
+    {
+      "name": "vitest",
+      "version": "5.0.5",
+      "declaredLicense": "MIT",
+      "repository": "git+https://github.com/vitest-dev/vitest.git",
+      "notices": [
+        {
+          "file": "LICENSE.md",
+          "sha256": "78fbac9e571c2ee260deb2a1941a8a18f0a85e3f39c23d08e2dcee6da4841998"
+        }
+      ]
+    },
+    {
+      "name": "why-is-node-running",
+      "version": "3.2.1",
+      "declaredLicense": "MIT",
+      "repository": "https://github.com/mafintosh/why-is-node-running.git",
+      "notices": [
+        {
+          "file": "LICENSE",
+          "sha256": "6a134e51aa31496c15a741592fc5d782b2dbf8d8b6b8524e15c8520ae0cd6374"
+        }
+      ]
+    }
+  ]
+}

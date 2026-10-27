@@ -1,0 +1,17 @@
+{
+  "runtimeImage": "ghcr.io/ggml-org/llama.cpp@sha256:4c153258c28d40ef1d34c265b893c57626235dc1178147d04a963c15ff9729cd",
+  "runtimeRevision": "c7fc5094179bf8a9c73c18593db714f8da41a402",
+  "runtimeVersion": "b11804",
+  "runtimeLicense": "MIT",
+  "modelRepository": "Qwen/Qwen3-1.7B-GGUF",
+  "modelRevision": "90862c4b9d2787eaed51d12237eafdfe7c5f6077",
+  "modelFile": "Qwen3-1.7B-Q8_0.gguf",
+  "modelBytes": 1834426016,
+  "modelSha256": "061b54daade076b5d3362dac252678d17da8c68f07560be70818cace6590cb1a",
+  "modelLicense": "Apache-2.0",
+  "alias": "aidtrace-category-qwen3",
+  "endpoint": "http://model:8080/v1/chat/completions",
+  "contextTokens": 8192,
+  "threads": 2,
+  "memoryBytes": 4294967296
+}

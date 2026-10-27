@@ -1,0 +1,9 @@
+services:
+  app:
+    environment:
+      NODE_ENV: production
+    command: [pnpm, start]
+    volumes:
+      - review_build:/workspace/.next
+volumes:
+  review_build:
