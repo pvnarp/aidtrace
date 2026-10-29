@@ -27,6 +27,14 @@ it("SOL-03: rejects a forced hospitality edge with the STEM policy reason", () =
   const input = fixture();
   expect(() => validateAllocation(input, [{ fundId: "fund_b", lineId: "L3", amountCents: 7000n, policyVersion: 1, solverPriorityVersion: 1, reason: "Forced edge" }])).toThrow(/STEM B policy v1: does not allow category hospitality/);
 });
+it("IAC-346: the fixture comparison advantage disappears when kit-only funding sorts first", () => {
+  const original = fixture();
+  const input = { ...original, funds: original.funds.map(fund => ({ ...fund, id: fund.id === "fund_b" ? "fund_0" : fund.id })) };
+  const baseline = naive(input); const optimal = allocate(input);
+  if (baseline.status !== "FUNDED" || optimal.status !== "FUNDED") throw new Error("Fixture must be feasible");
+  expect(baseline.unrestrictedCents).toBe(7000n);
+  expect(optimal.unrestrictedCents).toBe(7000n);
+});
 it("shares one remaining budget cap across kits and notebooks after prior debits", () => {
   const original = fixture();
   const input: AllocationInput = { ...original, funds: original.funds.map(fund => fund.id === "fund_b" ? { ...fund, balanceCents: 0n } : fund), priorDebits: [{ fundId: "fund_a", budgetLine: "supplies", amountCents: 20000n }] };

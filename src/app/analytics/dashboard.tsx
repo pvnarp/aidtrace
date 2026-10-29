@@ -13,7 +13,7 @@ function Funding({ snapshot }: { snapshot: AnalyticsSnapshot }) {
 }
 function Cash({ snapshot }: { snapshot: AnalyticsSnapshot }) {
   return <article className="analytics-widget" data-testid="cash-widget"><h2>Book cash bridge</h2><dl className="analytics-cash"><dt>Fixture opening cash</dt><dd>{usd(snapshot.cash.openingCents)}</dd><dt>Recorded activity</dt><dd>{usd(snapshot.cash.providerDeltaCents)}</dd><dt>Book cash</dt><dd>{usd(snapshot.cash.bookCents)}</dd><dt>Open payable</dt><dd>{usd(snapshot.cash.payableCents)}</dd></dl>
-    <p className="notice">Ledger tie-out: {snapshot.matches ? 'Matches' : 'Review required'}.</p><p>Source: existing local journals and fund records. Recorded activity is book cash less the fixture opening.</p><p>No current PayPal balance was fetched. This view does not independently verify provider records.</p>
+    <p className={snapshot.fixtureNotStarted || snapshot.matches ? 'notice' : 'notice warning'}>{snapshot.fixtureNotStarted ? 'Opening journals have not been created yet. No ledger tie-out is claimed for this untouched fixture.' : `Ledger tie-out: ${snapshot.matches ? 'Matches' : 'Review required'}.`}</p><p>Source: existing local journals and fund records. Recorded activity is book cash less the fixture opening.</p><p>No current PayPal balance was fetched. This view does not independently verify provider records.</p>
   </article>;
 }
 export default function AccountingDashboard({ snapshot }: { snapshot: AnalyticsSnapshot }) {

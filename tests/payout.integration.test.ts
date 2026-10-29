@@ -90,6 +90,8 @@ describe("IAC-136 HTTP-to-ledger journey with stubbed provider", () => {
     const [decision] = await db.select().from(s.allocationDecisions).where(eq(s.allocationDecisions.claimId, "C-104"));
     const form = { action: "approve", decisionId: decision!.id, decisionHash: decision!.decisionHash };
     expect((await action("tara", form)).headers.get("location")).toContain("approval-saved");
+    expect((await action("tara", form)).headers.get("location")).toContain("notice=already-approved");
+    expect((await db.select().from(s.approvals)).length).toBe(1);
     expect((await action("ben", form)).headers.get("location")).toContain("notice=approved");
     expect((await claimRow("C-104")).status).toBe("APPROVED");
     const view = await loadClaimView(db, "C-104", "ben");

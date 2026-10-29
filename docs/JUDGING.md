@@ -12,7 +12,8 @@ Linux ARM64 on OrbStack. Other architectures and physical Safari have not been v
 Use the fictional receipt-review journey through allocation preview. No payment is needed.
 Start the model with receipt-ai-up, then use review-up for the stable production review
 runtime. Select Prepare expense proposal once on a new fictional receipt, review the
-provisional funding/quotes, confirm categories explicitly and stop before Freeze. Code
+provisional funding/quotes and confirm categories explicitly. Follow ACCESS.md through
+Freeze and the separate Tara/Ben approvals. Stop at Approved before any Send action. Code
 changes require review-up again; it rebuilds/restarts only the app with separate build storage.
 
 For the optional analytics dashboard, sign in as tara or ben, open /analytics, filter

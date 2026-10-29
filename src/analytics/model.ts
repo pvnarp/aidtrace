@@ -8,7 +8,7 @@ export type Question = keyof typeof QUESTIONS;
 export type Fact = { id: string; text: string; source: string };
 export type AnalyticsSnapshot = {
   digest: string; observedAt: string; source: 'LOCAL_APPLICATION_DATABASE';
-  organization: string; fixture: boolean; matches: boolean;
+  organization: string; fixture: boolean; matches: boolean; fixtureNotStarted?: boolean;
   funds: { name: string; restriction: 'RESTRICTED' | 'UNRESTRICTED'; bookCents: string; reservedCents: string; availableCents: string }[];
   cash: { openingCents: string; providerDeltaCents: string; bookCents: string; payableCents: string };
   facts: Fact[];

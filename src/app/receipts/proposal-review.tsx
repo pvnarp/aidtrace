@@ -34,12 +34,12 @@ export function ProposalReview({ id, reviewId, draftHash, suggestionHash, sugges
     <section className="proposal-panel" aria-labelledby="proposal-heading" data-state={panel.state ?? "NOT_STARTED"} aria-busy={running}>
       <p className="eyebrow">Expense preparation</p><h2 id="proposal-heading">{pending ? "Preparation in progress" : message ? "Reload the saved review" : reviewChanged || editDirty ? "Review changes before continuing" : panel.heading}</h2>
       <p role="status">{pending ? "Preparing category suggestions, then checking funding rules. This can take about a minute. Submit once; manual review stays available after this request finishes." : message || reviewChanged || editDirty ? "The earlier preview is hidden until your current saved review is checked again." : panel.message}</p>
-      {!pending && !message && !reviewChanged && !editDirty && panel.steps.length > 0 && <ol className="proposal-steps" aria-label="Preparation steps">{panel.steps.map(step => <li key={step}>{step}</li>)}</ol>}
+      {!pending && !message && !reviewChanged && !editDirty && panel.steps.length > 0 && <details><summary>How this proposal was prepared</summary><ol className="proposal-steps" aria-label="Preparation steps">{panel.steps.map(step => <li key={step}>{step}</li>)}</ol></details>}
       {!pending && !message && !reviewChanged && !editDirty && panel.split && <p className="proposal-split"><strong>{panel.split}</strong></p>}
-      {!pending && !message && !reviewChanged && !editDirty && panel.edges.length > 0 && <ul className="proposal-edges">{panel.edges.map((edge, index) => <li key={`${edge.lineId}-${index}`}><strong>{edge.lineId}: {edge.amount} from {edge.fund}</strong><p>{edge.reason}</p></li>)}</ul>}
+      {!pending && !message && !reviewChanged && !editDirty && panel.edges.length > 0 && <details><summary>Inspect provisional funding rules</summary><ul className="proposal-edges">{panel.edges.map((edge, index) => <li key={`${edge.lineId}-${index}`}><strong>{edge.lineId}: {edge.amount} from {edge.fund}</strong><p>{edge.reason}</p></li>)}</ul></details>}
       {!pending && !message && !reviewChanged && !editDirty && panel.issues.length > 0 && <ul className="proposal-issues">{panel.issues.map(issue => <li key={issue.lineId}>{issue.lineId}: {issue.message}</li>)}</ul>}
       {reviewChanged && <p>The earlier funding preview is hidden because your review choices changed. Confirm categories to view a recalculated allocation.</p>}
-      <p>Preparation stops here. You must confirm categories below, then freeze the allocation separately for two human approvals.</p>
+      <p>Next: confirm the categories below. Funding stays provisional until you freeze it for two human approvals.</p>
       {editable && <form action={`/api/receipts/${id}/proposal`} method="post" className="proposal-form" onSubmit={event => { event.preventDefault(); void prepare(event.currentTarget); }}>
         <input type="hidden" name="action" value="prepare" /><input type="hidden" name="reviewId" value={reviewId} /><input type="hidden" name="draftHash" value={draftHash} /><input type="hidden" name="suggestionHash" value={suggestionHash} /><input type="hidden" name="runHash" value={runHash} />
         <button disabled={!interactive || running || dirty || editDirty || Boolean(message)} type="submit">{running ? "Preparation in progress..." : panel.state === "READY_FOR_REVIEW" || panel.state === "POLICY_BLOCKED" || panel.state === "STALE" ? "Refresh funding preview" : "Prepare expense proposal"}</button>
@@ -49,15 +49,15 @@ export function ProposalReview({ id, reviewId, draftHash, suggestionHash, sugges
       {editDirty && <p role="status">You have unsaved receipt edits. Save them below or reload the saved receipt before preparing or confirming.</p>}
       {running && <p><a href={receiptUrl}>Refresh preparation status</a></p>}
       {message && <p role="alert">{message} <a href={receiptUrl}>Reload saved receipt</a> or <a href="/login">sign in</a>.</p>}
-      <p><a href="#category-review">Review categories manually</a></p>
+      <p><a className="button-link secondary" href="#category-review">{panel.state === "READY_FOR_REVIEW" ? "Review suggested categories" : "Review categories manually"}</a></p>
     </section>
     <section id="category-review" aria-labelledby="category-review-heading"><h2 id="category-review-heading">Review and confirm each category</h2>
-      <p>Check the source quote and category for every line. Correct a suggestion if needed. A quote match does not prove the category is right.</p>
+      <p>Check each suggested category and its quote against the receipt. Matching text does not prove the category is right. Changing a category requires your reason.</p>
       {running && <p>Wait for this request to finish or refresh its status before confirming, so you review the current suggestions.</p>}
-      <form action={`/api/receipts/${id}`} method="post" className="receipt-form" onChange={event => { setDirty(true); const input = event.target; if (!(input instanceof HTMLInputElement) || input.name !== "confirm") setReviewChanged(true); }}>
+      <form action={`/api/receipts/${id}`} method="post" className="receipt-form category-form" onChange={event => { setDirty(true); const input = event.target; if (!(input instanceof HTMLInputElement) || input.name !== "confirm") setReviewChanged(true); }}>
         <input type="hidden" name="action" value="confirm" /><input type="hidden" name="reviewId" value={reviewId} /><input type="hidden" name="draftHash" value={draftHash} /><input type="hidden" name="suggestionId" value={suggestionId ?? ""} /><input type="hidden" name="suggestionHash" value={suggestionHash} />
         {lines.map(line => <section key={line.id}><h3>{line.id}: {line.description}</h3><p>{line.amount}</p>
-          {line.proposal && line.proposal.category !== "UNKNOWN" ? <><p>AI suggests: <strong>{names[line.proposal.category]}</strong></p><blockquote>{line.proposal.quote}</blockquote><p>Exact quote found once in the receipt. You still need to verify the category.</p></> : <p>No supported category suggested. Choose a category manually.</p>}
+          {line.proposal && line.proposal.category !== "UNKNOWN" ? <><p>AI suggests: <strong>{names[line.proposal.category]}</strong></p><blockquote>{line.proposal.quote}</blockquote></> : <p>No supported category suggested. Choose a category manually.</p>}
           <CategoryChoice lineId={line.id} proposed={line.proposal?.category} editable={editable && !running && !editDirty} />
         </section>)}
         {editable && <><label className="confirm"><input type="checkbox" name="confirm" value="yes" required disabled={running || editDirty} /> I checked every category and quote. I understand alcohol cannot be reimbursed.</label><button disabled={running || editDirty}>Confirm categories</button></>}

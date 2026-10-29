@@ -68,15 +68,22 @@ does not replace another AidTrace database. Local Docker administrators can acce
 
 ## 3. Demonstrate AI review: no payment needed
 
-Sign in as maria with SEED_PASSWORD_MARIA. Choose Create a synthetic receipt draft. Keep the
+Sign in as maria with SEED_PASSWORD_MARIA. Choose Start a $6 practice expense. Keep the
 fictional USD 6.00 example, attest it is invented and create it. Select Prepare expense
-proposal once. Review the bounded preparation steps, provisional funding and every category
+proposal once. Expand How this proposal was prepared for the bounded steps. Review provisional funding and every category
 and exact supporting quote. This preview reserves no funds and is not PayPal cash.
 Correct or manually choose any category
-with a reason, explicitly confirm, then View allocation. Stop before freezing or approvals.
+with a reason, explicitly confirm, then View allocation. Follow [ACCESS.md](docs/ACCESS.md)
+through Maria freezing the terms and Tara/Ben reviewing and approving independently. Stop
+at Approved, before Send. The default USD 6.00 receipt then has two approvals and USD 6.00
+open payable. This recognizes an obligation without submitting a payment.
 The AI adapter receives bounded source text and descriptions, not money, payees or funds.
 It has no tools or financial authority. Repeat requests reuse existing work. UNKNOWN stays
 unresolved until human review; alcohol remains prohibited. Editing requires a new review.
+
+The five-stage guide shows the current stage and next role. For an interactive explanation,
+open /architecture from the home page. Click a component or step to follow an allowed or
+blocked example. This illustration executes no requests and is not live telemetry.
 
 The fresh C-104 allocation fixture separately shows USD 430 restricted and USD 70 General,
 versus USD 200 General from its simple comparison. It is an unpaid fictional claim in this

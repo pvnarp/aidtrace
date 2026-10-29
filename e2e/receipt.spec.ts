@@ -73,7 +73,7 @@ async function login(page: Page, user: keyof typeof passwords) {
   await page.waitForURL(url => url.pathname === "/"); await page.goto("/claims/C-104");
 }
 async function create(page: Page) {
-  await login(page, "maria"); await page.goto("/"); await page.getByRole("link", { name: "Create a synthetic receipt draft" }).click();
+  await login(page, "maria"); await page.goto("/"); await page.getByRole("link", { name: "Start a $6 practice expense", exact: true }).click();
   await noOverflow(page); await page.getByLabel("This receipt is fictional sandbox data.").check();
   await page.getByRole("button", { name: "Create receipt draft", exact: true }).click();
   await expect(page.getByRole("status")).toContainText("Unpaid draft created"); await noOverflow(page);
@@ -87,7 +87,7 @@ test("GB-02: 375-pixel receipt quotes, explicit confirmation, allocation and edi
   expect(await page.getByLabel(/I checked every category/).evaluate((el: HTMLInputElement) => el.validity.valueMissing)).toBe(true);
   await page.getByLabel(/I checked every category/).check(); await page.getByRole("button", { name: "Confirm categories", exact: true }).click();
   await expect(page.getByRole("heading", { name: "Human confirmation recorded" })).toBeVisible(); await page.getByRole("link", { name: "View allocation", exact: true }).click();
-  await expect(page.getByRole("heading", { name: "$5.00 from restricted funds, $1.00 from General.", exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "$5.00 restricted. $1.00 General.", exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: "Freeze allocation for approval" })).toBeVisible(); await noOverflow(page);
   await page.goto(receiptUrl); await page.getByText("Edit receipt or amounts", { exact: true }).click();
   await page.getByLabel("Invented receipt text").fill("Edited fictional source"); await page.getByLabel("This receipt is fictional sandbox data.").check();

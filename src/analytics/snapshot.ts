@@ -3,6 +3,7 @@ import { eq, sql } from 'drizzle-orm';
 import * as s from '../../db/schema';
 import type { AppDatabase } from '../server/db';
 import { reconcile } from '../ledger/reconcile';
+import { fixtureNotStarted } from '../server/fixture-state';
 import { usd, type AnalyticsSnapshot, type Fact } from './model';
 export class AnalyticsAccessError extends Error {
   constructor(public readonly status: 403 | 503) { super(status === 403 ? 'Approver access required' : 'Single-organization accounting required'); }
@@ -18,6 +19,7 @@ export async function loadAnalyticsSnapshot(db: AppDatabase, actorId: string): P
     const organization = organizations[0]!;
     const names = await tx.select({ id: s.funds.id, name: s.funds.name }).from(s.funds).where(eq(s.funds.organizationId, actor.organizationId));
     const report = await reconcile(tx, actor.organizationId);
+    const notStarted = await fixtureNotStarted(tx, actor.organizationId);
     const reserved = report.fundBalances.reduce((sum, fund) => sum + fund.reservedCents, 0n);
     const available = report.fundBalances.reduce((sum, fund) => sum + fund.availableCents, 0n);
     const facts: Fact[] = [
@@ -29,11 +31,11 @@ export async function loadAnalyticsSnapshot(db: AppDatabase, actorId: string): P
       { id: 'opening', text: `Fixture opening cash is ${usd(report.fixtureCashCents)}.`, source: 'Fixture opening journal entries in account 1010' },
       { id: 'activity', text: `Recorded cash activity beyond the fixture opening is ${usd(report.providerActivityCashDeltaCents)}.`, source: 'Account 1010 less fixture opening cash; local records only' },
       { id: 'payable', text: `Open reimbursement payable is ${usd(report.openPayableCents)}.`, source: 'Journal account 2010 credit balance' },
-      { id: 'tie-out', text: report.matches ? 'Fund balances match the corresponding ledger balances.' : 'Fund balances do not match the corresponding ledger balances. Review is required.', source: 'Existing ledger reconciliation' },
+      { id: 'tie-out', text: notStarted ? 'Opening journals have not been created yet. No ledger tie-out is claimed for this untouched fixture.' : report.matches ? 'Fund balances match the corresponding ledger balances.' : 'Fund balances do not match the corresponding ledger balances. Review is required.', source: 'Existing ledger reconciliation and explicit fixture initialization check' },
       { id: 'cash-limit', text: 'These are local accounting records, not a current PayPal available balance. No provider request was made.', source: 'Snapshot boundary' },
     ];
     const content = {
-      source: 'LOCAL_APPLICATION_DATABASE' as const, organization: organization.name, fixture: organization.isFixture, matches: report.matches,
+      source: 'LOCAL_APPLICATION_DATABASE' as const, organization: organization.name, fixture: organization.isFixture, matches: report.matches, fixtureNotStarted: notStarted,
       funds: report.fundBalances.map(fund => ({ name: names.find(row => row.id === fund.fundId)!.name, restriction: fund.fundClass, bookCents: fund.bookCents.toString(), reservedCents: fund.reservedCents.toString(), availableCents: fund.availableCents.toString() })).sort((a, b) => a.name.localeCompare(b.name)),
       cash: { openingCents: report.fixtureCashCents.toString(), providerDeltaCents: report.providerActivityCashDeltaCents.toString(), bookCents: report.bookCashCents.toString(), payableCents: report.openPayableCents.toString() }, facts,
     };

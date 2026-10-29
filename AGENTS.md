@@ -1,5 +1,19 @@
 # AidTrace judge candidate
 
+Apply docs/plans/JOURNEY_ARCHITECTURE_SCOPE.md for five saved-state journey stages and
+role handoffs. The clickable /architecture explorer uses fictional illustrations, not
+live traffic. It executes no requests and grants no financial authority.
+
+Apply the owner-adopted IAC-348 presentation scope in docs/plans/DEMO_UX_SCOPE.md.
+Keep claim identity and batch/item status visible before financial actions. Supporting
+quotes, policy reasons and private identifiers remain available in expandable details.
+The workflow overview is static, not live tracing. Do not hide a genuine ledger mismatch.
+
+Apply the owner-adopted October 27 review corrections in
+docs/plans/REVIEW_CORRECTIONS_SCOPE.md. Existing information is shown more clearly to
+approvers; financial authority and hash payloads are unchanged. The no-payment walkthrough
+ends at Approved after two independent approvals. Do not select Send.
+
 Implement docs/SPEC.md plus docs/plans/GATE_B_SCOPE.md and the owner-adopted bounded
 analytics addendum docs/plans/SPONSOR_ANALYTICS_SCOPE.md and the owner-adopted bounded
 expense-preparation addendum docs/plans/AGENTIC_EXPENSE_SCOPE.md. Preparation has no authority

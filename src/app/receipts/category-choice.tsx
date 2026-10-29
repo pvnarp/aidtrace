@@ -5,13 +5,13 @@ export function CategoryChoice({ lineId, proposed, editable }: { lineId: string;
   const accepted = proposed && proposed !== "UNKNOWN" ? proposed : "";
   const [category, setCategory] = useState(accepted);
   const manual = !accepted || category !== accepted;
-  return <>
+  return <div className="category-choice">
     <label htmlFor={`category${lineId}`}>Category for {lineId}</label>
     <select id={`category${lineId}`} name={`category${lineId}`} value={category} onChange={event => setCategory(event.target.value)} required disabled={!editable}>
       <option value="">Choose a category</option>{Object.entries(options).map(([value, name]) => <option value={value} key={value}>{name}</option>)}
     </select>
-    <label htmlFor={`reason${lineId}`}>Reason for manual choice {lineId}</label>
-    <input id={`reason${lineId}`} name={`reason${lineId}`} required={manual} minLength={manual ? 3 : undefined} maxLength={200} disabled={!editable} />
-    <p>{manual ? "Explain this human choice in at least three characters." : "A reason is required if you change the suggested category."}</p>
-  </>;
+    <div hidden={!manual} className="manual-reason"><label htmlFor={`reason${lineId}`}>Reason for manual choice {lineId}</label>
+      <input id={`reason${lineId}`} name={`reason${lineId}`} aria-describedby={`reasonHint${lineId}`} required={manual} minLength={manual ? 3 : undefined} maxLength={200} disabled={!editable} />
+      <p id={`reasonHint${lineId}`} className="muted">Explain this human choice in at least three characters.</p></div>
+  </div>;
 }

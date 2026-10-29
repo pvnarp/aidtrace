@@ -4,12 +4,12 @@ export function DraftForm({ id, reviewId, hash, vendor = "Cedar Science Shop", p
   return <form action={id ? `/api/receipts/${id}` : "/api/receipts"} method="post" className="receipt-form">
     <input type="hidden" name="action" value={id ? "edit" : "create"} />
     {reviewId && <input type="hidden" name="reviewId" value={reviewId} />}{hash && <input type="hidden" name="draftHash" value={hash} />}
-    <label htmlFor="vendor">Fictional vendor</label><input id="vendor" name="vendor" defaultValue={vendor} required maxLength={120} />
-    <label htmlFor="program">Program</label><input id="program" name="program" defaultValue={program} required maxLength={64} />
-    <label htmlFor="incurredOn">Expense date</label><input id="incurredOn" type="date" name="incurredOn" defaultValue={incurredOn} required />
-    {Array.from({ length: Math.max(3, lines.length) }, (_, i) => <fieldset key={i}><legend>Line {i + 1}</legend>
-      <label htmlFor={`description${i + 1}`}>Description {i + 1}</label><input id={`description${i + 1}`} name={`description${i + 1}`} defaultValue={lines[i]?.description ?? ""} maxLength={256} required={i === 0} />
-      <label htmlFor={`amount${i + 1}`}>USD amount {i + 1}</label><input id={`amount${i + 1}`} name={`amount${i + 1}`} defaultValue={lines[i]?.amount ?? ""} inputMode="decimal" pattern="[0-9]+\.[0-9]{2}" placeholder="0.00" required={i === 0} />
+    <div className="receipt-meta"><label htmlFor="vendor">Fictional vendor<input id="vendor" name="vendor" defaultValue={vendor} required maxLength={120} /></label>
+    <label htmlFor="program">Program<input id="program" name="program" defaultValue={program} required maxLength={64} /></label>
+    <label htmlFor="incurredOn">Expense date<input id="incurredOn" type="date" name="incurredOn" defaultValue={incurredOn} required /></label></div>
+    {Array.from({ length: Math.max(3, lines.length) }, (_, i) => <fieldset key={i} className="receipt-line"><legend>Line {i + 1}</legend>
+      <label htmlFor={`description${i + 1}`}>Description {i + 1}<input id={`description${i + 1}`} name={`description${i + 1}`} defaultValue={lines[i]?.description ?? ""} maxLength={256} required={i === 0} /></label>
+      <label htmlFor={`amount${i + 1}`}>USD amount {i + 1}<input id={`amount${i + 1}`} name={`amount${i + 1}`} defaultValue={lines[i]?.amount ?? ""} inputMode="decimal" pattern="[0-9]+\.[0-9]{2}" placeholder="0.00" required={i === 0} /></label>
     </fieldset>)}
     <label htmlFor="total">Receipt total in USD</label><input id="total" name="total" defaultValue={total} required inputMode="decimal" pattern="[0-9]+\.[0-9]{2}" />
     <label htmlFor="source">Invented receipt text</label><textarea id="source" name="source" defaultValue={source} required rows={7} maxLength={16384} />

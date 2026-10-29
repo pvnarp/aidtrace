@@ -91,6 +91,18 @@ it("AI-02/05: unavailable model and manual corrections remain human choices; UNK
   const invalid = await draft(); expect(await suggest(invalid, async value => ({ ...(await stub(value)), proposals: [{ lineId: "L1", category: "science_kits", quote: "not in source", start: 0, end: 13 }] }))).toBe(false);
   expect((await view(invalid)).suggestion!.errorCode).toBe("VALIDATION");
 });
+it("IAC-346: approvers receive the current manual correction and original AI quote with the bound terms", async () => {
+  const id = await draft(); await suggest(id); await confirm(id, "notebooks", "Human correction from the invented source");
+  const frozen = await freezeDecision(connection.db, id, "maria");
+  expect(frozen.status).toBe("AWAITING_APPROVAL");
+  const view = await loadClaimView(connection.db, id, "tara");
+  expect(view.lines[0]).toMatchObject({ description: "Science experiment kit", category: "notebooks", amountCents: 300n });
+  expect(view.receiptReview?.lines[0]).toMatchObject({ category: "notebooks", provenance: "HUMAN", reason: "Human correction from the invented source", proposal: { category: "science_kits", quote: "Science experiment kit" } });
+  expect(view.decision?.decisionHash).toBe(frozen.status === "AWAITING_APPROVAL" ? frozen.decisionHash : "unexpected");
+  await expect(loadClaimView(connection.db, id, "other")).rejects.toThrow();
+  expect(await connection.db.select().from(s.approvals)).toHaveLength(0);
+  expect(await connection.db.select().from(s.disbursements)).toHaveLength(0);
+});
 it("GB-01: alcohol confirmation records the fact but cannot fund or reserve reimbursement", async () => {
   const id = await draft(); await confirm(id, "alcohol", "Synthetic alcohol receipt");
   expect((await view(id)).lines[0]!.budgetLine).toBe("prohibited");

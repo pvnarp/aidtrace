@@ -6,6 +6,7 @@ import { approveDecision, freezeDecision, rejectClaim } from "../ledger/service"
 import { refreshClaimPayout, sendClaimPayout } from "../ledger/payout";
 import { authorizePayoutRetry, sendAuthorizedPayoutRetry } from "../ledger/retry";
 import type { PayoutTransport } from "../paypal/adapter";
+import { claimFailureNotice } from "./claim-notices";
 
 export async function handleClaimAction(request: Request, claimId: string, dependencies: { db: AppDatabase; provider: () => PayoutTransport }) {
   if (!isSameOrigin(request)) return new Response("Request origin rejected", { status: 403 });
@@ -57,5 +58,5 @@ export async function handleClaimAction(request: Request, claimId: string, depen
       return redirect(result.state === "UNKNOWN" ? "unknown" : result.state === "FUNDING_REJECTED" ? "funding" : "submitted");
     }
     return new Response("Unknown action", { status: 400 });
-  } catch { return redirect("action-failed"); }
+  } catch (error) { return redirect(claimFailureNotice(error)); }
 }

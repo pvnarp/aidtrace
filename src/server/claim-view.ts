@@ -5,12 +5,27 @@ import { readSnapshot } from "../ledger/snapshot";
 import { reconcile } from "../ledger/reconcile";
 import { allocate } from "../domain/allocate";
 import { naive } from "../domain/naive";
+import { CLAIM_ID } from "../receipt/terms";
+import { receiptContext } from "../receipt/service";
+import { requireReceiptConfirmation } from "../receipt/guard";
+import { fixtureNotStarted } from "./fixture-state";
 
 export async function loadClaimView(db: AppDatabase, claimId: string, actorId: string) {
   return db.transaction(async tx => {
     const snapshot = await readSnapshot(tx, claimId);
     const [actor] = await tx.select({ id: s.users.id, organizationId: s.users.organizationId, role: s.users.role }).from(s.users).where(eq(s.users.id, actorId));
     if (!actor || actor.organizationId !== snapshot.claim.organizationId || (actor.role === "CLAIMANT" && actor.id !== snapshot.claim.claimantId)) throw new Error("Organization and claim access required");
+    // Read supporting confirmation evidence in the same snapshot as the financial terms.
+    // It is immutable review history, not an additional approval or a new hash field.
+    const receipt = CLAIM_ID.test(claimId) ? await receiptContext(tx, claimId, actorId) : null;
+    if (receipt?.confirmation) await requireReceiptConfirmation(tx, snapshot.claim);
+    const receiptReview = receipt?.confirmation ? {
+      confirmedAt: receipt.confirmation.confirmedAt,
+      lines: receipt.confirmation.selections.map(selection => ({ ...selection,
+        proposal: receipt.suggestion?.id === receipt.confirmation!.suggestionId && receipt.suggestion.status === "READY"
+          ? receipt.suggestion.proposals?.find(proposal => proposal.lineId === selection.lineId) ?? null : null,
+      })),
+    } : null;
     const [decision] = await tx.select().from(s.allocationDecisions).where(and(eq(s.allocationDecisions.claimId, claimId), eq(s.allocationDecisions.claimVersion, snapshot.claim.version), isNull(s.allocationDecisions.invalidatedAt))).orderBy(desc(s.allocationDecisions.frozenAt)).limit(1);
     const input = { ...snapshot.input, decisionId: decision?.id };
     const storedEdges = decision ? await tx.select().from(s.allocationEdges).where(eq(s.allocationEdges.decisionId, decision.id)) : [];
@@ -24,6 +39,6 @@ export async function loadClaimView(db: AppDatabase, claimId: string, actorId: s
     const [retryAuthorization] = attempt ? await tx.select().from(s.retryAuthorizations).where(and(eq(s.retryAuthorizations.claimId, claimId), eq(s.retryAuthorizations.claimVersion, snapshot.claim.version), eq(s.retryAuthorizations.attemptNumber, attempt.attemptNumber + 1))).limit(1) : [];
     const donations = await tx.select().from(s.donationReceipts).where(eq(s.donationReceipts.organizationId, snapshot.organization.id));
     const rejections = await tx.select({ reason: s.claimRejections.reason, rejectedBy: s.users.displayName }).from(s.claimRejections).innerJoin(s.users, eq(s.users.id, s.claimRejections.rejectedBy)).where(and(eq(s.claimRejections.claimId, claimId), eq(s.claimRejections.claimVersion, snapshot.claim.version)));
-    return { ...snapshot, decision, edges, generalCents, comparison, approvals, attempt, retryAuthorization, donations, rejections, report: await reconcile(tx, snapshot.organization.id), feasible: Boolean(decision) || optimized?.status === "FUNDED" };
+    return { ...snapshot, receiptReview, decision, edges, generalCents, comparison, approvals, attempt, retryAuthorization, donations, rejections, fixtureNotStarted: await fixtureNotStarted(tx, snapshot.organization.id), report: await reconcile(tx, snapshot.organization.id), feasible: Boolean(decision) || optimized?.status === "FUNDED" };
   }, { isolationLevel: "repeatable read" });
 }

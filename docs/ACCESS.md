@@ -33,15 +33,29 @@ This is the stable production-serving local review path, without development liv
 The app port is loopback 127.0.0.1:3100. The model and database have no published ports in
 the prepared Compose declarations. Do not open them to a public network.
 
-## 3. Review one fictional receipt: stop before Freeze
+## 3. Review one fictional receipt: stop at Approved before payment
 
-Sign in as maria. Create the default invented three-line USD 6.00 receipt and request
+Sign in as maria. Choose Start a $6 practice expense, create the default invented three-line USD 6.00 receipt and request
 Prepare expense proposal once. Allow the request to finish or use Refresh preparation
-status. Review each category, exact source quote, fixed preparation step and provisional
+status. Expand How this proposal was prepared for the preparation steps. Review each category, exact source quote and provisional
 funding result. Confirm or manually correct each category, supplying a reason when required.
 Explicitly confirm categories, then View allocation. On a fresh unchanged fixture the
-expected preview is USD 5.00 restricted and USD 1.00 General. Stop before Freeze allocation.
-Preparation does not reserve funds, approve an expense or request payment.
+expected preview is USD 5.00 restricted and USD 1.00 General. Preparation does not reserve
+funds, approve an expense or request payment.
+
+As maria, select Freeze allocation for approval. This reserves eligible funding for these
+terms. Sign out, sign in as tara using her generated password and open the same claim URL.
+Review the vendor, program/date, item descriptions, categories, original AI suggestions and
+manual reasons. Expand Review exact sandbox recipient privately; it should be this fixture's
+non-payable address. Select Approve these terms once. The page should
+show one approval and Awaiting approval. Sign out, sign in as ben and review the same terms.
+Select Approve these terms once. Expect two approvals, Approved and USD 6.00 organization
+payable on an otherwise fresh fixture. Stop here. Do not select Send or configure PayPal.
+Approval recognizes the obligation but does not submit a payment. The PayPal client values
+remain empty and no payout attempt should exist.
+
+For a fully manual fallback, choose categories with reasons before freezing. A correction
+changes the allocation preview; do not assume the default USD 5/USD 1 split after a change.
 
 Sign out. Sign in as tara or ben with that separate generated password. Review /analytics, its fund filter, one listed question and
 Read all snapshot facts without AI. Maria cannot access this organization-wide page.

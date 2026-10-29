@@ -44,8 +44,8 @@ test('AN-07: anonymous and claimant denied; desktop and phone native facts/filte
   page.on('pageerror',error=>errors.push(error.message));
   await page.route('**/*',route=>{const url=new URL(route.request().url());if(['127.0.0.1','localhost'].includes(url.hostname))return route.continue();forbiddenRequests++;return route.abort();});
   await page.goto('/analytics');await expect(page).toHaveURL(/\/login$/);
-  await login(page,'maria');await expect(page.getByRole('link',{name:'Open funding and cash dashboard'})).toHaveCount(0);await page.goto('/analytics');await expect(page.getByRole('heading',{name:'Approver access required.'})).toBeVisible();expect((await page.request.get('/api/analytics')).status()).toBe(403);
-  await page.goto('/');await page.getByRole('button',{name:'Sign out'}).click();await login(page,'tara');await page.getByRole('link',{name:'Open funding and cash dashboard'}).click();await page.waitForURL(url=>url.pathname==='/analytics');
+  await login(page,'maria');await expect(page.getByRole('link',{name:'View funding and cash'})).toHaveCount(0);await page.goto('/analytics');await expect(page.getByRole('heading',{name:'Approver access required.'})).toBeVisible();expect((await page.request.get('/api/analytics')).status()).toBe(403);
+  await page.goto('/');await page.getByRole('button',{name:'Sign out'}).click();await login(page,'tara');await page.getByRole('link',{name:'View funding and cash'}).click();await page.waitForURL(url=>url.pathname==='/analytics');
   for(const width of [1280,390]){
     await page.setViewportSize({width,height:900});await expect(page.getByTestId('funding-widget')).toBeVisible();await expect(page.getByTestId('cash-widget')).toBeVisible();await contained(page);
     const widget=page.getByTestId('funding-widget');await widget.getByLabel('Show funds').selectOption('RESTRICTED');await expect(widget.getByRole('status')).toHaveText('Visible book balance: $500.00');await widget.getByLabel('Show funds').selectOption('UNRESTRICTED');await expect(widget.getByRole('status')).toHaveText('Visible book balance: $1,000.00');await contained(page);

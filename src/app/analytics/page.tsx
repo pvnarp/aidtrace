@@ -5,6 +5,7 @@ import { findSession, SESSION_COOKIE } from '../../server/auth';
 import { getDatabase } from '../../server/db';
 import { loadAnalyticsSnapshot, AnalyticsAccessError } from '../../analytics/snapshot';
 import { AnalyticsClient } from './client';
+import { reviewTime } from '../../server/display';
 export const dynamic = 'force-dynamic';
 export default async function AnalyticsPage() {
   const user = await findSession((await cookies()).get(SESSION_COOKIE)?.value);
@@ -16,7 +17,7 @@ export default async function AnalyticsPage() {
       <p className="eyebrow">{snapshot.organization} / {snapshot.fixture ? 'Sandbox fixture' : 'Sandbox accounting'}</p>
       <h1>Follow the funding and the cash.</h1>
       <p>Read-only local accounting. No payment, approval or balance request is made by this dashboard.</p>
-      <p className="snapshot-time">Snapshot observed {snapshot.observedAt}. <a href="/analytics">Reload snapshot</a></p>
+      <p className="snapshot-time">Snapshot observed <time dateTime={snapshot.observedAt}>{reviewTime(new Date(snapshot.observedAt))}</time>. <a href="/analytics">Reload snapshot</a></p>
       <AnalyticsClient snapshot={snapshot}/>
       <footer>Accounting-inspired sandbox model, pending nonprofit accountant review. This dashboard uses local journal facts and does not verify current PayPal available funds.</footer>
     </main>;
