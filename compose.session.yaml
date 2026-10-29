@@ -1,0 +1,87 @@
+services:
+  db:
+    image: postgres:16-bookworm@sha256:d81f7b51697014367236d07ec58b54153fc28f828b72bf247fe5c7487520bcb0
+    environment:
+      POSTGRES_USER: aidtrace
+      POSTGRES_DB: aidtrace
+      POSTGRES_HOST_AUTH_METHOD: trust
+    volumes: [session_data:/var/lib/postgresql/data]
+    networks: [database]
+    mem_limit: 384m
+    cpus: 1
+    healthcheck:
+      test: [CMD-SHELL, "pg_isready -U aidtrace -d aidtrace"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+  app:
+    build: .
+    init: true
+    mem_limit: 3g
+    cpus: 2
+    env_file: ${AIDTRACE_SESSION_ENV:?Use judge-new and judge-up with an explicit session name}
+    environment:
+      DATABASE_URL: postgres://aidtrace@db:5432/aidtrace
+      APP_ORIGIN: http://127.0.0.1:${AIDTRACE_SESSION_PORT:?Validated session port required}
+      AIDTRACE_JUDGE_SESSION: "true"
+      NODE_ENV: production
+      NEXT_TELEMETRY_DISABLED: "1"
+      AI_RECEIPT_ENABLED: "true"
+      AI_ANALYTICS_ENABLED: "true"
+      AI_EXPENSE_PROPOSALS_ENABLED: "true"
+      PAYPAL_BASE_URL: https://api-m.sandbox.paypal.com
+      PAYPAL_CLIENT_ID: ""
+      PAYPAL_CLIENT_SECRET: ""
+      PAYPAL_WEBHOOK_ID: ""
+      PAYPAL_PRODUCT_WEBHOOK_ID: ""
+      PAYPAL_PRODUCT_WEBHOOK_ENABLED: "false"
+      PAYPAL_BALANCE_READABLE: "false"
+      PAYPAL_SANDBOX_PAYEE_EMAIL: judge-demo@example.invalid
+      PAYEE_ALLOWLIST: judge-demo@example.invalid
+      MAX_DEMO_PAYOUT_CENTS: "50000"
+    volumes:
+      - .:/workspace
+      - dependencies:/workspace/node_modules:ro
+      - session_build:/workspace/.next
+    networks: [database, inference]
+    command: [pnpm, start]
+    healthcheck:
+      test: [CMD, node, -e, "fetch('http://127.0.0.1:3000/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 5s
+      timeout: 3s
+      start_period: 30s
+      retries: 20
+  relay:
+    image: node:22-bookworm-slim@sha256:de170b39439eb0e5a3444ad7d60b015614a381e10fecae2e30ec9e735122f38d
+    init: true
+    command: [node, /relay.mjs]
+    volumes: [./scripts/session-relay.mjs:/relay.mjs:ro]
+    ports: ["127.0.0.1:${AIDTRACE_SESSION_PORT}:3000"]
+    networks: [database, ingress]
+    mem_limit: 128m
+    cpus: 0.5
+    pids_limit: 128
+    read_only: true
+    tmpfs: [/tmp]
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    healthcheck:
+      test: [CMD, node, -e, "fetch('http://127.0.0.1:3000/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+volumes:
+  session_data:
+  session_build:
+  dependencies:
+    external: true
+    name: ${AIDTRACE_COMPOSE_PROJECT:-aidtrace-judge}_node_modules
+networks:
+  database:
+    internal: true
+  inference:
+    external: true
+    name: ${AIDTRACE_AI_PROJECT:-aidtrace-judge-ai}_inference
+  ingress:
+    external: true
+    name: ${AIDTRACE_AI_PROJECT:-aidtrace-judge-ai}_default

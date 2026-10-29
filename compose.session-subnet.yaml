@@ -1,0 +1,7 @@
+# Optional, session-scoped fallback for an exhausted engine default pool.
+# The operator must first check the selected range against engine networks and host routes.
+networks:
+  database:
+    ipam:
+      config:
+        - subnet: ${AIDTRACE_SESSION_SUBNET:?A checked unused private /28 is required}

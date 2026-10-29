@@ -35,7 +35,7 @@ test.beforeEach(async ({}, testInfo) => {
     });
     await new Promise<void>(resolve => model!.listen(8080, "0.0.0.0", resolve));
   }
-  server = spawn(process.execPath, ["node_modules/next/dist/bin/next", "start", "--hostname", "127.0.0.1", "--port", "3100"], { detached: true, stdio: "ignore", env: { ...process.env, DATABASE_URL: url.toString(), AI_RECEIPT_ENABLED: testInfo.title.includes("AI disabled") ? "false" : "true", AI_EXPENSE_PROPOSALS_ENABLED: "true", PAYPAL_SANDBOX_PAYEE_EMAIL: "review@example.invalid", PAYEE_ALLOWLIST: "review@example.invalid", PAYPAL_BASE_URL: "https://api-m.sandbox.paypal.com", PAYPAL_CLIENT_ID: "", PAYPAL_CLIENT_SECRET: "", PAYPAL_PRODUCT_WEBHOOK_ENABLED: "false" } });
+  server = spawn(process.execPath, ["node_modules/next/dist/bin/next", "start", "--hostname", "127.0.0.1", "--port", "3100"], { detached: true, stdio: "ignore", env: { ...process.env, DATABASE_URL: url.toString(), AIDTRACE_JUDGE_SESSION: testInfo.title.startsWith("JUDGE") ? "true" : "false", AI_RECEIPT_ENABLED: testInfo.title.includes("AI disabled") ? "false" : "true", AI_EXPENSE_PROPOSALS_ENABLED: "true", PAYPAL_SANDBOX_PAYEE_EMAIL: "review@example.invalid", PAYEE_ALLOWLIST: "review@example.invalid", PAYPAL_BASE_URL: "https://api-m.sandbox.paypal.com", PAYPAL_CLIENT_ID: "", PAYPAL_CLIENT_SECRET: "", PAYPAL_PRODUCT_WEBHOOK_ENABLED: "false" } });
   for (let i = 0; i < 90; i++) {
     try { if ((await fetch("http://127.0.0.1:3100/api/health", { signal: AbortSignal.timeout(1000) })).ok) return; } catch { /* Isolated readiness only. */ }
     if (server.exitCode !== null) throw new Error("Private review server exited"); await new Promise(resolve => setTimeout(resolve, 500));
@@ -73,6 +73,23 @@ async function financial() {
 }
 test.describe("Synthetic response interface checks", () => {
   test.skip(actual, "Separate actual-model run");
+  test("IAC-366: HTML-shaped source remains text in grounded highlights", async ({ page }) => {
+    await login(page, "maria"); await page.goto("/receipts/new");
+    const literal = '<img src="/never-load" onerror="window.__receiptInjection=1">';
+    await page.getByLabel("Description 1", { exact: true }).fill(literal);
+    await page.getByLabel("Invented receipt text").fill(literal + "\nBlank writing notebook\nSandwiches and apple juice");
+    await page.getByLabel("This receipt is fictional sandbox data.").check();
+    const unexpected: string[] = [];
+    page.on("request", request => { if (new URL(request.url()).pathname === "/never-load") unexpected.push(request.url()); });
+    await page.getByRole("button", { name: "Create receipt draft", exact: true }).click();
+    const before = await financial();
+    await page.getByRole("button", { name: "Prepare expense proposal", exact: true }).click();
+    await expect(page.locator(".receipt-source mark")).toHaveCount(3);
+    await expect(page.locator("#receipt-source-L1")).toHaveText(literal);
+    await expect(page.locator(".receipt-evidence img")).toHaveCount(0);
+    expect(await page.evaluate(() => (window as unknown as Record<string, unknown>).__receiptInjection)).toBeUndefined();
+    expect(unexpected).toEqual([]); expect(await financial()).toBe(before);
+  });
   test("AP-10: the unsubmitted receipt form remains stable while idle", async ({ page }) => {
     await login(page, "maria"); await page.goto("/receipts/new");
     await page.getByLabel("Fictional vendor").fill("Unsubmitted stability fixture");
@@ -90,6 +107,10 @@ test.describe("Synthetic response interface checks", () => {
     await expect(page.getByRole("heading", { name: "Provisional funding available", exact: true })).toBeVisible();
     await expect(page.locator(".proposal-split")).toHaveText("$5.00 from restricted funds, $1.00 from General."); await page.getByText("How this proposal was prepared", { exact: true }).click(); await expect(page.getByRole("list", { name: "Preparation steps" })).toBeVisible();
     expect(await financial()).toBe(before); expect(calls).toBe(1); await expect(page.locator("blockquote")).toHaveCount(3); await noOverflow(page);
+    await expect(page.locator(".receipt-source mark")).toHaveCount(3);
+    await page.getByRole("link", { name: "See quote in receipt", exact: true }).first().click();
+    await expect(page.locator("#receipt-source-L1")).toBeInViewport();
+    await expect(page.locator("#receipt-source-L1")).toHaveText("Science experiment kit");
     await page.getByRole("button", { name: "Confirm categories", exact: true }).click(); expect(await page.getByLabel(/I checked every category/).evaluate((el: HTMLInputElement) => el.validity.valueMissing)).toBe(true);
     await page.getByLabel("Category for L1", { exact: true }).selectOption("notebooks"); await page.getByLabel("Reason for manual choice L1", { exact: true }).fill("Human correction for this fixture");
     await expect(page.locator(".proposal-split")).toHaveCount(0); await expect(page.getByRole("button", { name: "Refresh funding preview" })).toBeDisabled();
@@ -113,7 +134,7 @@ test.describe("Synthetic response interface checks", () => {
     await expect(page.getByText("A different approver is still required.", { exact: false })).toBeVisible();
     await page.getByRole("button", { name: "Sign out" }).click(); await login(page, "ben"); await page.goto(claimUrl); await page.getByRole("button", { name: "Approve these terms", exact: true }).click();
     await expect(page.getByText("Both approvals are complete.", { exact: false })).toBeVisible();
-    await expect(page.getByText("Organization reimbursement payable: $6.00.", { exact: false })).toBeVisible();
+    await expect(page.getByText("Organization-wide open payable: $6.00.", { exact: false })).toBeVisible();
     expect(await connection.db.select().from(s.approvals)).toHaveLength(2);
     expect(await connection.db.select().from(s.disbursements)).toHaveLength(0); await noOverflow(page);
     await page.goto(receipt); await expect(page.getByRole("button", { name: "Prepare expense proposal", exact: true })).toHaveCount(0);
@@ -135,6 +156,13 @@ test.describe("Synthetic response interface checks", () => {
   });
   test("AP-03/09: prohibited, unknown and unavailable proposals preserve manual review", async ({ page }) => {
     await create(page, true); mode = "alcohol"; await page.getByRole("button", { name: "Prepare expense proposal", exact: true }).click(); await expect(page.getByRole("heading", { name: "Funding blocked by current rules", exact: true })).toBeVisible(); await expect(page.locator(".proposal-issues")).toContainText("prohibited category"); await noOverflow(page);
+    await expect(page.locator(".notice.warning")).toContainText("Alcohol is prohibited across all funds");
+    await page.getByLabel(/I checked every category/).check(); await page.getByRole("button", { name: "Confirm categories", exact: true }).click();
+    await page.getByRole("link", { name: "View allocation", exact: true }).click();
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText("Organization policy stops this expense.");
+    await expect(page.getByRole("button", { name: "Freeze allocation for approval" })).toHaveCount(0);
+    expect(await connection.db.select().from(s.approvals)).toHaveLength(0);
+    expect(await connection.db.select().from(s.disbursements)).toHaveLength(0);
     await page.goto("/receipts/new"); await page.getByLabel("This receipt is fictional sandbox data.").check(); await page.getByRole("button", { name: "Create receipt draft", exact: true }).click(); mode = "unknown";
     await page.getByRole("button", { name: "Prepare expense proposal", exact: true }).click(); await expect(page.getByRole("heading", { name: "Category review needed", exact: true })).toBeVisible(); await expect(page.getByLabel("Category for L1", { exact: true })).toHaveValue("");
     await page.getByRole("button", { name: "Confirm categories", exact: true }).click(); expect(await page.getByLabel("Category for L1", { exact: true }).evaluate((el: HTMLSelectElement) => el.validity.valueMissing)).toBe(true);
@@ -162,6 +190,60 @@ test.describe("Synthetic response interface checks", () => {
     await page.getByLabel(/I checked every category/).check(); await page.getByRole("button", { name: "Confirm categories", exact: true }).click();
     await expect(page.getByRole("heading", { name: "Human confirmation recorded" })).toBeVisible(); expect(calls).toBe(0);
     expect(await connection.db.select().from(s.approvals)).toHaveLength(0); expect(await connection.db.select().from(s.disbursements)).toHaveLength(0);
+  });
+});
+test.describe("Isolated single-receipt judging", () => {
+  test.skip(actual, "Synthetic boundary suite; actual model is verified separately");
+  test("JUDGE-01/03: one $500 receipt reaches two approvals and a read-only unpaid handoff", async ({ page }) => {
+    await login(page, "maria");
+    await expect(page.getByRole("link", { name: "Review Maria's $500 receipt", exact: true })).toBeVisible();
+    await expect(page.getByRole("link", { name: "Inspect the separate claim C-104", exact: true })).toHaveCount(0);
+    await page.getByRole("link", { name: "Review Maria's $500 receipt", exact: true }).click();
+    await page.getByLabel("This receipt is fictional sandbox data.").check(); await page.getByRole("button", { name: "Create receipt draft", exact: true }).click();
+    await expect(page.getByRole("heading", { name: "Prepare this expense for review", exact: true })).toBeVisible();
+    const receipt = page.url().split("?")[0]!; const input = await readReceiptView(connection.db, receipt.split("/").at(-2)!, "maria");
+    expect(input.lines.map(line => line.amountCents)).toEqual([28000n, 15000n, 7000n]);
+    await page.getByRole("button", { name: "Prepare expense proposal", exact: true }).click();
+    await expect(page.locator(".proposal-split")).toHaveText("$430.00 from restricted funds, $70.00 from General.");
+    await expect(page.locator(".receipt-source mark")).toHaveCount(3);
+    await page.getByLabel(/I checked every category/).check(); await page.getByRole("button", { name: "Confirm categories", exact: true }).click();
+    const claimUrl = (await page.getByRole("link", { name: "View allocation", exact: true }).getAttribute("href"))!;
+    await page.goto(claimUrl); await expect(page.getByText("$200.00 from General", { exact: true })).toBeVisible();
+    await expect(page.getByRole("heading", { level: 1 })).toContainText("$430.00 restricted. $70.00 General.");
+    await page.getByRole("button", { name: "Freeze allocation for approval", exact: true }).click();
+    for (const role of ["tara", "ben"] as const) { await page.getByRole("button", { name: "Sign out", exact: true }).click(); await login(page, role); await page.goto(claimUrl); await page.getByRole("button", { name: "Approve these terms", exact: true }).click(); }
+    await expect(page.getByLabel("Unpaid PayPal handoff", { exact: true })).toBeVisible();
+    await expect(page.getByRole("button", { name: /Send .*PayPal sandbox/ })).toHaveCount(0);
+    await expect(page.getByText("Organization-wide open payable: $500.00.", { exact: false })).toBeVisible();
+    const before = await financial();
+    await page.getByText("Inspect the proposed request structure", { exact: true }).click();
+    await expect(page.locator(".paypal-handoff pre")).toContainText('"value": "500.00"');
+    await expect(page.locator(".paypal-handoff pre")).not.toContainText("review@example.invalid");
+    await page.getByText("How a separately authorized payment would finish", { exact: true }).click();
+    await noOverflow(page);
+    for (const action of ["send", "refresh", "retry", "authorize-retry"]) {
+      const result = await page.request.post(`${claimUrl}/actions`.replace("/claims/", "/api/claims/"), { headers: { origin: "http://127.0.0.1:3100" }, form: { action, confirmSandbox: "yes", decisionHash: "a".repeat(64) } });
+      expect(result.status()).toBe(403);
+    }
+    expect(await financial()).toBe(before);
+    expect(await connection.db.select().from(s.disbursementAttempts)).toHaveLength(0);
+    expect(await connection.db.select().from(s.approvals)).toHaveLength(2);
+    await page.getByRole("button", { name: "Sign out", exact: true }).click(); await login(page, "maria");
+    await expect(page.getByRole("link", { name: "Continue Maria's receipt", exact: true })).toHaveAttribute("href", claimUrl);
+    await page.goto("/receipts/new"); await expect(page).toHaveURL(new RegExp(claimUrl + "/receipt$"));
+    await page.goto("/claims/C-104"); await expect(page).toHaveURL("http://127.0.0.1:3100/");
+  });
+  test("JUDGE-02: UNKNOWN remains manual and a prohibited expense cannot freeze", async ({ page }) => {
+    mode = "unknown"; await create(page);
+    await page.getByRole("button", { name: "Prepare expense proposal", exact: true }).click();
+    await expect(page.getByRole("heading", { name: "Category review needed", exact: true })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Freeze allocation for approval", exact: true })).toHaveCount(0);
+    for (const [line, category] of [["L1", "alcohol"], ["L2", "notebooks"], ["L3", "hospitality"]]) { await page.getByLabel(`Category for ${line}`, { exact: true }).selectOption(category!); await page.getByLabel(`Reason for manual choice ${line}`, { exact: true }).fill("Manual prohibited-item boundary check"); }
+    await page.getByLabel(/I checked every category/).check(); await page.getByRole("button", { name: "Confirm categories", exact: true }).click();
+    await page.getByRole("link", { name: "View allocation", exact: true }).click();
+    await expect(page.getByRole("heading", { level: 1, name: "Organization policy stops this expense.", exact: true })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Freeze allocation for approval", exact: true })).toHaveCount(0);
+    expect(await connection.db.select().from(s.approvals)).toHaveLength(0); expect(await connection.db.select().from(s.disbursementAttempts)).toHaveLength(0);
   });
 });
 test.describe("Actual pinned model interface", () => {

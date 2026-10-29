@@ -24,7 +24,7 @@ test.beforeEach(async () => {
   passwords = { maria: randomBytes(18).toString("hex"), tara: randomBytes(18).toString("hex"), ben: randomBytes(18).toString("hex") };
   await seedFixture(connection.db, { passwords, payeeEmail: "phone-test@personal.example.com", payeeAllowlist: ["phone-test@personal.example.com"] });
   await connection.db.transaction(tx => ensureFixtureOpening(tx, "cedar-hollow"));
-  server = spawn(process.execPath, ["node_modules/next/dist/bin/next", "start", "--hostname", "127.0.0.1", "--port", "3100"], { detached: true, stdio: "ignore", env: { ...process.env, DATABASE_URL: url.toString(), PAYPAL_BASE_URL: "https://api-m.sandbox.paypal.com", PAYPAL_CLIENT_ID: "", PAYPAL_CLIENT_SECRET: "", PAYPAL_PRODUCT_WEBHOOK_ENABLED: "false" } });
+  server = spawn(process.execPath, ["node_modules/next/dist/bin/next", "start", "--hostname", "127.0.0.1", "--port", "3100"], { detached: true, stdio: "ignore", env: { ...process.env, DATABASE_URL: url.toString(), PAYPAL_BASE_URL: "https://api-m.sandbox.paypal.com", PAYPAL_CLIENT_ID: "synthetic-ui-id", PAYPAL_CLIENT_SECRET: "synthetic-ui-secret", PAYEE_ALLOWLIST: "phone-test@personal.example.com", PAYPAL_PRODUCT_WEBHOOK_ENABLED: "false" } });
   for (let attempt = 0; attempt < 90; attempt++) {
     try { if ((await fetch("http://127.0.0.1:3100/api/health", { signal: AbortSignal.timeout(1000) })).ok) return; } catch { /* Wait for the isolated server, never the main application. */ }
     if (server.exitCode !== null) throw new Error("Isolated UI server exited before readiness");
@@ -100,7 +100,9 @@ test("UI-348: a denied batch stays visible beside retry authority without sendin
   await noOverflow(page);
 });
 test("UI-348: standard seed matches; a real mismatch is visible and draft guidance respects the role", async ({ page }) => {
-  await login(page, "tara"); await expect(page.getByText("Claim C-104", { exact: true }).first()).toBeVisible();
+  await login(page, "tara"); await expect(page).toHaveURL(/\/claims\/C-104$/);
+  await page.getByText("Claim and decision reference", { exact: true }).click();
+  await expect(page.getByText("Claim C-104. No frozen decision.", { exact: true })).toBeVisible();
   await expect(page.getByText(/Waiting for the claimant to freeze/)).toBeVisible();
   await expect(page.getByText("Ledger tie-out: Matches.", { exact: true })).toBeVisible();
   await connection.db.update(s.fundCredits).set({ amountCents: 29999n }).where(eq(s.fundCredits.fundId, "fund_a"));

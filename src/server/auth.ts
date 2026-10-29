@@ -3,6 +3,7 @@ import { compare, hash } from "bcryptjs";
 import { and, eq, gt, sql } from "drizzle-orm";
 import { loginWindows, sessions, users } from "../../db/schema";
 import { getDatabase, type AppDatabase } from "./db";
+import { judgeSession } from "./judge-mode";
 
 export const SESSION_COOKIE = "aidtrace_session";
 const SESSION_SECONDS = 8 * 60 * 60;
@@ -10,7 +11,9 @@ const dummyHash = hash("synthetic-login-timing-value", 12);
 const digest = (token: string) => createHash("sha256").update(token).digest("hex");
 export function appOrigin() {
   const origin = process.env.APP_ORIGIN;
-  if (!origin || !["http://127.0.0.1:3100", "http://localhost:3100"].includes(origin)) throw new Error("APP_ORIGIN must be the explicit local demo origin");
+  const sessionOrigin = judgeSession() && /^http:\/\/127\.0\.0\.1:([1-9][0-9]{3,4})$/.exec(origin ?? "");
+  const sessionPort = sessionOrigin ? Number(sessionOrigin[1]) : 0;
+  if (!origin || (!["http://127.0.0.1:3100", "http://localhost:3100"].includes(origin) && !(sessionPort >= 3102 && sessionPort <= 65535))) throw new Error("APP_ORIGIN must be the explicit local demo origin");
   return origin;
 }
 export function isSameOrigin(request: Request) { return request.headers.get("origin") === appOrigin(); }

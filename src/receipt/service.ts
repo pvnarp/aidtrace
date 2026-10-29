@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { and, desc, eq, sql } from "drizzle-orm";
+import { and, desc, eq, like, sql } from "drizzle-orm";
 import * as s from "../../db/schema";
 import type { AppDatabase } from "../server/db";
 import type { LedgerTransaction } from "../ledger/journal";
@@ -46,11 +46,15 @@ export function configuredReceiptPayee(env: Record<string, string | undefined>) 
   if (!payee || !/^[^\s@]+@(?:personal\.example\.com|example\.invalid)$/.test(payee) || !allowed.includes(payee)) throw new Error("Configured sandbox recipient required");
   return payee;
 }
-export async function createReceiptDraft(db: AppDatabase, actorId: string, input: DraftInput, payee: string) {
+export async function createReceiptDraft(db: AppDatabase, actorId: string, input: DraftInput, payee: string, singleSession = false) {
   const parsed = normalizeDraft(input); const id = `R-${randomUUID()}`;
   if (!/^[^\s@]+@(?:personal\.example\.com|example\.invalid)$/.test(payee)) throw new Error("Sandbox fixture recipient required");
   return serializable(db, async tx => {
     const actor = await actorFor(tx, actorId); if (actor.role !== "CLAIMANT") throw new Error("Claimant access required");
+    if (singleSession) {
+      const existing = await tx.select({ id: s.claims.id }).from(s.claims).where(and(eq(s.claims.organizationId, actor.organizationId), like(s.claims.id, "R-%"))).limit(1);
+      if (existing.length) throw new Error("Judging session already has a receipt; preserve it and create a new separate session");
+    }
     const [claim] = await tx.insert(s.claims).values({ id, version: 1, organizationId: actor.organizationId, claimantId: actor.id,
       vendor: parsed.vendor, program: parsed.program, incurredOn: parsed.incurredOn, payeeEmail: payee, payeeIsPlaceholder: payee.endsWith(".invalid"), isFixture: true }).returning();
     const lines = parsed.lines.map(line => ({ ...line, claimId: id, claimVersion: 1, category: "UNKNOWN", budgetLine: "unconfirmed" }));

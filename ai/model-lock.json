@@ -1,5 +1,9 @@
 {
-  "runtimeImage": "ghcr.io/ggml-org/llama.cpp@sha256:4c153258c28d40ef1d34c265b893c57626235dc1178147d04a963c15ff9729cd",
+  "runtimeImage": "ghcr.io/ggml-org/llama.cpp@sha256:8c74db29f1a2bef3f0a331b52c4d6214601dfceed4bee0b94cc48b3b23ff257d",
+  "runtimePlatforms": {
+    "linux/arm64": "sha256:4c153258c28d40ef1d34c265b893c57626235dc1178147d04a963c15ff9729cd",
+    "linux/amd64": "sha256:8badce92ec1860c764ca19c736422e81a12c65d76da57313651a7804bfe6ed40"
+  },
   "runtimeRevision": "c7fc5094179bf8a9c73c18593db714f8da41a402",
   "runtimeVersion": "b11804",
   "runtimeLicense": "MIT",

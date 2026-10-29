@@ -41,7 +41,7 @@ test.beforeEach(async () => {
     response.writeHead(200, { "content-type": "application/json" }).end(JSON.stringify({ model: "aidtrace-category-qwen3", choices: [{ finish_reason: "stop", message: { role: "assistant", content } }] }));
   });
   await new Promise<void>(resolve => model.listen(8080, "0.0.0.0", resolve));
-  server = spawn(process.execPath, ["node_modules/next/dist/bin/next", "start", "--hostname", "127.0.0.1", "--port", "3100"], { detached: true, stdio: "ignore", env: { ...process.env, DATABASE_URL: url.toString(), AI_RECEIPT_ENABLED: "true", PAYPAL_SANDBOX_PAYEE_EMAIL: "phone-test@personal.example.com", PAYEE_ALLOWLIST: "phone-test@personal.example.com", PAYPAL_BASE_URL: "https://api-m.sandbox.paypal.com", PAYPAL_CLIENT_ID: "", PAYPAL_CLIENT_SECRET: "", PAYPAL_PRODUCT_WEBHOOK_ENABLED: "false" } });
+  server = spawn(process.execPath, ["node_modules/next/dist/bin/next", "start", "--hostname", "127.0.0.1", "--port", "3100"], { detached: true, stdio: "ignore", env: { ...process.env, DATABASE_URL: url.toString(), AI_RECEIPT_ENABLED: "true", AI_EXPENSE_PROPOSALS_ENABLED: "false", PAYPAL_SANDBOX_PAYEE_EMAIL: "phone-test@personal.example.com", PAYEE_ALLOWLIST: "phone-test@personal.example.com", PAYPAL_BASE_URL: "https://api-m.sandbox.paypal.com", PAYPAL_CLIENT_ID: "", PAYPAL_CLIENT_SECRET: "", PAYPAL_PRODUCT_WEBHOOK_ENABLED: "false" } });
   for (let attempt = 0; attempt < 90; attempt++) {
     try { if ((await fetch("http://127.0.0.1:3100/api/health", { signal: AbortSignal.timeout(1000) })).ok) return; } catch { /* Wait for the isolated server, never the main application. */ }
     if (server.exitCode !== null) throw new Error("Isolated UI server exited before readiness");
@@ -98,6 +98,19 @@ test("GB-02: 375-pixel receipt quotes, explicit confirmation, allocation and edi
   const confirmations = await connection.db.select().from(s.receiptConfirmations); expect(confirmations).toHaveLength(1);
   expect(await connection.db.select().from(s.disbursements)).toHaveLength(0);
   expect((await connection.db.select().from(s.journalEntries)).every(entry => entry.sourceType === "fixture_opening_balance")).toBe(true);
+});
+test("IAC-351: proposal-disabled manual-review link reaches an editable category without posting", async ({ page }) => {
+  await create(page);
+  // This suite explicitly disables the proposal extension, exercising its legacy review branch.
+  const target = page.locator("#category-review"); await expect(target).toHaveCount(1);
+  const posts: string[] = []; page.on("request", request => { if (request.method() === "POST") posts.push(request.url()); });
+  await page.getByRole("link", { name: "Go to category review", exact: true }).click();
+  await expect(target).toBeFocused(); await expect(page.getByLabel("Category for L1", { exact: true })).toBeInViewport();
+  await expect(page).toHaveURL(/#category-review$/); await noOverflow(page);
+  expect(posts).toEqual([]); expect(modelCalls).toBe(0);
+  expect(await connection.db.select().from(s.receiptConfirmations)).toHaveLength(0);
+  expect(await connection.db.select().from(s.approvals)).toHaveLength(0);
+  expect(await connection.db.select().from(s.disbursementAttempts)).toHaveLength(0);
 });
 test("GB-02: unavailable model leaves human review usable and approvers read-only at 375 pixels", async ({ page }) => {
   await create(page); unavailable = true;

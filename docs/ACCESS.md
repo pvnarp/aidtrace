@@ -1,93 +1,83 @@
-# Prepare a judging session: prerequisites, review and recovery
+# Run the judging session: access, roles and recovery
 
-## 1. Check permission first: intended access only
+## 1. Check prerequisites: use a compatible existing engine
 
-These are prepared instructions for a later owner-approved source candidate. Review
-SOURCE_MANIFEST.json, release/variant.json and docs/LICENSING.md. This fallback removes
-the named Studio dependencies; it does not grant permission for the separately preserved
-Studio variant. Exact source, ownership and judging access still require owner review.
+Follow the root README. Use an existing POSIX shell, Docker Compose v2 and Linux ARM64 or
+AMD64 containers. Owner execution stays in OrbStack. The judge launcher accepts another
+existing context without changing the global context. No native toolchain installation.
+Native ARM application/model and AMD64 model emulation have evidence. Physical Docker
+Desktop, full fresh AMD64 application setup and independent-machine access remain unverified.
+Setup needs upstream downloads, storage and time. App/model caps do not establish a minimum
+machine budget. Do not change pins or install native packages to conceal a failed setup.
 
-The tested platform is Linux ARM64 through existing OrbStack on macOS. An independent
-machine/network, other architectures and physical Safari remain unverified. The judge needs
-compatible existing prerequisites, enough free storage for pinned images, packages, build
-output and approximately 1.83 GB model weights, and upstream network access for setup.
-This preparation does not establish a minimum disk/RAM budget or fresh upstream availability.
-Do not install native Node, pnpm, Python or Postgres for this project. If a required host
-prerequisite is absent, stop and obtain approval for that installation separately.
+## 2. Generate private access: one named session
 
-The source-based route requires setup time and a compatible environment. It avoids a
-hosted login but does not establish that every judge can run it. The owner must confirm
-the final access route and availability through December 15 before release.
+Run doctor, setup, ai-check download and ai-smoke once, then judge-new review-one 3102 and
+judge-up review-one. Open http://127.0.0.1:3102/login. The exact private login file, relative
+to this extracted folder, is local/judge-sessions/review-one/session.env. Its three generated
+passwords correspond to maria (claimant), tara and ben (independent approvers).
 
-## 2. Start with your own generated login: no PayPal setup
+Do not paste passwords or the file into chat, screenshots or reports. Configuration creation
+refuses an existing name; validation refuses unexpected/duplicate fields, changed credentials
+or financial settings, symlinks and non-private file permissions. The app forces empty
+provider credentials and disables payment actions even if someone attempts a direct POST.
+It does not inherit the owner's local/.env or reset another database.
 
-Follow the root README from the exact extracted candidate. Keep the dedicated judge
-namespace. Configure generates separate maria, tara and ben passwords in private local/.env;
-it preserves an existing file. Read the values privately, and do not paste them into logs,
-chat or screenshots. PayPal client credentials remain empty and the recipient is non-payable.
-The ordinary fictional review needs no PayPal account, owner credential, tunnel or payment.
+## 3. Follow one receipt: AI, rules, people and PayPal
 
-Use receipt-ai-up followed by review-up as documented. review-up stops only the judge app
-while rebuilding its separate review volume. Source changes need another explicit rebuild.
-This is the stable production-serving local review path, without development live reload.
-The app port is loopback 127.0.0.1:3100. The model and database have no published ports in
-the prepared Compose declarations. Do not open them to a public network.
+As maria, select Review Maria's $500 receipt. Keep the invented USD 280 kits, USD 150 notebooks
+and USD 70 refreshments. Confirm fictional data and create the receipt. Prepare expense
+proposal once, wait for completion or refresh its displayed status, then inspect every
+category and saved source quote. A matched quote does not establish category correctness.
+Correct a category with a reason if needed. Explicitly confirm categories and view allocation.
+The unchanged fresh case uses USD 430 restricted / USD 70 General, versus USD 200 General
+for its fixed ordered comparison. This is a fixture/ordering-specific difference.
 
-## 3. Review one fictional receipt: stop at Approved before payment
+Freeze as maria. Sign out, sign in as tara and open the same claim from the workspace.
+Inspect expense, recipient and funding terms, then approve once. Expect one approval and
+Awaiting approval. Sign out, sign in as ben and approve those same frozen terms. Expect
+Approved, two approvals and USD 500 organization-wide payable on a fresh unchanged session.
 
-Sign in as maria. Choose Start a $6 practice expense, create the default invented three-line USD 6.00 receipt and request
-Prepare expense proposal once. Allow the request to finish or use Refresh preparation
-status. Expand How this proposal was prepared for the preparation steps. Review each category, exact source quote and provisional
-funding result. Confirm or manually correct each category, supplying a reason when required.
-Explicitly confirm categories, then View allocation. On a fresh unchanged fixture the
-expected preview is USD 5.00 restricted and USD 1.00 General. Preparation does not reserve
-funds, approve an expense or request payment.
+Inspect the read-only PayPal handoff. Amount and currency are real approved terms; receiver
+is masked. Sender and provider IDs are unassigned. Current state remains Not submitted.
+The possible submitted/pending/SUCCESS/UNKNOWN path is explanatory, not a provider result.
+No PayPal login, send, fee, capture, provider query or new payment is needed or permitted.
 
-As maria, select Freeze allocation for approval. This reserves eligible funding for these
-terms. Sign out, sign in as tara using her generated password and open the same claim URL.
-Review the vendor, program/date, item descriptions, categories, original AI suggestions and
-manual reasons. Expand Review exact sandbox recipient privately; it should be this fixture's
-non-payable address. Select Approve these terms once. The page should
-show one approval and Awaiting approval. Sign out, sign in as ben and review the same terms.
-Select Approve these terms once. Expect two approvals, Approved and USD 6.00 organization
-payable on an otherwise fresh fixture. Stop here. Do not select Send or configure PayPal.
-Approval recognizes the obligation but does not submit a payment. The PayPal client values
-remain empty and no payout attempt should exist.
+Each session admits one receipt, including concurrent form submissions. Reopening new-receipt
+returns that existing receipt; it cannot silently consume fresh funds for another claim.
+Edits are available only while normal receipt guards permit them and require another review.
+An UNKNOWN category needs explicit manual choice/reason. Confirmed alcohol blocks every fund
+and the whole expense before freeze. C-104 remains in tests but is not this judge journey.
 
-For a fully manual fallback, choose categories with reasons before freezing. A correction
-changes the allocation preview; do not assume the default USD 5/USD 1 split after a change.
+## 4. Recover deliberately: preserve prior sessions
 
-Sign out. Sign in as tara or ben with that separate generated password. Review /analytics, its fund filter, one listed question and
-Read all snapshot facts without AI. Maria cannot access this organization-wide page.
-Amounts are local book facts, not current PayPal available cash. A missing model leaves
-manual facts available. The local fixture is separate from the owner's historical paid
-acceptance records. Do not describe the fresh C-104 as provider-paid.
+- Restart: judge-stop review-one, then judge-up review-one. Database, approvals and balances
+  persist. A configuration-bound database comment admits retention without reseeding; an
+  unbound nonempty database must pass the original strict seed guard or startup refuses it.
+  A rebuild does not reset balances or give the same session fresh funds.
+- Fresh repeat: stop the old app, then judge-new review-two 3102 and judge-up review-two.
+  The old database/build/configuration remains. Use the new generated login file.
+- Busy port: inspect the conflict. Do not terminate unrelated apps or modify firewalls.
+- Exhausted engine address pool: inspect existing Docker subnets and host/VPN routes. An
+  operator may supply a checked unused RFC1918 /28 as the fourth judge-new argument after
+  the port. That session alone uses it. Syntax validation does not prove route availability.
+  Do not prune or change global Docker pools. Preserve failed-session configuration.
+- Login failure: use the generated role value from that exact session file. Across ports,
+  loopback cookies can replace one another; use separate browser profiles or sign in again.
+- Missing model: preserve the error, refresh request status and use manual categories with
+  reasons. This fallback does not demonstrate actual AI. No repeated automatic inference.
+- Changed configuration: startup refuses it. Preserve the file for review; create a separate
+  session rather than reusing owner credentials or resetting financial records.
+- Old source: judge-up rebuilds only that named app. Keep model/DB pins and volumes intact.
 
-## 4. Recover without resetting: preserve data and namespaces
+Stop session apps when unused to conserve RAM. ai-check down stops the shared judge model,
+preserving weights and manual review. Never use prune, down --volumes or owner secrets.
 
-- Port 3100 is busy: inspect the conflict and pause. Do not stop unrelated apps or change
-  firewall/tunnel settings automatically. A compatible separate environment may be needed.
-- Login fails: use the exact username and generated role password from this fixture.
-  Configure does not rotate existing credentials. Do not overwrite local/.env, reseed,
-  remove volumes or edit stored passwords to make the test pass. Preserve the state for review.
-- Model is unavailable: wait for the displayed request state, refresh status and use manual
-  category choices/reasons. Do not repeatedly submit preparation. For a deliberate later
-  model-off test, ai-check down stops this judge AI namespace, preserving the review app.
-  receipt-ai-down recreates the app in its base mode; it is not the stable review fallback test.
-- A page has old code: review-up rebuilds/restarts the judge app. Do not prune build or DB
-  volumes. Record the exact candidate, changed source and error summary without secrets.
-- Setup/download fails: retain the failure summary and pinned artifact identity. Existing
-  cached verification does not establish current upstream access. Do not change pins,
-  download another model, increase resource caps or install native tools as a workaround.
+## 5. Keep proof scoped: later independent review
 
-Use the README stop commands when finished. They preserve volumes. Do not use Docker prune,
-down --volumes, refunds, repeated payout sends or owner sandbox credentials during judging.
-
-## 5. Record a later independent test: evidence, not inference
-
-After source/permission/access approval, record the exact archive hash, machine architecture,
-OrbStack/Docker versions, fresh versus reused caches, setup outcome, generated-role access,
-manual fallback and stop/start persistence. Report actual errors and limitations. Exclude
-credentials, provider identifiers, private configuration and media unless separately authorized.
-That test has not happened on another machine/network. Local template dispatch and rendered
-Compose checks do not replace it. No publication, recording or contact is authorized here.
+The instructions and local checks do not establish access from another machine/network.
+After owner source/rights/access approval, record exact archive hash, architecture, engine
+versions, fresh/reused caches, setup time/errors, actual AI and separate-role login outcomes,
+restart persistence and stopping behavior. Do not include credentials or private identifiers.
+Official rules allow runnable repository instructions or hosting; continued availability
+through judging still requires a reviewed access plan. No public action follows here.

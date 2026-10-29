@@ -8,7 +8,7 @@ import { authorizePayoutRetry, sendAuthorizedPayoutRetry } from "../ledger/retry
 import type { PayoutTransport } from "../paypal/adapter";
 import { claimFailureNotice } from "./claim-notices";
 
-export async function handleClaimAction(request: Request, claimId: string, dependencies: { db: AppDatabase; provider: () => PayoutTransport }) {
+export async function handleClaimAction(request: Request, claimId: string, dependencies: { db: AppDatabase; provider: () => PayoutTransport; judgeSession?: boolean }) {
   if (!isSameOrigin(request)) return new Response("Request origin rejected", { status: 403 });
   const user = await findSession(sessionToken(request), dependencies.db);
   if (!user) return new Response("Sign in first", { status: 401 });
@@ -27,6 +27,7 @@ export async function handleClaimAction(request: Request, claimId: string, depen
   }
   const body = new URLSearchParams(Buffer.concat(chunks).toString("utf8"));
   const action = body.get("action");
+  if (dependencies.judgeSession && (!claimId.startsWith("R-") || ["send", "refresh", "retry", "authorize-retry"].includes(action ?? ""))) return new Response("This judging session cannot request or change a payment. Continue the unpaid receipt review.", { status: 403 });
   if ((action === "freeze" && user.role !== "CLAIMANT") || (action !== "freeze" && user.role !== "APPROVER")) return new Response("This action requires the appropriate signed-in role", { status: 403 });
   const redirect = (notice: string) => new Response(null, { status: 303, headers: { Location: `/claims/${claimId}?notice=${notice}`, "Cache-Control": "no-store" } });
   try {

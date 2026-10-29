@@ -5,14 +5,73 @@ cd "$root"
 export AIDTRACE_COMPOSE_PROJECT=${AIDTRACE_COMPOSE_PROJECT:-aidtrace-judge}
 export AIDTRACE_AI_PROJECT=${AIDTRACE_AI_PROJECT:-aidtrace-judge-ai}
 export AIDTRACE_AI_EVIDENCE="$root/local/ai-check"
-compose() { docker --context orbstack compose -p "$AIDTRACE_COMPOSE_PROJECT" "$@"; }
-ai() { docker --context orbstack compose -p "$AIDTRACE_AI_PROJECT" -f compose.ai-check.yaml "$@"; }
-review() { docker --context orbstack compose -p "$AIDTRACE_COMPOSE_PROJECT" -f compose.yaml -f compose.receipt-ai.yaml -f compose.review.yaml "$@"; }
+docker_cmd() {
+  if [ -n "${AIDTRACE_DOCKER_CONTEXT:-}" ]; then
+    docker --context "$AIDTRACE_DOCKER_CONTEXT" "$@"
+  else
+    docker "$@"
+  fi
+}
+compose() { docker_cmd compose -p "$AIDTRACE_COMPOSE_PROJECT" "$@"; }
+bootstrap() { docker_cmd compose -p "$AIDTRACE_COMPOSE_PROJECT" -f compose.setup.yaml "$@"; }
+ai() { docker_cmd compose -p "$AIDTRACE_AI_PROJECT" -f compose.ai-check.yaml "$@"; }
+review() { docker_cmd compose -p "$AIDTRACE_COMPOSE_PROJECT" -f compose.yaml -f compose.receipt-ai.yaml -f compose.review.yaml "$@"; }
 case "${1:-}" in
+  judge-new|judge-up|judge-stop|judge-status)
+    operation=$1; session=${2:-}
+    case "$session" in ''|*[!a-z0-9-]*) echo 'Use an explicit lowercase session name.' >&2; exit 2 ;; esac
+    (umask 077; mkdir -p local/judge-sessions)
+    session_config() {
+      docker_cmd run --rm --network none --memory 128m --cpus 1 --cap-drop ALL --security-opt no-new-privileges:true \
+        --mount "type=bind,src=$root,dst=/workspace,readonly" --mount "type=bind,src=$root/local/judge-sessions,dst=/sessions" \
+        -w /workspace node:22-bookworm-slim@sha256:de170b39439eb0e5a3444ad7d60b015614a381e10fecae2e30ec9e735122f38d node scripts/judge-session.mjs "$@"
+    }
+    if [ "$operation" = judge-new ]; then session_config new "$session" "${3:-3102}" "${4:-}"; exit; fi
+    parameters=$(session_config check "$session")
+    # The helper admits only a numeric port and optional numeric RFC1918 /28.
+    set -- $parameters
+    export AIDTRACE_SESSION_PORT=$1
+    export AIDTRACE_SESSION_SUBNET=${2:-}
+    export AIDTRACE_SESSION_ENV="$root/local/judge-sessions/$session/session.env"
+    session_compose() {
+      if [ -n "$AIDTRACE_SESSION_SUBNET" ]; then
+        docker_cmd compose -p "aidtrace-session-$session" -f compose.session.yaml -f compose.session-subnet.yaml "$@"
+      else
+        docker_cmd compose -p "aidtrace-session-$session" -f compose.session.yaml "$@"
+      fi
+    }
+    case "$operation" in
+      judge-up)
+        session_compose build app
+        session_compose up -d --wait db
+        session_compose run --rm --no-deps app pnpm db:migrate
+        session_compose run --rm --no-deps app node --import tsx scripts/session-init.mjs
+        session_compose stop app
+        session_compose run --rm --no-deps app pnpm build
+        session_compose up -d --wait --no-deps app
+        session_compose up -d --wait --no-deps --force-recreate relay
+        printf 'Open http://127.0.0.1:%s/login. This session cannot pay.\n' "$AIDTRACE_SESSION_PORT"
+        ;;
+      judge-stop) session_compose stop ;;
+      judge-status) session_compose ps ;;
+    esac
+    ;;
+  doctor)
+    docker_cmd version --format 'Docker client {{.Client.Version}} / server {{.Server.Version}}'
+    docker_cmd compose version --short
+    printf 'Docker context: '
+    docker_cmd context show
+    architecture=$(docker_cmd info --format '{{.OSType}}/{{.Architecture}}')
+    case "$architecture" in
+      linux/arm64|linux/aarch64|linux/amd64|linux/x86_64) printf 'Engine platform: %s\n' "$architecture" ;;
+      *) printf 'Unsupported engine architecture: %s. Use a Linux ARM64 or AMD64 container engine.\n' "$architecture" >&2; exit 2 ;;
+    esac
+    echo 'Read-only checks only. No packages, images, accounts or payments created.'
+    ;;
   setup)
-    compose build app
-    compose run --rm --no-deps app pnpm install --frozen-lockfile
-    compose run --rm --no-deps app pnpm rebuild esbuild
+    bootstrap build app
+    bootstrap run --rm --no-deps app pnpm install --frozen-lockfile
+    bootstrap run --rm --no-deps app pnpm rebuild esbuild
     ;;
   configure) compose run --rm --no-deps app node scripts/init-local.mjs ;;
   pnpm) shift; compose run --rm app pnpm "$@" ;;
@@ -35,9 +94,10 @@ case "${1:-}" in
     (umask 077; mkdir -p local/ai-check)
     ai run --rm --no-deps download
     ai up -d model
-    docker --context orbstack compose -p "$AIDTRACE_COMPOSE_PROJECT" -f compose.yaml -f compose.receipt-ai.yaml up -d --wait app
+    docker_cmd compose -p "$AIDTRACE_COMPOSE_PROJECT" -f compose.yaml -f compose.receipt-ai.yaml up -d --wait app
     ;;
   receipt-ai-down) ai stop; compose up -d --wait --force-recreate app ;;
+  ai-smoke) ai up -d model; ai run --rm --no-deps smoke ;;
   ai-check)
     shift
     case "${1:-}" in
@@ -52,8 +112,8 @@ case "${1:-}" in
     ui_source=$(mktemp -d "$root/local/ui-source-XXXXXX")
     compose run --rm --no-deps app node scripts/snapshot-judge.mjs "${ui_source#"$root/"}"
     export AIDTRACE_UI_SOURCE="$ui_source"
-    docker --context orbstack compose -p "$AIDTRACE_COMPOSE_PROJECT" -f compose.yaml -f compose.ui.yaml build ui
-    docker --context orbstack compose -p "$AIDTRACE_COMPOSE_PROJECT" -f compose.yaml -f compose.ui.yaml run --rm --no-deps --use-aliases ui
+    docker_cmd compose -p "$AIDTRACE_COMPOSE_PROJECT" -f compose.yaml -f compose.ui.yaml build ui
+    docker_cmd compose -p "$AIDTRACE_COMPOSE_PROJECT" -f compose.yaml -f compose.ui.yaml run --rm --no-deps --use-aliases ui
     ;;
-  *) echo 'Use setup|configure|pnpm|up|review-up|down|status|logs|check|build|receipt-ai-up|receipt-ai-down|ai-check|ui-check' >&2; exit 2 ;;
+  *) echo 'Use doctor|setup|configure|pnpm|up|review-up|down|status|logs|check|build|receipt-ai-up|receipt-ai-down|ai-smoke|ai-check|ui-check|judge-new NAME [PORT] [CHECKED_SUBNET]|judge-up NAME|judge-stop NAME|judge-status NAME' >&2; exit 2 ;;
 esac

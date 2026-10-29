@@ -1,149 +1,121 @@
-# AidTrace: private judge-source candidate
+# AidTrace: AI receipt review and PayPal reimbursements
 
-For prerequisites, generated-role access, no-payment review and recovery without resetting
-data, use [the access guide](docs/ACCESS.md). These are prepared instructions for a later
-cleared candidate. Local template checks do not establish independent judge access.
+A nonprofit has USD 500 of expenses and three funds with different promises. AI proposes
+receipt categories with source quotes. Rules compute USD 430 restricted and USD 70 General
+on the fresh example. Two people approve the same terms. A read-only PayPal handoff shows
+what an explicitly authorized reimbursement would require. This judging session stays unpaid.
 
-## 1. Review the boundary: unpublished source
+## 1. Prepare Docker: keep execution in containers
 
-AidTrace suggests receipt categories with exact source quotes, requires a human to confirm
-them, allocates expenses across restricted funds with deterministic rules, and requires two
-independent approvals before an explicitly requested PayPal sandbox reimbursement. The
-application records payment only after independently fetching a successful payout item.
-This package contains invented fixtures, not the owner's paid database, credentials,
-recipient, Git history or original project archive. It is prepared for private review.
-The existing application MIT license is included in LICENSE and package metadata. It is
-the owner-approved release choice; final candidate, ownership, privacy, destination and
-publication approval remain with the owner. This candidate has not been published.
-Dependency/model licenses remain separate. See NOTICE, THIRD_PARTY_NOTICES.txt,
-DEPENDENCY_LICENSES.json, UPSTREAM_LICENSE_SOURCES.json and docs/LICENSING.md.
+Use an existing Docker Engine or Docker Desktop with Compose v2, Linux ARM64 or AMD64,
+a POSIX shell and upstream network access for pinned images/packages/model weights.
+No native Node, pnpm, Python or Postgres is needed. The launcher uses the current Docker
+context, or an explicit AIDTRACE_DOCKER_CONTEXT. The owner's execution stays in OrbStack.
+Windows users need an existing WSL2 POSIX shell with Docker integration.
 
-The accepted AI scope uses pasted invented text and manually entered USD amounts. It does
-not include OCR, autonomous approval/payment or general receipt extraction accuracy claims.
-The accounting-inspired demo awaits nonprofit accountant review. Physical Safari is untested.
+Native ARM app/model execution and the exact AMD64 model under ARM emulation have evidence.
+Physical Docker Desktop, a fresh full AMD64 app installation, another machine/network and
+Safari remain unverified. See [access requirements](docs/ACCESS.md).
 
-The optional approver dashboard uses ordinary React for funding/cash widgets and direct
-same-origin requests to the existing bounded fact-selection endpoint. The fallback contains
-no named AG Studio, Grid or Charts dependency in its lockfile or installed package inventory.
-Its scoped removal check is not an exhaustive provenance or legal compatibility audit.
-The original Studio evaluation remains separately preserved. This variant makes no AG
-sponsor-use claim and does not assert a Studio license grant. See release/variant.json.
-
-## 2. Start the fictional demo: OrbStack only
-
-Requires OrbStack and its Docker CLI on macOS, plus internet access for pinned container,
-package and model downloads. The tested model image is Linux ARM64. Other architectures
-are unverified. Run these from this extracted folder:
+From this extracted folder, prepare dependencies and the shared local model once:
 
 ```sh
+sh scripts/aidtrace doctor
 sh scripts/aidtrace setup
-sh scripts/aidtrace configure
-sh scripts/aidtrace pnpm db:migrate
-sh scripts/aidtrace pnpm db:seed
-sh scripts/aidtrace receipt-ai-up
-sh scripts/aidtrace review-up
+sh scripts/aidtrace ai-check download
+sh scripts/aidtrace ai-smoke
 ```
 
-No native Node, pnpm, Python or Postgres install is needed. Configure generates three
-distinct passwords privately in local/.env and an explicitly non-payable recipient ending
-in example.invalid. It refuses to overwrite an existing file. Read the password values in
-your editor; do not paste the file into chat. PayPal client credentials are empty. The
-fictional demo cannot send a payment with this configuration. It needs no PayPal login.
+Dependency setup uses a separate declaration with no environment file, database or port.
+The model has no public port or financial credentials. Its weights are 1,834,426,016 bytes,
+with a 4 GiB RAM/swap cap and two CPUs. Each session app permits 3 GiB/two CPUs; its database
+permits 384 MiB/one CPU, plus a 128 MiB local relay. Allow additional engine/build/image/package storage. Run heavy
+builds and browser checks sequentially. These caps are not a total machine memory budget.
 
-review-up builds into a separate named volume and serves a stable production review runtime.
-It stops only the app while rebuilding. Database, model and existing data remain intact.
-Source changes need another explicit review-up; development live reload is absent. This is
-a local loopback review mode, not a public deployment. receipt-ai-up alone is development
-mode; use review-up afterwards for the documented walkthrough.
+## 2. Create one session: preserve every earlier run
 
-The included .npmrc directs the package cache to /pnpm/store in its named volume. Do not
-remove it. Next regenerates next-env.d.ts when switching development/production modes;
-that generated type file may appear changed after a build. Keep it separate from authored
-application changes when reviewing the working tree. Never publish a working folder with
-generated local data; use the reviewed release source and manifest.
-
-Open http://127.0.0.1:3100/login. If another app already uses port 3100, stop that app yourself
-or use a separate machine. This package uses its own aidtrace-judge container namespace and
-does not replace another AidTrace database. Local Docker administrators can access volumes.
-
-## 3. Demonstrate AI review: no payment needed
-
-Sign in as maria with SEED_PASSWORD_MARIA. Choose Start a $6 practice expense. Keep the
-fictional USD 6.00 example, attest it is invented and create it. Select Prepare expense
-proposal once. Expand How this proposal was prepared for the bounded steps. Review provisional funding and every category
-and exact supporting quote. This preview reserves no funds and is not PayPal cash.
-Correct or manually choose any category
-with a reason, explicitly confirm, then View allocation. Follow [ACCESS.md](docs/ACCESS.md)
-through Maria freezing the terms and Tara/Ben reviewing and approving independently. Stop
-at Approved, before Send. The default USD 6.00 receipt then has two approvals and USD 6.00
-open payable. This recognizes an obligation without submitting a payment.
-The AI adapter receives bounded source text and descriptions, not money, payees or funds.
-It has no tools or financial authority. Repeat requests reuse existing work. UNKNOWN stays
-unresolved until human review; alcohol remains prohibited. Editing requires a new review.
-
-The five-stage guide shows the current stage and next role. For an interactive explanation,
-open /architecture from the home page. Click a component or step to follow an allowed or
-blocked example. This illustration executes no requests and is not live telemetry.
-
-The fresh C-104 allocation fixture separately shows USD 430 restricted and USD 70 General,
-versus USD 200 General from its simple comparison. It is an unpaid fictional claim in this
-package. It is separate from the owner's historical paid acceptance fixture, which is not
-included. Never describe a synthetic test or invented opening balance as a real payment.
-
-Sign out and sign in as tara or ben with the corresponding generated demo password.
-Open the funding and cash dashboard at /analytics. Filter Restricted and General, ask
-"How does book cash relate to recorded activity?", then open "Read all snapshot facts
-without AI". These fresh fixtures differ from the owner's historical paid database.
-The page reads local journals and fund records; it does not query PayPal balances.
-AI can select only validated, exact server facts for three fixed questions. The manual
-facts remain available without the model. Maria is denied this organization-wide page.
-
-## 4. Check and stop the demo: preserve volumes
+Choose a new lowercase session name, 3 to 24 characters, and an unused loopback port:
 
 ```sh
-sh scripts/aidtrace check
-sh scripts/aidtrace ui-check
-sh scripts/aidtrace receipt-ai-down
-sh scripts/aidtrace down
+sh scripts/aidtrace judge-new review-one 3102
+sh scripts/aidtrace judge-up review-one
 ```
 
-Tests create uniquely named temporary databases. Browser checks run the receipt/phone,
-proposal and analytics suites in separate processes on an isolated network. Their model/provider
-responses are synthetic; real model evidence is separate. Screenshots, video and traces
-are disabled even on failures. All build, dependency,
-database, model and browser execution stays in containers. Models, dependencies, build
-output and database data stay in named volumes. Source/context stay in this readable folder.
-Stop commands preserve volumes. Never prune volumes to reset a demonstration.
+Open http://127.0.0.1:3102/login. Private generated passwords are in
+local/judge-sessions/review-one/session.env. Use SEED_PASSWORD_MARIA, SEED_PASSWORD_TARA
+and SEED_PASSWORD_BEN privately. Do not share that file or include it in screenshots.
+No PayPal login, key, tunnel or owner account is needed.
 
-The model is private, with no published port, two CPU cores and a 4 GiB combined RAM/swap
-ceiling. Pinned weights are approximately 1.83 GB and the model image is approximately
-1.20 GB; package installation and browser images consume additional space. Stopping the
-model leaves manual category review available. First download/startup is excluded from
-reported inference timings. See docs/THIRD_PARTY_MODELS.md for license and artifact pins.
+judge-new refuses existing names. judge-up validates configuration, starts a separately
+named database, applies migrations, initializes a new fixture once, builds and serves the
+production app. A database comment binds the generated configuration for later retention without reseeding.
+An unbound database containing later work is refused, never adopted or reset automatically.
+The comment is lifecycle metadata, not a financial journal or schema migration. The app does
+not read local/.env. Provider credentials are forced empty, its
+recipient is non-payable, and payment actions are disabled server-side. Internal application
+networks connect only the session database and existing model. A fixed loopback relay has
+no credentials and forwards only to this app, using the model download namespace's ingress network.
+The shared dependency volume is read-only; each session has its own database and compiled build volume.
 
-## 5. Assess evidence: scoped acceptance
+## 3. Review Maria's receipt: finish at the unpaid handoff
 
-The owner assigned Gate A, Gate A+ and Gate B PASS on October 22, 2026. The implemented
-receipt checkpoint passed 220 tests, TypeScript, production build and six Chromium checks
-at 375 by 812. The later private analytics implementation passed 229 tests across 24 files,
-types/build and desktop/phone Chromium checks. The owner accepted its private interface
-on October 23. This template update is not fresh exact-candidate setup/runtime evidence;
-that must be recorded separately before release. Prior gate verdicts stay unchanged.
-The later expense-proposal interface also has the owner's October 23 no-payment walkthrough:
-preparation, source-quote review, explicit category confirmation and allocation, stopping
-before Freeze. Preparation has no confirmation, approval or payment authority. New exact
-candidate evidence must include this adopted scope and its additive migration.
-The fixed invented 24-case single-line model evaluation matched 23 validated expected
-outcomes, including seven UNKNOWN abstentions and one rejected quote counted incorrect.
-This does not establish general accuracy. Source dataset/prompt/model pins are included.
+Sign in as maria. Choose Review Maria's $500 receipt. Create the default fictional receipt:
+USD 280 kits, USD 150 notebooks and USD 70 refreshments. Select Prepare expense proposal
+once. Check the local AI suggestions against highlighted saved receipt text, confirm each
+category and choose View allocation. The fresh unchanged example computes STEM B USD 200,
+Education A USD 230 and General USD 70. The ordered first-eligible comparison uses USD 200
+General. The USD 130 difference is specific to this fixture and ordering, not measured
+customer savings. Changes to categories or capacity can change the result.
 
-PayPal sandbox payouts, captures and webhook replay were separately observed in the private
-owner workspace. Their identifiers, credentials, database and evidence files are deliberately
-excluded here. Reporting access was unavailable there; the approved fallback handles a
-provider insufficient-funds response and refuses a readable short balance. UNKNOWN outcomes
-require manual reconciliation, with no automatic new send. Real PayPal testing requires
-separate owner setup/authorization and is outside these judge instructions.
+Freeze the reviewed allocation as maria. Sign out, sign in as tara and approve the same
+claim once. Sign out and repeat as ben. Two approvals recognize USD 500 payable but do not
+pay it. Inspect PayPal handoff, its masked request structure and possible future states.
+Expect Approved, Not submitted and Unassigned IDs. There is no Send control in this session.
+Neither opening a panel nor refreshing the page creates an attempt or journal.
 
-SOURCE_MANIFEST.json records included file hashes and export transformations. No .git,
-local configuration, backup, payment identifiers, historical project assets or model weights
-are distributed. The original repository and history remain privately preserved.
+AI has no financial tools. UNKNOWN requires human categories/reasons. An organization-wide
+prohibition blocks the whole expense, including General. Separate logins, confirmation,
+freeze and two approvals remain deliberate. One session permits one receipt; its edits need
+fresh review before freeze. C-104 remains a separate test fixture, outside this judge story.
+
+## 4. Restart or repeat: do not reset data
+
+```sh
+sh scripts/aidtrace judge-stop review-one
+sh scripts/aidtrace judge-up review-one
+```
+
+Restart retains the same receipt, approvals and balances. For fresh opening funds, stop the
+old app and create a new name, for example judge-new review-two 3102, then judge-up review-two.
+The earlier database/configuration/build remains preserved. No prune or volume deletion.
+A busy port is an error to investigate, never permission to stop unrelated apps.
+If the engine reports exhausted address pools, preserve the error. An operator may inspect
+Docker subnets and host/VPN routes, then pass one checked unused private /28 as judge-new's
+fourth argument after the port. It affects only that session and is retained in its config.
+The helper validates syntax, not global routing availability. Never prune networks or change
+global address pools automatically. Omit the subnet argument on an engine with normal capacity.
+Browser cookies share a loopback hostname across ports; use a separate browser profile or
+sign in again when switching between sessions. Do not reuse owner passwords.
+
+Optional checks: sh scripts/aidtrace check and sh scripts/aidtrace ui-check use isolated
+synthetic fixtures. They are not PayPal or actual-model evidence. Model stopping is explicit:
+sh scripts/aidtrace ai-check down. It leaves manual review available and preserves weights.
+
+## 5. Review evidence and rights: no publication follows
+
+[The detailed access guide](docs/ACCESS.md) covers failure recovery and independent access.
+The native analytics dashboard is available to tara/ben at /analytics; its facts come from
+local journals, not current PayPal cash. AI selects validated snapshot facts with a manual
+fallback. This variant contains no Studio SDK and makes no AG Studio sponsor-use claim.
+
+The owner's separately observed sandbox payout, capture and webhook evidence is not this
+session's payment history. Its private database, identifiers, keys and media are excluded.
+A later real sandbox run requires separate configuration and authorization outside this
+non-payable session. Do not edit its guard settings to enable payment.
+
+The application MIT license is included. Dependency/model rights remain separate: review
+LICENSE, NOTICE, THIRD_PARTY_NOTICES.txt, DEPENDENCY_LICENSES.json, UPSTREAM_LICENSE_SOURCES.json,
+docs/LICENSING.md and docs/THIRD_PARTY_MODELS.md. The accounting model awaits accountant review.
+SOURCE_MANIFEST.json identifies the prepared source, excluding Git history, local secrets,
+backups and weights. Exact candidate, ownership, access and publication remain owner decisions.
+This source is unpublished. Nothing here authorizes hosting, recording, contact or submission.

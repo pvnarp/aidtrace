@@ -3,6 +3,7 @@ import { findSession, isSameOrigin, sessionToken } from "./auth";
 import { createReceiptCategorizer, ReceiptAiError, localReceiptCategorizer } from "../ai/receipt";
 import { configuredReceiptPayee, createReceiptDraft, editReceiptDraft, readReceiptView, suggestReceipt, confirmReceipt } from "../receipt/service";
 import type { DraftInput } from "../receipt/terms";
+import { judgeSession } from "./judge-mode";
 const localCategorizer = localReceiptCategorizer;
 export async function handleReceiptAction(request: Request, id: string | null, deps: { db: AppDatabase; categorize?: ReturnType<typeof createReceiptCategorizer>; env?: Record<string, string | undefined> }) {
   const headers = { "Cache-Control": "no-store" };
@@ -26,7 +27,7 @@ export async function handleReceiptAction(request: Request, id: string | null, d
       if (form.get("syntheticReceipt") !== "yes") throw new Error("Synthetic receipt confirmation required");
       const input: DraftInput = { vendor: form.get("vendor") ?? "", program: form.get("program") ?? "", incurredOn: form.get("incurredOn") ?? "", source: form.get("source") ?? "", total: form.get("total") ?? "", lines: [] };
       for (let i = 1; i <= 12; i++) { const description = form.get(`description${i}`) ?? ""; const amount = form.get(`amount${i}`) ?? ""; if (description || amount) input.lines.push({ description, amount }); }
-      if (!id && action === "create") return destination(await createReceiptDraft(deps.db, user.id, input, configuredReceiptPayee(deps.env ?? process.env)), "created");
+      if (!id && action === "create") return destination(await createReceiptDraft(deps.db, user.id, input, configuredReceiptPayee(deps.env ?? process.env), judgeSession(deps.env ?? process.env)), "created");
       if (id && action === "edit") { await editReceiptDraft(deps.db, id, user.id, form.get("reviewId") ?? "", form.get("draftHash") ?? "", input); return destination(id, "edited"); }
       throw new Error("Wrong action");
     }

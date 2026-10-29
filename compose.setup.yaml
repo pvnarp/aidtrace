@@ -1,0 +1,17 @@
+# Dependency bootstrap only: no database, published port or environment file.
+services:
+  app:
+    build: .
+    init: true
+    mem_limit: 3g
+    cpus: 2
+    network_mode: bridge
+    environment:
+      NEXT_TELEMETRY_DISABLED: "1"
+    volumes:
+      - .:/workspace
+      - node_modules:/workspace/node_modules
+      - pnpm_store:/pnpm/store
+volumes:
+  node_modules:
+  pnpm_store:

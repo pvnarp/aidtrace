@@ -20,6 +20,14 @@ const adminUrl = new URL(process.env.DATABASE_URL!); adminUrl.pathname = "/postg
 const admin = postgres(adminUrl.toString(), { max: 1 });
 let connection: ReturnType<typeof connectDatabase>; let name: string;
 const input: DraftInput = { vendor: "Fictional shop", program: "robotics", incurredOn: "2026-10-14", source: "Science experiment kit", total: "3.00", lines: [{ description: "Science experiment kit", amount: "3.00" }] };
+it("JUDGE-04: concurrent receipt creation preserves exactly one session receipt without financial activity", async () => {
+  const results = await Promise.allSettled([createReceiptDraft(connection.db, "maria", input, payee, true), createReceiptDraft(connection.db, "maria", input, payee, true)]);
+  expect(results.filter(result => result.status === "fulfilled")).toHaveLength(1);
+  expect((await connection.db.select().from(s.claims)).filter(claim => claim.id.startsWith("R-"))).toHaveLength(1);
+  await expect(createReceiptDraft(connection.db, "maria", input, payee, true)).rejects.toThrow("Judging session already has a receipt");
+  expect(await connection.db.select().from(s.approvals)).toHaveLength(0);
+  expect(await connection.db.select().from(s.disbursementAttempts)).toHaveLength(0);
+});
 const payee = "receipt-test@personal.example.com";
 const env = { PAYPAL_SANDBOX_PAYEE_EMAIL: payee, PAYEE_ALLOWLIST: payee };
 beforeEach(async () => {

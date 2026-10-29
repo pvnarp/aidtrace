@@ -11,6 +11,8 @@ import { readExpenseReview } from "../../../../proposal/service";
 import { proposalPresentation, proposalMoney } from "../../../../proposal/presentation";
 import { ProposalReview } from "../../../receipts/proposal-review";
 import { Journey } from "../../../journey";
+import { quoteEvidence } from "../../../receipts/quote-evidence";
+import { ReceiptEvidence } from "../../../receipts/receipt-evidence";
 const names: Record<string, string> = { science_kits: "Science kits", notebooks: "Notebooks", hospitality: "Food and refreshments", alcohol: "Alcohol: prohibited" };
 const money = (value: bigint) => `${value / 100n}.${(value % 100n).toString().padStart(2, "0")}`;
 export default async function ReceiptPage({ params, searchParams }: { params: Promise<{ claimId: string }>; searchParams: Promise<{ notice?: string }> }) {
@@ -20,6 +22,7 @@ export default async function ReceiptPage({ params, searchParams }: { params: Pr
   const combined = preparationEnabled ? await readExpenseReview(getDatabase(), id, user.id).catch(() => null) : null;
   const view = preparationEnabled ? combined?.receipt : await readReceiptView(getDatabase(), id, user.id).catch(() => null); if (!view) notFound();
   const { claim, lines, review, suggestion, confirmation } = view;
+  const evidence = quoteEvidence(review, claim.version, lines.map(line => line.id), suggestion);
   const editable = view.canEdit;
   const running = suggestion?.status === "RUNNING" && Date.now() - suggestion.requestedAt.getTime() < 65000;
   const notice = (await searchParams).notice;
@@ -30,28 +33,29 @@ export default async function ReceiptPage({ params, searchParams }: { params: Pr
   return <main className="claim-page receipt-page"><header className="page-header"><Link href="/">AidTrace</Link><span>{user.displayName}</span><form action="/api/auth/logout" method="post"><button className="secondary">Sign out</button></form></header>
     <Journey stage={confirmation ? claim.status === "DRAFT" ? 3 : ["AWAITING_APPROVAL", "REJECTED"].includes(claim.status) ? 4 : 5 : 2} title={confirmation ? claim.status === "DRAFT" ? "Categories saved. Review the funding next." : "Categories saved. Check the claim's current status." : running ? "The AI review is in progress." : suggestion?.status === "READY" ? "Check the suggestions, then confirm every category." : "Prepare suggestions, or review the categories yourself."}
       detail={confirmation ? claim.status === "DRAFT" ? user.role === "CLAIMANT" ? "Open the allocation, check which fund pays each item, then freeze the terms for two human approvers. Confirmation alone did not reserve funds or approve payment." : "The categories are confirmed. Review the allocation; only the claimant can freeze it for approval." : "This is the saved category review. Open the claim to see its current approval and payment state; do not treat this receipt page as a new request." : running ? "Wait for the result, then refresh preparation status below. Do not submit a second request." : suggestion?.status === "READY" ? "Compare each category and quote with the receipt. Correct anything wrong, check the confirmation box and confirm below. Funding comes next." : "Use Prepare expense proposal below for AI help. You can also choose all categories manually with a reason. You must confirm them before funding can be frozen."}
-      href={confirmation ? `/claims/${id}` : "#category-review"} action={confirmation ? "Continue to funding" : "Go to category review"} />
-    <p className="eyebrow">Human category review</p><h1>{confirmation ? "Categories checked." : "Check each receipt category."}</h1><p>{claim.vendor} · ${money(lines.reduce((sum, line) => sum + line.amountCents, 0n))} · {claim.incurredOn}</p><p className="claim-reference">Claim {claim.id}</p>
+      href={confirmation ? `/claims/${id}` : "#category-review"} action={confirmation ? claim.status === "DRAFT" ? "Continue to funding" : "View current claim" : "Go to category review"} />
+    <p className="eyebrow">AI suggestion / Human decision</p><div className="title-row"><h1>{confirmation ? "Categories checked." : "Check each receipt category."}</h1><span className="state-badge">{confirmation ? "Confirmed by claimant" : running ? "AI preparing" : "Your review"}</span></div><p>{claim.vendor} · ${money(lines.reduce((sum, line) => sum + line.amountCents, 0n))} · {claim.incurredOn}</p><p className="claim-reference">Claim {claim.id}</p>
     {notice && notices[notice] && <p role="status" className="notice">{notices[notice]}</p>}
-    <details><summary>View original receipt text</summary><pre className="receipt-source">{review.source}</pre></details>
+    <div className="receipt-review-layout"><ReceiptEvidence evidence={evidence} /><div className="receipt-review-work">
     {confirmation ? <section><h2>Human confirmation recorded</h2><p>Every category was confirmed by the claimant. Changing this draft requires a new review.</p>
       <ul>{confirmation.selections.map(line => <li key={line.lineId}>{line.lineId}: {names[line.category]} · {line.provenance === "AI_ACCEPTED" ? "Human accepted an AI suggestion" : `Human choice: ${line.reason}`}</li>)}</ul><Link className="button-link" href={`/claims/${id}`}>View allocation</Link><p className="muted">{claim.status === "DRAFT" ? user.role === "CLAIMANT" ? "Next: review funding and freeze the terms for two separate approvers." : "Review funding. The claimant must freeze the terms before approval." : "View the claim for its current approval and payment status."}</p></section> : <>
       {combined ? <ProposalReview key={`${review.id}:${suggestionHash(suggestion)}`} id={id} reviewId={review.id} draftHash={review.draftHash} suggestionHash={suggestionHash(suggestion)} suggestionId={suggestion?.id ?? null} runHash={combined.preparation.runHash}
         panel={proposalPresentation(combined.preparation.run, combined.fundNames, lines.reduce((sum, line) => sum + line.amountCents, 0n))} editable={editable} receiptRunning={running} editForm={editForm}
-        lines={lines.map(line => ({ id: line.id, description: line.description, amount: proposalMoney(line.amountCents), proposal: suggestion?.status === "READY" ? suggestion.proposals?.find(p => p.lineId === line.id) ?? null : null }))} /> : <>
+        lines={lines.map(line => ({ id: line.id, description: line.description, amount: proposalMoney(line.amountCents), proposal: evidence.grounded ? suggestion?.proposals?.find(p => p.lineId === line.id) ?? null : null }))} /> : <>
       {editable && (suggestion?.status === "READY" ? <p>AI suggestions are saved for this receipt. Edit the receipt to request a new review.</p> : <SuggestForm id={id} reviewId={review.id} hash={review.draftHash} suggestionHash={suggestionHash(suggestion)} running={running} />)}
       {running && <p><Link href={`/claims/${id}/receipt`}>Refresh review status</Link></p>}
       {suggestion?.status === "RUNNING" && <p>{running ? "AI review is running. Reload to see its result, or review manually below." : "The earlier AI review did not finish. You can request another review or continue manually."}</p>}
       {suggestion?.status === "FAILED" && <p role="status">No usable AI suggestions are available. Manual review is available for every line.</p>}
-      <form action={`/api/receipts/${id}`} method="post" className="receipt-form">{hidden}<input type="hidden" name="action" value="confirm" /><input type="hidden" name="suggestionId" value={suggestion?.id ?? ""} /><input type="hidden" name="suggestionHash" value={suggestionHash(suggestion)} />
-        {lines.map(line => { const proposal = suggestion?.status === "READY" ? suggestion.proposals?.find(p => p.lineId === line.id) : undefined; return <section key={line.id}>
+      <form id="category-review" action={`/api/receipts/${id}`} method="post" className="receipt-form" tabIndex={-1}>{hidden}<input type="hidden" name="action" value="confirm" /><input type="hidden" name="suggestionId" value={suggestion?.id ?? ""} /><input type="hidden" name="suggestionHash" value={suggestionHash(suggestion)} />
+        {lines.map(line => { const proposal = evidence.grounded ? suggestion?.proposals?.find(p => p.lineId === line.id) : undefined; return <section key={line.id}>
           <h2>{line.id}: {line.description}</h2><p>${money(line.amountCents)}</p>
-          {proposal?.category !== "UNKNOWN" && proposal ? <><p>AI suggests: <strong>{names[proposal.category]}</strong></p><blockquote>{proposal.quote}</blockquote><p>Exact quote found once in the receipt. You still need to verify the category.</p></> : <p>No supported category suggested. Choose a category manually.</p>}
+          {proposal?.category !== "UNKNOWN" && proposal ? <><p className="ai-label">Local AI suggests: <strong>{names[proposal.category]}</strong></p><blockquote>{proposal.quote}</blockquote><a href={`#receipt-source-${line.id}`}>See quote in receipt</a>{proposal.category === "alcohol" && <p className="notice warning">Alcohol is prohibited across all funds. Correct the expense before it can proceed.</p>}</> : <p>No supported category suggested. Choose a category manually.</p>}
           <CategoryChoice lineId={line.id} proposed={proposal?.category} editable={editable} />
         </section>; })}
         {editable && <><label className="confirm"><input type="checkbox" name="confirm" value="yes" required /> I checked every category and quote. I understand alcohol cannot be reimbursed.</label><button>Confirm categories</button></>}
       </form></>}</>}
     {editable && (!combined || confirmation) && <details className="receipt-edit"><summary>Edit receipt or amounts</summary><p>Saving edits discards the current review and requires fresh confirmation.</p>{editForm}</details>}
+    </div></div>
     <footer>AI suggests categories only. Your confirmation does not approve, allocate or pay this claim.</footer>
   </main>;
 }
