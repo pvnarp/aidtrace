@@ -127,7 +127,7 @@ export const journalPostings = pgTable("journal_postings", {
   id: uuid().primaryKey().defaultRandom(), entryId: uuid("entry_id").notNull().references(() => journalEntries.id),
   accountCode: text("account_code").notNull(), subKey: text("sub_key"), debitCents: cents("debit_cents"), creditCents: cents("credit_cents"),
 }, t => [check("posting_one_positive_side", sql`(${t.debitCents} > 0 and ${t.creditCents} = 0) or (${t.creditCents} > 0 and ${t.debitCents} = 0)`),
-  check("posting_known_account", sql`${t.accountCode} in ('1010','2010','3100','3200','4100','5100','5200','5900')`)]);
+  check("posting_known_account", sql`${t.accountCode} in ('1010','2010','3100','3200','4100','5100','5200','5300','5400','5500','5900')`)]);
 
 export const disbursements = pgTable("disbursements", {
   id: uuid().primaryKey().defaultRandom(), claimId: text("claim_id").notNull(), claimVersion: integer("claim_version").notNull(),
@@ -191,9 +191,11 @@ export const receiptReviews = pgTable("receipt_reviews", {
 export const receiptSuggestions = pgTable("receipt_suggestions", {
   id: uuid().primaryKey().defaultRandom(), reviewId: uuid("review_id").notNull().references(() => receiptReviews.id),
   attempt: integer().notNull(), status: text().notNull(), proposals: jsonb().$type<{ lineId: string; category: string; quote: string; start: number | null; end: number | null }[]>(),
-  audit: jsonb().$type<Record<string, string | number>>(), errorCode: text("error_code"), requestedAt: recordedAt(),
+  audit: jsonb().$type<Record<string, string | number>>(), provider: text().$type<"local" | "claude">(), model: text(), errorCode: text("error_code"), requestedAt: recordedAt(),
 }, t => [unique().on(t.reviewId, t.attempt), check("receipt_attempt_positive", sql`${t.attempt} > 0`), check("receipt_suggestion_status", sql`${t.status} in ('RUNNING','READY','FAILED')`),
-  check("receipt_ready_evidence", sql`${t.status} <> 'READY' or (${t.proposals} is not null and ${t.audit} is not null)`)]);
+  check("receipt_ready_evidence", sql`${t.status} <> 'READY' or (${t.proposals} is not null and ${t.audit} is not null)`),
+  // IAC-392 (docs/plans/PROVIDER_COLUMNS.md section 1): the columns must agree with the stored audit and are set only on READY.
+  check("receipt_suggestion_provider", sql`(${t.status} = 'READY') = (${t.provider} is not null) and (${t.provider} is null) = (${t.model} is null) and (${t.provider} is null or ${t.provider} in ('local','claude')) and (${t.provider} is distinct from 'local' or (not (${t.audit} ? 'provider') and ${t.model} = ${t.audit}->>'modelRevision' and ${t.model} ~ '^[a-f0-9]{40}$') is true) and (${t.provider} is distinct from 'claude' or (${t.audit}->>'provider' = 'claude' and ${t.model} = ${t.audit}->>'model' and ${t.model} in ('claude-haiku-5-5','claude-sonnet-5-5')) is true)`)]);
 export const receiptConfirmations = pgTable("receipt_confirmations", {
   id: uuid().primaryKey().defaultRandom(), reviewId: uuid("review_id").notNull().unique().references(() => receiptReviews.id),
   suggestionId: uuid("suggestion_id").references(() => receiptSuggestions.id), confirmedBy: text("confirmed_by").notNull().references(() => users.id),
@@ -217,26 +219,35 @@ export const expenseProposals = pgTable("expense_proposals", {
   check("expense_proposal_completion", sql`(${t.state} = 'RUNNING' and ${t.completedAt} is null and ${t.result} is null) or (${t.state} <> 'RUNNING' and ${t.completedAt} is not null)`),
 ]);
 
-// IAC-379 step 1. Server-authoritative donation order lifecycle (docs/plans/DONATION_LOOP_SCOPE.md sections 3 and 8).
-// Stores no payer email, payer ID, address or card data. Posting stays in donation_receipts and the ledger.
-export const donationOrderStatuses = ["CREATED", "APPROVED", "CAPTURING", "CAPTURE_UNKNOWN", "PENDING", "COMPLETED", "FAILED", "MISMATCH"] as const;
+// IAC-379 step 1, hardened by IAC-391 (docs/plans/DONATION_HARDENING.md). Server-authoritative donation order lifecycle
+// (docs/plans/DONATION_LOOP_SCOPE.md sections 3 and 8). Stores no payer email, payer ID, address or card data.
+// Posting stays in donation_receipts and the ledger.
+export const donationOrderStatuses = ["CREATED", "APPROVED", "CAPTURING", "CAPTURE_UNKNOWN", "PENDING", "DECLINED", "COMPLETED", "FAILED", "MISMATCH", "EXPIRED"] as const;
 export type DonationOrderStatus = (typeof donationOrderStatuses)[number];
 export const donationOrders = pgTable("donation_orders", {
   id: uuid().primaryKey().defaultRandom(), orderId: text("order_id").unique(),
   fundId: text("fund_id").notNull().references(() => funds.id), expectedAmountCents: cents("expected_amount_cents"),
   createRequestId: uuid("create_request_id").notNull().unique(), captureRequestId: uuid("capture_request_id").notNull().unique(),
   status: text().$type<DonationOrderStatus>().notNull().default("CREATED"), captureAttempts: integer("capture_attempts").notNull().default(0),
+  // Create sends made with the persisted create_request_id (1 to 3). Capture rounds: the IDs PayPal declined, oldest first.
+  createAttempts: integer("create_attempts").notNull().default(1),
+  declinedCaptureRequestIds: uuid("declined_capture_request_ids").array().notNull().default(sql`'{}'::uuid[]`),
   displayName: text("display_name"), leaseToken: uuid("lease_token"), leaseExpiresAt: timestamp("lease_expires_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(), updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 }, t => [
   check("donation_order_expected_positive", sql`${t.expectedAmountCents} > 0`),
+  check("donation_order_expected_bound", sql`${t.expectedAmountCents} <= 9999999999999`),
   check("donation_order_id_format", sql`${t.orderId} is null or ${t.orderId} ~ '^[A-Za-z0-9_-]{1,64}$'`),
   check("donation_order_request_ids_differ", sql`${t.createRequestId} <> ${t.captureRequestId}`),
-  check("donation_order_status", sql`${t.status} in ('CREATED','APPROVED','CAPTURING','CAPTURE_UNKNOWN','PENDING','COMPLETED','FAILED','MISMATCH')`),
-  check("donation_order_id_required", sql`${t.status} in ('CREATED','FAILED') or ${t.orderId} is not null`),
+  check("donation_order_status", sql`${t.status} in ('CREATED','APPROVED','CAPTURING','CAPTURE_UNKNOWN','PENDING','DECLINED','COMPLETED','FAILED','MISMATCH','EXPIRED')`),
+  check("donation_order_id_required", sql`${t.status} in ('CREATED','FAILED','EXPIRED') or ${t.orderId} is not null`),
   check("donation_order_attempts", sql`${t.captureAttempts} between 0 and 2`),
-  check("donation_order_attempts_by_status", sql`${t.captureAttempts} > 0 or ${t.status} in ('CREATED','APPROVED','FAILED','MISMATCH')`),
+  check("donation_order_attempts_by_status", sql`${t.captureAttempts} > 0 or ${t.status} in ('CREATED','APPROVED','FAILED','MISMATCH','EXPIRED')`),
+  check("donation_order_attempts_before_capture", sql`${t.status} not in ('CREATED','APPROVED') or ${t.captureAttempts} = 0`),
+  check("donation_order_create_attempts", sql`${t.createAttempts} between 1 and 3`),
+  check("donation_order_history_bound", sql`cardinality(${t.declinedCaptureRequestIds}) <= 2`),
+  check("donation_order_history_distinct", sql`not (${t.captureRequestId} = any(${t.declinedCaptureRequestIds})) and not (${t.createRequestId} = any(${t.declinedCaptureRequestIds}))`),
   check("donation_order_display_name", sql`${t.displayName} is null or (char_length(${t.displayName}) between 1 and 40 and ${t.displayName} = btrim(${t.displayName}))`),
   check("donation_order_lease_pair", sql`(${t.leaseToken} is null) = (${t.leaseExpiresAt} is null)`),
-  check("donation_order_final_has_no_lease", sql`${t.status} not in ('COMPLETED','FAILED','MISMATCH') or ${t.leaseToken} is null`),
+  check("donation_order_final_has_no_lease", sql`${t.status} not in ('COMPLETED','FAILED','MISMATCH','EXPIRED') or ${t.leaseToken} is null`),
 ]);

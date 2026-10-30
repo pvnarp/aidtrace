@@ -19,15 +19,15 @@ export function readSeedConfig(env: Readonly<Record<string, string | undefined>>
   return { passwords, payeeEmail, payeeAllowlist };
 }
 
-const organization = { id: "cedar-hollow", name: "Cedar Hollow Youth Robotics", prohibitedCategories: ["alcohol"], isFixture: true, openingSourceType: "fixture_opening_balance" as const };
+const organization = { id: "cedar-hollow", name: "Lanternfield Community Alliance", prohibitedCategories: ["alcohol", "gift_cards"], isFixture: true, openingSourceType: "fixture_opening_balance" as const };
 const fundRows = [
-  { id: "fund_a", organizationId: organization.id, name: "Education A", fundClass: "RESTRICTED" as const, currentPolicyVersion: 1, isFixture: true },
-  { id: "fund_b", organizationId: organization.id, name: "STEM B", fundClass: "RESTRICTED" as const, currentPolicyVersion: 1, isFixture: true },
-  { id: "fund_g", organizationId: organization.id, name: "General", fundClass: "UNRESTRICTED" as const, currentPolicyVersion: 1, isFixture: true },
+  { id: "fund_a", organizationId: organization.id, name: "Ashmere County Afterschool STEM Subgrant", fundClass: "RESTRICTED" as const, currentPolicyVersion: 1, isFixture: true },
+  { id: "fund_b", organizationId: organization.id, name: "Tallow Creek Robot Kit Initiative", fundClass: "RESTRICTED" as const, currentPolicyVersion: 1, isFixture: true },
+  { id: "fund_g", organizationId: organization.id, name: "General Operating", fundClass: "UNRESTRICTED" as const, currentPolicyVersion: 1, isFixture: true },
 ];
 const policies = [
-  { fundId: "fund_a", version: 1, approvedBy: "tara", programs: ["robotics"], allowedCategories: ["science_kits", "notebooks"], periodStart: "2026-09-01", periodEnd: "2027-06-30", breadth: 2, summary: "Robotics science kits and notebooks, September 2026 through June 2027; supplies cap $300." },
-  { fundId: "fund_b", version: 1, approvedBy: "tara", programs: ["robotics"], allowedCategories: ["science_kits"], periodStart: "2026-10-01", periodEnd: "2026-12-31", breadth: 1, summary: "Robotics science kits only, October through December 2026; supplies cap $200." },
+  { fundId: "fund_a", version: 1, approvedBy: "tara", programs: ["robotics"], allowedCategories: ["robot_kits_parts", "classroom_supplies"], periodStart: "2026-09-01", periodEnd: "2027-06-30", breadth: 2, summary: "Eastside Robotics Club share: robot kits, parts and notebooks, September 2026 through June 2027; supplies cap $300." },
+  { fundId: "fund_b", version: 1, approvedBy: "tara", programs: ["robotics"], allowedCategories: ["robot_kits_parts"], periodStart: "2026-10-01", periodEnd: "2026-12-31", breadth: 1, summary: "Eastside Robotics Club share: robot kits and parts only, October through December 2026; supplies cap $200." },
   { fundId: "fund_g", version: 1, approvedBy: "tara", programs: null, allowedCategories: null, periodStart: null, periodEnd: null, breadth: null, summary: "Any program and category except the organization prohibited list; no period or budget cap." },
 ];
 const budgetRows = [
@@ -36,9 +36,9 @@ const budgetRows = [
 ];
 const priority = { organizationId: organization.id, version: 1, approvedBy: "tara", costsPerCent: { fund_a: "2000", fund_b: "1001", fund_g: "1000000" } };
 const lines = [
-  { claimId: "C-104", claimVersion: 1, id: "L1", description: "Science kits", category: "science_kits", budgetLine: "supplies", amountCents: 28000n },
-  { claimId: "C-104", claimVersion: 1, id: "L2", description: "Notebooks", category: "notebooks", budgetLine: "supplies", amountCents: 15000n },
-  { claimId: "C-104", claimVersion: 1, id: "L3", description: "Refreshments", category: "hospitality", budgetLine: "hospitality", amountCents: 7000n },
+  { claimId: "C-104", claimVersion: 1, id: "L1", description: "Robot kit and parts", category: "robot_kits_parts", budgetLine: "supplies", amountCents: 28000n },
+  { claimId: "C-104", claimVersion: 1, id: "L2", description: "Engineering notebooks", category: "classroom_supplies", budgetLine: "supplies", amountCents: 15000n },
+  { claimId: "C-104", claimVersion: 1, id: "L3", description: "Team meals", category: "participant_meals", budgetLine: "other", amountCents: 7000n },
 ];
 const openings = [
   { fundId: "fund_a", amountCents: 30000n }, { fundId: "fund_b", amountCents: 20000n }, { fundId: "fund_g", amountCents: 100000n },

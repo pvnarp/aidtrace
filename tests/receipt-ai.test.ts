@@ -2,7 +2,7 @@ import { createHash } from "node:crypto";
 import { afterEach, expect, it, vi } from "vitest";
 import { categoryRequest, createReceiptCategorizer, validateProposals, type ReceiptInput } from "../src/ai/receipt";
 const input: ReceiptInput = { source: "INVENTED RECEIPT\nScience experiment kits\nBlank notebooks\n", lines: [{ id: "L1", description: "Science kits" }] };
-const proposal = { lineId: "L1", category: "science_kits", quote: "Science experiment kits" };
+const proposal = { lineId: "L1", category: "robot_kits_parts", quote: "Science experiment kits" };
 function response(value: unknown = { proposals: [proposal] }, extra: Record<string, unknown> = {}) {
   return new Response(JSON.stringify({ model: "aidtrace-category-qwen3", choices: [{ finish_reason: "stop", message: { role: "assistant", content: JSON.stringify(value) } }], ...extra }), { headers: { "content-type": "application/json" } });
 }
@@ -10,10 +10,10 @@ afterEach(() => vi.useRealTimers());
 it("locates exact quotes in the original source, with UTF-16 offsets and original line order", () => {
   const unicode = { source: "🤖\r\nScience experiment kits", lines: input.lines };
   const [result] = validateProposals(unicode, { proposals: [proposal] });
-  expect(result).toMatchObject({ category: "science_kits", start: 4 });
+  expect(result).toMatchObject({ category: "robot_kits_parts", start: 4 });
   expect(unicode.source.slice(result!.start!, result!.end!)).toBe(proposal.quote);
   const multi = { ...input, lines: [...input.lines, { id: "L2", description: "Notebook" }] };
-  expect(validateProposals(multi, { proposals: [{ lineId: "L2", category: "notebooks", quote: "Blank notebooks" }, proposal] }).map(x => x.lineId)).toEqual(["L1", "L2"]);
+  expect(validateProposals(multi, { proposals: [{ lineId: "L2", category: "classroom_supplies", quote: "Blank notebooks" }, proposal] }).map(x => x.lineId)).toEqual(["L1", "L2"]);
 });
 it("keeps explicit model abstention separate from grounded suggestions", () => {
   expect(validateProposals(input, { proposals: [{ ...proposal, category: "UNKNOWN", quote: "" }] })).toEqual([{ lineId: "L1", category: "UNKNOWN", quote: "", start: null, end: null }]);

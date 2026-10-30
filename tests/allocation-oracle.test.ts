@@ -32,8 +32,8 @@ function exhaustive(input: AllocationInput) {
 it("matches exhaustive feasibility and both objective levels on 250 bounded policy/cap/reservation cases", () => {
   const small = fc.integer({ min: 0, max: 6 });
   fc.assert(fc.property(fc.record({ a: small, b: small, g: small, capA: small, capB: small, debit: fc.integer({ min: 0, max: 3 }), other: fc.integer({ min: 0, max: 3 }), own: fc.integer({ min: 0, max: 3 }), active: fc.boolean(), maskA: fc.integer({ min: 1, max: 3 }), maskB: fc.integer({ min: 1, max: 3 }), first: fc.integer({ min: 1, max: 4 }), second: fc.integer({ min: 1, max: 4 }), prohibited: fc.integer({ min: 0, max: 9 }) }), sample => {
-    const original = fixture(); const categories = ["science_kits", "notebooks"];
-    const input: AllocationInput = { ...original, decisionId: "current", prohibitedCategories: sample.prohibited ? [] : ["notebooks"],
+    const original = fixture(); const categories = ["robot_kits_parts", "classroom_supplies"];
+    const input: AllocationInput = { ...original, decisionId: "current", prohibitedCategories: sample.prohibited ? [] : ["classroom_supplies"],
       lines: original.lines.slice(0, 2).map((line, index) => ({ ...line, amountCents: BigInt(index ? sample.second : sample.first) })),
       funds: original.funds.map((fund, index) => {
         const allowed = categories.filter((_category, bit) => ((index ? sample.maskB : sample.maskA) & (1 << bit)) !== 0);

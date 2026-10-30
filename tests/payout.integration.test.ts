@@ -28,7 +28,7 @@ const claimRow = async (id: string) => (await db.select().from(s.claims).where(e
 async function recognizedClaim(prefix: string) {
   const id = `${prefix}-${++serial}`; const original = await claimRow("C-104");
   await db.insert(s.claims).values({ ...original, id, status: "DRAFT" });
-  await db.insert(s.claimLines).values({ claimId: id, claimVersion: 1, id: "test-line", description: "Payout test only", category: "hospitality", budgetLine: "hospitality", amountCents: 100n });
+  await db.insert(s.claimLines).values({ claimId: id, claimVersion: 1, id: "test-line", description: "Payout test only", category: "participant_meals", budgetLine: "other", amountCents: 100n });
   const frozen = await freezeDecision(db, id, "maria"); if (frozen.status !== "AWAITING_APPROVAL") throw new Error("Test must be funded");
   await approveDecision(db, frozen.decisionId, "tara", frozen.decisionHash); await approveDecision(db, frozen.decisionId, "ben", frozen.decisionHash);
   return { id, hash: frozen.decisionHash };

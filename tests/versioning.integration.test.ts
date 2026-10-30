@@ -50,7 +50,7 @@ describe("IAC-138 isolated PostgreSQL acceptance", () => {
     const [template] = await db.select().from(s.claims);
     for (const id of ["race-a", "race-b"]) {
       await db.insert(s.claims).values({ ...template!, id, status: "DRAFT" });
-      await db.insert(s.claimLines).values({ claimId: id, claimVersion: 1, id: "kits", description: "Race fixture", category: "science_kits", budgetLine: "supplies", amountCents: 100000n });
+      await db.insert(s.claimLines).values({ claimId: id, claimVersion: 1, id: "kits", description: "Race fixture", category: "robot_kits_parts", budgetLine: "supplies", amountCents: 100000n });
     }
     let attempts!: Promise<PromiseSettledResult<Awaited<ReturnType<typeof freezeDecision>>>[]>;
     // Hold the actual application lock until both transactions have reached it. Their
@@ -82,7 +82,7 @@ describe("IAC-138 isolated PostgreSQL acceptance", () => {
     await approveDecision(db, old.decisionId, "tara", old.decisionHash);
     const [template] = await db.select().from(s.claims);
     await db.insert(s.claims).values({ ...template!, id: "another-pending", status: "DRAFT" });
-    await db.insert(s.claimLines).values({ claimId: "another-pending", claimVersion: 1, id: "snack", description: "Second pending claim", category: "hospitality", budgetLine: "hospitality", amountCents: 100n });
+    await db.insert(s.claimLines).values({ claimId: "another-pending", claimVersion: 1, id: "snack", description: "Second pending claim", category: "participant_meals", budgetLine: "other", amountCents: 100n });
     const another = await frozen("another-pending"); await approveDecision(db, another.decisionId, "tara", another.decisionHash);
     await expect(advanceSolverPriority(db, "cedar-hollow", "maria", 1)).rejects.toThrow("approver");
     await expect(advanceSolverPriority(db, "other-org", "tara", 1)).rejects.toThrow("approver");

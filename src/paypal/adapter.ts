@@ -2,19 +2,18 @@ const SANDBOX_BASE_URL = "https://api-m.sandbox.paypal.com";
 export interface PayPalConfig {
   baseUrl?: string; clientId?: string; clientSecret?: string;
   payeeAllowlist: readonly string[]; maxDemoPayoutCents: bigint;
-  // IAC-379: donation ceiling in integer cents. Omitted means DEFAULT_MAX_DEMO_DONATION_CENTS.
-  maxDemoDonationCents?: bigint;
 }
-export const DEFAULT_MAX_DEMO_DONATION_CENTS = 5000n;
+// IAC-391: donations have no business ceiling. This is input validity only: 13 digits of cents (just under USD 100
+// billion) keeps every amount inside the adapter's money format and far from the bigint limit in ledger sums.
+// PayPal applies its own account and transaction limits and refuses with a 4xx. Reading no donation variable here is
+// deliberate: payout configuration must never depend on a donation setting.
+export const DONATION_MAX_CENTS = 9_999_999_999_999n;
 export function payPalConfigFromEnvironment(env: Readonly<Record<string, string | undefined>>): PayPalConfig {
   const maximum = env.MAX_DEMO_PAYOUT_CENTS || "50000";
   if (!/^[1-9][0-9]*$/.test(maximum)) throw new Error("MAX_DEMO_PAYOUT_CENTS must be a positive integer");
-  const donationMaximum = env.MAX_DEMO_DONATION_CENTS || DEFAULT_MAX_DEMO_DONATION_CENTS.toString();
-  if (!/^[1-9][0-9]{0,15}$/.test(donationMaximum)) throw new Error("MAX_DEMO_DONATION_CENTS must be a positive integer");
   return {
     baseUrl: env.PAYPAL_BASE_URL, clientId: env.PAYPAL_CLIENT_ID, clientSecret: env.PAYPAL_CLIENT_SECRET,
     payeeAllowlist: (env.PAYEE_ALLOWLIST ?? "").split(",").map(v => v.trim()).filter(Boolean), maxDemoPayoutCents: BigInt(maximum),
-    maxDemoDonationCents: BigInt(donationMaximum),
   };
 }
 export function createPayPalAdapter(config: PayPalConfig, request: typeof fetch = fetch) {
@@ -78,8 +77,6 @@ export interface DonationOrderWriter {
 // Application requests stay in this file. Manual lab methods never enter the web workflow.
 export function createApplicationSandboxPayments(config: PayPalConfig, balanceReadable = false, request: typeof fetch = fetch): PayoutTransport & WebhookVerifier & DonationReader & DonationOrderWriter & WebhookRegistrationReader {
   const guard = createPayPalAdapter(config, request);
-  const donationCeilingCents = config.maxDemoDonationCents ?? DEFAULT_MAX_DEMO_DONATION_CENTS;
-  if (donationCeilingCents <= 0n) throw new Error("Positive donation ceiling required");
   const object = (value: unknown): Record<string, unknown> => value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, unknown> : {};
   const identifier = (value: unknown) => typeof value === "string" && /^[A-Za-z0-9_-]{1,64}$/.test(value) ? value : undefined;
   const code = (value: unknown) => typeof value === "string" && /^[A-Z0-9_]{1,100}$/.test(value) ? value : undefined;
@@ -151,7 +148,7 @@ export function createApplicationSandboxPayments(config: PayPalConfig, balanceRe
     async createDonationOrder(order) {
       requestUuid(order.requestId);
       if (typeof order.fundId !== "string" || !/^[a-z0-9_-]{1,64}$/.test(order.fundId)) throw new Error("Valid fund ID required");
-      if (typeof order.amountCents !== "bigint" || order.amountCents <= 0n || order.amountCents > donationCeilingCents) throw new Error("Donation outside demo ceiling");
+      if (typeof order.amountCents !== "bigint" || order.amountCents <= 0n || order.amountCents > DONATION_MAX_CENTS) throw new Error("Donation amount outside the technical bound");
       const result = await call("/v2/checkout/orders", { intent: "CAPTURE", purchase_units: [{ custom_id: order.fundId, amount: { currency_code: "USD", value: decimal(order.amountCents) } }] }, { "PayPal-Request-Id": order.requestId });
       return { httpStatus: result.httpStatus, orderId: identifier(result.data.id), status: code(result.data.status), errorCode: result.errorCode, errorIssues: issues(result.data) };
     },

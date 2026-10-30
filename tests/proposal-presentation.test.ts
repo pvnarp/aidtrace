@@ -3,9 +3,9 @@ import { proposalMoney, proposalPresentation } from "../src/proposal/presentatio
 import type { ProposalResult } from "../src/proposal/types";
 const result: ProposalResult = { summary: "HUMAN_REVIEW_REQUIRED", generalCents: "100", edges: [{ lineId: "L1", fundId: "fund_b", amountCents: "500", policyVersion: 1, solverPriorityVersion: 1, reason: "Approved policy permits this category." }], issues: [], steps: ["CATEGORIES_VALIDATED", "POLICY_PREVIEWED", "HUMAN_CONFIRMATION_REQUIRED"] };
 it("AP-08: provisional money is exact server formatting and cannot imply approval", () => {
-  const value = proposalPresentation({ state: "READY_FOR_REVIEW", errorCode: null, result }, { fund_b: "STEM B" }, 600n);
+  const value = proposalPresentation({ state: "READY_FOR_REVIEW", errorCode: null, result }, { fund_b: "Tallow Creek Robot Kit Initiative" }, 600n);
   expect(value.split).toBe("$5.00 from restricted funds, $1.00 from General."); expect(value.heading).toBe("Provisional funding available");
-  expect(value.edges[0]!.fund).toBe("STEM B"); expect(value.message).toContain("does not reserve funds"); expect(value.steps.at(-1)).toContain("Waiting for your category confirmation");
+  expect(value.edges[0]!.fund).toBe("Tallow Creek Robot Kit Initiative"); expect(value.message).toContain("does not reserve funds"); expect(value.steps.at(-1)).toContain("Waiting for your category confirmation");
   expect(proposalMoney(1n)).toBe("$0.01"); for (const value of ["1.2", "1e2", "-1", "NaN"]) expect(() => proposalMoney(value)).toThrow();
   expect(() => proposalPresentation({ state: "READY_FOR_REVIEW", errorCode: null, result }, {}, 50n)).toThrow();
 });

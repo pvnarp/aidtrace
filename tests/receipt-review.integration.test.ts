@@ -44,10 +44,10 @@ afterEach(async () => { await connection?.client.end(); if (/^aidtrace_iac211_te
 afterAll(async () => { await admin.end(); });
 async function draft() { return createReceiptDraft(connection.db, "maria", input, payee); }
 async function view(id: string) { return readReceiptView(connection.db, id, "maria"); }
-async function confirm(id: string, category = "science_kits", reason = "Checked synthetic source") {
+async function confirm(id: string, category = "robot_kits_parts", reason = "Checked synthetic source") {
   const v = await view(id); return confirmReceipt(connection.db, id, "maria", v.review.id, v.review.draftHash, v.suggestion?.id ?? null, suggestionHash(v.suggestion), [{ lineId: "L1", category, reason }]);
 }
-const stub: ReturnType<typeof createReceiptCategorizer> = async value => ({ proposals: validateProposals(value, { proposals: [{ lineId: "L1", category: "science_kits", quote: "Science experiment kit" }] }), audit: { sourceSha256: digest(value.source), requestSha256: "a".repeat(64), responseSha256: "b".repeat(64), promptVersion: PROMPT_VERSION, modelSha256: lock.modelSha256, modelRevision: lock.modelRevision, latencyMs: 1 } });
+const stub: ReturnType<typeof createReceiptCategorizer> = async value => ({ proposals: validateProposals(value, { proposals: [{ lineId: "L1", category: "robot_kits_parts", quote: "Science experiment kit" }] }), audit: { sourceSha256: digest(value.source), requestSha256: "a".repeat(64), responseSha256: "b".repeat(64), promptVersion: PROMPT_VERSION, modelSha256: lock.modelSha256, modelRevision: lock.modelRevision, latencyMs: 1 } });
 async function suggest(id: string, categorize = stub) { const v = await view(id); return suggestReceipt(connection.db, id, "maria", v.review.id, v.review.draftHash, categorize, suggestionHash(v.suggestion)); }
 async function request(actor: string | null, fields: Record<string, string>, id: string | null = null, origin = "http://127.0.0.1:3100") {
   let token = "";
@@ -67,7 +67,7 @@ it("GB-01: draft cannot freeze until human confirmation; existing solver and ind
   const id = await draft(); const before = await view(id);
   expect(before.claim).toMatchObject({ organizationId: "cedar-hollow", claimantId: "maria", payeeEmail: payee, status: "DRAFT" });
   expect(before.lines[0]!.category).toBe("UNKNOWN"); await expect(freezeDecision(connection.db, id, "maria")).rejects.toThrow("confirmation");
-  expect(await suggest(id)).toBe(true); await confirm(id, "science_kits", "");
+  expect(await suggest(id)).toBe(true); await confirm(id, "robot_kits_parts", "");
   expect((await view(id)).confirmation!.selections[0]!.provenance).toBe("AI_ACCEPTED");
   expect((await loadClaimView(connection.db, id, "maria")).edges[0]!.fundId).toBe("fund_b");
   const frozen = await freezeDecision(connection.db, id, "maria"); if (frozen.status !== "AWAITING_APPROVAL") throw new Error("Expected funded");
@@ -84,7 +84,7 @@ it("AI-04: source and amount edits invalidate suggestions, confirmation and old 
   await editReceiptDraft(connection.db, id, "maria", old.review.id, old.review.draftHash, changed);
   const next = await view(id); expect(next.review.revision).toBe(2); expect(next.review.sourceHash).not.toBe(old.review.sourceHash); expect(next.review.draftHash).not.toBe(old.review.draftHash);
   expect(next.confirmation).toBeUndefined(); expect(next.suggestion).toBeUndefined(); expect(next.lines[0]!.category).toBe("UNKNOWN");
-  await expect(confirmReceipt(connection.db, id, "maria", old.review.id, old.review.draftHash, old.suggestion!.id, suggestionHash(old.suggestion), [{ lineId: "L1", category: "science_kits", reason: "" }])).rejects.toThrow("stale");
+  await expect(confirmReceipt(connection.db, id, "maria", old.review.id, old.review.draftHash, old.suggestion!.id, suggestionHash(old.suggestion), [{ lineId: "L1", category: "robot_kits_parts", reason: "" }])).rejects.toThrow("stale");
   await expect(freezeDecision(connection.db, id, "maria")).rejects.toThrow();
   expect((await connection.db.select().from(s.receiptConfirmations))).toHaveLength(1);
   expect((await loadClaimView(connection.db, "C-104", "maria")).lines).toEqual(c104.lines);
@@ -92,20 +92,20 @@ it("AI-04: source and amount edits invalidate suggestions, confirmation and old 
 it("AI-02/05: unavailable model and manual corrections remain human choices; UNKNOWN stays unresolved", async () => {
   const id = await draft(); expect(await suggest(id, async () => { throw new ReceiptAiError("TIMEOUT"); })).toBe(false);
   expect((await view(id)).suggestion).toMatchObject({ status: "FAILED", errorCode: "TIMEOUT", proposals: null });
-  await expect(confirm(id, "UNKNOWN")).rejects.toThrow(); await expect(confirm(id, "science_kits", "")).rejects.toThrow("Explain");
+  await expect(confirm(id, "UNKNOWN")).rejects.toThrow(); await expect(confirm(id, "robot_kits_parts", "")).rejects.toThrow("Explain");
   await confirm(id); expect((await view(id)).confirmation!.selections[0]!.provenance).toBe("HUMAN");
-  const corrected = await draft(); await suggest(corrected); await confirm(corrected, "notebooks", "Manual correction from synthetic source");
+  const corrected = await draft(); await suggest(corrected); await confirm(corrected, "classroom_supplies", "Manual correction from synthetic source");
   expect((await view(corrected)).confirmation!.selections[0]!.provenance).toBe("HUMAN");
-  const invalid = await draft(); expect(await suggest(invalid, async value => ({ ...(await stub(value)), proposals: [{ lineId: "L1", category: "science_kits", quote: "not in source", start: 0, end: 13 }] }))).toBe(false);
+  const invalid = await draft(); expect(await suggest(invalid, async value => ({ ...(await stub(value)), proposals: [{ lineId: "L1", category: "robot_kits_parts", quote: "not in source", start: 0, end: 13 }] }))).toBe(false);
   expect((await view(invalid)).suggestion!.errorCode).toBe("VALIDATION");
 });
 it("IAC-346: approvers receive the current manual correction and original AI quote with the bound terms", async () => {
-  const id = await draft(); await suggest(id); await confirm(id, "notebooks", "Human correction from the invented source");
+  const id = await draft(); await suggest(id); await confirm(id, "classroom_supplies", "Human correction from the invented source");
   const frozen = await freezeDecision(connection.db, id, "maria");
   expect(frozen.status).toBe("AWAITING_APPROVAL");
   const view = await loadClaimView(connection.db, id, "tara");
-  expect(view.lines[0]).toMatchObject({ description: "Science experiment kit", category: "notebooks", amountCents: 300n });
-  expect(view.receiptReview?.lines[0]).toMatchObject({ category: "notebooks", provenance: "HUMAN", reason: "Human correction from the invented source", proposal: { category: "science_kits", quote: "Science experiment kit" } });
+  expect(view.lines[0]).toMatchObject({ description: "Science experiment kit", category: "classroom_supplies", amountCents: 300n });
+  expect(view.receiptReview?.lines[0]).toMatchObject({ category: "classroom_supplies", provenance: "HUMAN", reason: "Human correction from the invented source", proposal: { category: "robot_kits_parts", quote: "Science experiment kit" } });
   expect(view.decision?.decisionHash).toBe(frozen.status === "AWAITING_APPROVAL" ? frozen.decisionHash : "unexpected");
   await expect(loadClaimView(connection.db, id, "other")).rejects.toThrow();
   expect(await connection.db.select().from(s.approvals)).toHaveLength(0);
@@ -117,12 +117,33 @@ it("GB-01: alcohol confirmation records the fact but cannot fund or reserve reim
   expect((await freezeDecision(connection.db, id, "maria")).status).toBe("INFEASIBLE");
   expect(await connection.db.select().from(s.fundReservations)).toHaveLength(0);
 });
+it("CAT-14: legacy ids are refused at confirmation, even beside a preserved legacy READY row, and the refusal stores nothing", async () => {
+  const id = await draft(); const first = await view(id);
+  // A READY row as an old database holds it: legacy category id and v1 audit, inserted directly (never written by new code).
+  const legacyAudit = { sourceSha256: digest(input.source), requestSha256: "b".repeat(64), responseSha256: "c".repeat(64), modelSha256: lock.modelSha256, modelRevision: lock.modelRevision, promptVersion: "receipt-category-v1" };
+  await connection.db.insert(s.receiptSuggestions).values({ id: "11111111-1111-4111-8111-111111111111", reviewId: first.review.id, attempt: 1, status: "READY", provider: "local", model: lock.modelRevision,
+    proposals: [{ lineId: "L1", category: "science_kits", quote: "Science experiment kit", start: 0, end: 22 }], audit: legacyAudit });
+  expect((await view(id)).suggestion!.proposals![0]!.category).toBe("science_kits");
+  for (const legacy of ["science_kits", "notebooks", "hospitality"]) await expect(confirm(id, legacy, "Human choice")).rejects.toThrow("confirmed category");
+  expect((await view(id)).confirmation).toBeUndefined(); expect((await view(id)).lines[0]!.category).toBe("UNKNOWN");
+  expect(await connection.db.select().from(s.receiptConfirmations)).toHaveLength(0);
+  // The legacy proposal is never an AI acceptance of a current id: a current id needs a human reason.
+  await expect(confirm(id, "robot_kits_parts", "")).rejects.toThrow("Explain");
+  await confirm(id, "robot_kits_parts", "Human relabel of a preserved suggestion");
+  expect((await view(id)).confirmation!.selections[0]).toMatchObject({ category: "robot_kits_parts", provenance: "HUMAN" });
+});
+it("CAT-17: a gift card confirmation stores the prohibited sentinel and cannot fund or reserve reimbursement", async () => {
+  const id = await draft(); await confirm(id, "gift_cards", "Synthetic gift card receipt");
+  expect((await view(id)).lines[0]!.budgetLine).toBe("prohibited");
+  expect((await freezeDecision(connection.db, id, "maria")).status).toBe("INFEASIBLE");
+  expect(await connection.db.select().from(s.fundReservations)).toHaveLength(0);
+});
 it("AI-04: only the current claimant can edit/confirm; other claimant and organization cannot read routes", async () => {
   const [maria] = await connection.db.select().from(s.users).where(eq(s.users.id, "maria"));
   await connection.db.insert(s.organizations).values({ id: "elsewhere", name: "Other test organization", prohibitedCategories: ["alcohol"], openingSourceType: "fixture_opening_balance" });
   await connection.db.insert(s.users).values({ ...maria!, id: "outsider", username: "outsider", organizationId: "elsewhere" });
   const id = await draft(); const v = await view(id);
-  for (const actor of ["other", "outsider", "tara"]) await expect(confirmReceipt(connection.db, id, actor, v.review.id, v.review.draftHash, null, suggestionHash(undefined), [{ lineId: "L1", category: "science_kits", reason: "Checked" }])).rejects.toThrow();
+  for (const actor of ["other", "outsider", "tara"]) await expect(confirmReceipt(connection.db, id, actor, v.review.id, v.review.draftHash, null, suggestionHash(undefined), [{ lineId: "L1", category: "robot_kits_parts", reason: "Checked" }])).rejects.toThrow();
   for (const actor of ["other", "outsider"]) {
     await expect(readReceiptView(connection.db, id, actor)).rejects.toThrow(); await expect(loadClaimView(connection.db, id, actor)).rejects.toThrow();
     expect((await handleClaimAction(await request(actor, { action: "freeze" }, id), id, { db: connection.db, provider() { throw new Error("Never call provider"); } })).status).toBe(404);
@@ -142,7 +163,7 @@ it("AI-04: form opened during inference cannot accept a category as AI after it 
   const running = new Promise<void>(resolve => { started = resolve; }); const gate = new Promise<void>(resolve => { release = resolve; });
   const work = suggest(id, async value => { started(); await gate; return stub(value); }); await running;
   const old = await view(id); release(); await work;
-  await expect(confirmReceipt(connection.db, id, "maria", old.review.id, old.review.draftHash, old.suggestion!.id, suggestionHash(old.suggestion), [{ lineId: "L1", category: "science_kits", reason: "Manual while running" }])).rejects.toThrow("stale");
+  await expect(confirmReceipt(connection.db, id, "maria", old.review.id, old.review.draftHash, old.suggestion!.id, suggestionHash(old.suggestion), [{ lineId: "L1", category: "robot_kits_parts", reason: "Manual while running" }])).rejects.toThrow("stale");
   expect((await view(id)).confirmation).toBeUndefined();
 });
 it("GB-02: migration enforces immutable review and terminal proposal/confirmation history", async () => {
@@ -163,7 +184,7 @@ it("GB-02: HTTP requires session, claimant, same origin, explicit human review a
   expect((await handleReceiptAction(await request("maria", { ...createFields(), syntheticReceipt: "no" }), null, deps)).status).toBe(409);
   const created = await handleReceiptAction(await request("maria", createFields()), null, deps); expect(created.status).toBe(303);
   const id = created.headers.get("location")!.split("/")[2]!; const v = await view(id);
-  const fields = { action: "confirm", reviewId: v.review.id, draftHash: v.review.draftHash, suggestionHash: suggestionHash(undefined), categoryL1: "science_kits", reasonL1: "Checked" };
+  const fields = { action: "confirm", reviewId: v.review.id, draftHash: v.review.draftHash, suggestionHash: suggestionHash(undefined), categoryL1: "robot_kits_parts", reasonL1: "Checked" };
   const incomplete = await handleReceiptAction(await request("maria", fields, id), id, deps);
   expect(incomplete.status).toBe(303); expect(incomplete.headers.get("location")).toContain("notice=review-changed");
   expect((await handleReceiptAction(await request("other", { ...fields, confirm: "yes" }, id), id, deps)).status).toBe(404);

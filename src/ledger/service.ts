@@ -5,7 +5,7 @@ import { allocate } from "../domain/allocate";
 import { naive } from "../domain/naive";
 import { hashDecision } from "../domain/hash";
 import { policyEligibility, prepare, priorityCostsFor, validateAllocation, type AllocationEdge } from "../domain/model";
-import { postJournal, type LedgerTransaction, type Posting } from "./journal";
+import { ACCOUNT_FOR_BUDGET_LINE, postJournal, type LedgerTransaction, type Posting } from "./journal";
 import { ensureFixtureOpening } from "./opening";
 import { payloadFor, readSnapshot, type Snapshot } from "./snapshot";
 import { reconcile } from "./reconcile";
@@ -132,8 +132,9 @@ async function recognize(tx: LedgerTransaction, decision: Decision, snapshot: Sn
   }
   const reserved = await checkOwnReservations(tx, snapshot, decision, edges);
   const recognition: Posting[] = snapshot.lines.map(line => {
-    if (!["supplies", "hospitality"].includes(line.budgetLine)) throw new Error("No approved expense account for this budget line");
-    return { accountCode: line.budgetLine === "supplies" ? "5100" : "5200", subKey: line.id, debitCents: line.amountCents, creditCents: 0n };
+    const accountCode = Object.hasOwn(ACCOUNT_FOR_BUDGET_LINE, line.budgetLine) ? ACCOUNT_FOR_BUDGET_LINE[line.budgetLine] : undefined;
+    if (!accountCode) throw new Error("No approved expense account for this budget line");
+    return { accountCode, subKey: line.id, debitCents: line.amountCents, creditCents: 0n };
   });
   recognition.push({ accountCode: "2010", subKey: snapshot.claim.claimantId, debitCents: 0n, creditCents: snapshot.lines.reduce((sum, line) => sum + line.amountCents, 0n) });
   await postJournal(tx, { sourceType: "claim_recognition", sourceId: decision.id, purpose: "recognition", effectiveOn: snapshot.claim.incurredOn, postings: recognition });

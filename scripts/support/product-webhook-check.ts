@@ -27,7 +27,7 @@ export async function prepareWebhookCheck(db: AppDatabase, payeeEmail: string, p
   // Service-level actors below are not new human browser approvals.
   await db.transaction(async tx => {
     await tx.insert(s.claims).values({ ...template, id: CHECK_CLAIM, vendor: "One-dollar sandbox webhook acceptance", status: "DRAFT" });
-    await tx.insert(s.claimLines).values({ claimId: CHECK_CLAIM, claimVersion: 1, id: "WH1", description: "Synthetic webhook acceptance expense", category: "hospitality", budgetLine: "hospitality", amountCents: 100n });
+    await tx.insert(s.claimLines).values({ claimId: CHECK_CLAIM, claimVersion: 1, id: "WH1", description: "Synthetic webhook acceptance expense", category: "participant_meals", budgetLine: "other", amountCents: 100n });
   });
   const decision = await freezeDecision(db, CHECK_CLAIM, "maria");
   if (decision.status !== "AWAITING_APPROVAL") throw new Error("Acceptance allocation failed");

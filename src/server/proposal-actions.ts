@@ -1,9 +1,10 @@
 import { findSession, isSameOrigin, sessionToken } from "./auth";
 import type { AppDatabase } from "./db";
-import { localReceiptCategorizer, ReceiptAiError, type createReceiptCategorizer } from "../ai/receipt";
+import { defaultReceiptCategorizer } from "../ai/provider";
+import type { AnyReceiptCategorizer } from "../ai/audit";
 import { prepareExpenseProposal, readExpenseProposal } from "../proposal/service";
 
-export async function handleExpenseProposal(request: Request, id: string, deps: { db: AppDatabase; categorize?: ReturnType<typeof createReceiptCategorizer>; env?: Record<string, string | undefined> }) {
+export async function handleExpenseProposal(request: Request, id: string, deps: { db: AppDatabase; categorize?: AnyReceiptCategorizer; env?: Record<string, string | undefined> }) {
   const headers = { "Cache-Control": "no-store" };
   if ((deps.env ?? process.env).AI_EXPENSE_PROPOSALS_ENABLED !== "true") return new Response("Expense preparation is not enabled", { status: 404, headers });
   if (!["GET", "POST"].includes(request.method)) return new Response("Method not allowed", { status: 405, headers });
@@ -20,7 +21,7 @@ export async function handleExpenseProposal(request: Request, id: string, deps: 
   const form = new URLSearchParams(Buffer.concat(chunks).toString("utf8"));
   const fields = ["action", "reviewId", "draftHash", "suggestionHash", "runHash"];
   if (form.get("action") !== "prepare" || fields.some(key => form.getAll(key).length !== 1) || [...form.keys()].some(key => !fields.includes(key))) return new Response("Invalid preparation fields", { status: 400, headers });
-  const categorize = deps.categorize ?? ((deps.env ?? process.env).AI_RECEIPT_ENABLED === "true" ? localReceiptCategorizer : async () => { throw new ReceiptAiError("UNAVAILABLE"); });
+  const categorize = deps.categorize ?? defaultReceiptCategorizer(deps.env ?? process.env);
   try {
     const result = await prepareExpenseProposal(deps.db, id, actor.id, { reviewId: form.get("reviewId")!, draftHash: form.get("draftHash")!, suggestionHash: form.get("suggestionHash")!, runHash: form.get("runHash")! }, categorize);
     return Response.json(result, { status: result.run?.state === "RUNNING" ? 202 : 200, headers });

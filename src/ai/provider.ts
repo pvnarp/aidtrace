@@ -1,8 +1,9 @@
-import { localReceiptCategorizer, type createReceiptCategorizer } from "./receipt";
+import { ReceiptAiError, localReceiptCategorizer, type createReceiptCategorizer } from "./receipt";
+import type { AnyReceiptCategorizer } from "./audit";
 import { ReceiptAiConfigError, createClaudeReceiptCategorizer, resolveClaudeModel, type ClaudeMessagesClient, type ClaudeModel, type ClaudeReceiptCategorizer } from "./claude-receipt";
 
-// IAC-383 provider switch. Nothing in the application imports this module yet: wiring it
-// into receipt persistence is blocked by the gap recorded in docs/GATE_REPORT.md.
+// IAC-383 provider switch. defaultReceiptCategorizer below is the default for both receipt
+// actions, and suggestReceipt stores the categorizer's own provider-tagged audit (src/ai/audit.ts).
 export const RECEIPT_AI_PROVIDERS = ["local", "claude"] as const;
 export type ReceiptAiProvider = typeof RECEIPT_AI_PROVIDERS[number];
 type Env = Record<string, string | undefined>;
@@ -30,4 +31,19 @@ export function selectReceiptCategorizer(env: Env = process.env, deps: { local?:
   let categorize = shared.get(model);
   if (!categorize) { categorize = createClaudeReceiptCategorizer({ env }); shared.set(model, categorize); }
   return { provider: "claude", model, categorize };
+}
+
+const unavailable: AnyReceiptCategorizer = async () => { throw new ReceiptAiError("UNAVAILABLE"); };
+// Default categorizer for the receipt and preparation actions. AI_RECEIPT_ENABLED === "true"
+// stays the master switch for every provider. An invalid provider or model value never falls
+// back to the other provider: it logs the error class name only (never the env value) and
+// returns a categorizer that refuses with UNAVAILABLE before any model call, which is the
+// failure the claimant already sees when AI is off or the model is down.
+export function defaultReceiptCategorizer(env: Env = process.env): AnyReceiptCategorizer {
+  if (env.AI_RECEIPT_ENABLED !== "true") return unavailable;
+  try { return selectReceiptCategorizer(env).categorize; }
+  catch (error) {
+    console.error("Receipt AI provider configuration refused:", error instanceof Error ? error.name : "UnknownError");
+    return unavailable;
+  }
 }

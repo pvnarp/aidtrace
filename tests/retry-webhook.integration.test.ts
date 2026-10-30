@@ -24,7 +24,7 @@ afterAll(async () => { await client.end(); if (created) await admin`drop databas
 async function claim() {
   const id = `retry-${++serial}`; const [template] = await db.select().from(s.claims).where(eq(s.claims.id, "C-104"));
   await db.insert(s.claims).values({ ...template!, id, status: "DRAFT" });
-  await db.insert(s.claimLines).values({ claimId: id, claimVersion: 1, id: "snack", description: "Isolated retry test", category: "hospitality", budgetLine: "hospitality", amountCents: 100n });
+  await db.insert(s.claimLines).values({ claimId: id, claimVersion: 1, id: "snack", description: "Isolated retry test", category: "participant_meals", budgetLine: "other", amountCents: 100n });
   const decision = await freezeDecision(db, id, "maria"); if (decision.status !== "AWAITING_APPROVAL") throw new Error("Expected allocation");
   await approveDecision(db, decision.decisionId, "tara", decision.decisionHash); await approveDecision(db, decision.decisionId, "ben", decision.decisionHash);
   return { id, hash: decision.decisionHash, decisionId: decision.decisionId };

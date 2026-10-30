@@ -1,0 +1,2 @@
+ALTER TABLE "journal_postings" DROP CONSTRAINT "posting_known_account";--> statement-breakpoint
+ALTER TABLE "journal_postings" ADD CONSTRAINT "posting_known_account" CHECK ("journal_postings"."account_code" in ('1010','2010','3100','3200','4100','5100','5200','5300','5400','5500','5900'));

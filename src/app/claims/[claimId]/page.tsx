@@ -11,6 +11,7 @@ import { readReceiptView } from "../../../receipt/service";
 import { requireReceiptConfirmation } from "../../../receipt/guard";
 import { claimFailureNotices } from "../../../server/claim-notices";
 import { categoryNames as categories, reviewTime } from "../../../server/display";
+import { BUDGET_NAMES } from "../../../ai/categories";
 import { Journey } from "../../journey";
 import { FundingSummary } from "../../funding-summary";
 import { judgeSession, paymentConfigured } from "../../../server/judge-mode";
@@ -66,7 +67,7 @@ export default async function ClaimPage({ params, searchParams }: { params: Prom
       href={policyBlocked ? `/claims/${claimId}/receipt` : claim.status === "DRAFT" ? "#funding-review" : ["AWAITING_APPROVAL", "REJECTED"].includes(claim.status) ? "#approvals" : "#payment"}
       action={policyBlocked ? "Review the receipt" : claim.status === "DRAFT" ? "Inspect funding and terms" : ["AWAITING_APPROVAL", "REJECTED"].includes(claim.status) ? "Inspect the approvals" : "Inspect payment status"}
       aside={claimId === "C-104" ? "C-104 is a separate preclassified $500 example. It did not pass through the new receipt's AI review." : `You are still reviewing the same claim: ${claim.vendor}.`} />
-    <p className="eyebrow">Cedar Hollow Youth Robotics / Sandbox fixture</p>
+    <p className="eyebrow">Lanternfield Community Alliance / Sandbox fixture</p>
     <div className="title-row"><h1>{policyBlocked ? "Organization policy stops this expense." : view.feasible ? `${usd(total - view.generalCents)} restricted. ${usd(view.generalCents)} General.` : "This claim needs more eligible funding."}</h1><p className="state-badge" data-state={claim.status}>{labels[claim.status]}</p></div>
     <p className="intro">{claim.vendor} · {usd(total)}<br />Program: {claim.program}. Expense date {claim.incurredOn}.</p>
     <p className="muted">{policyBlocked ? "The whole expense remains blocked. Correct prohibited items before approval; no partial allocation is frozen." : claim.status === "DRAFT" ? approver ? "Waiting for the claimant to freeze the allocation. You can review the current draft below." : "Review the funding and expense terms, then freeze them for approval." : claim.status === "AWAITING_APPROVAL" ? `${approvals.length} of 2 approvals recorded. Both must cover the same frozen terms.` : claim.status === "APPROVED" ? "Two approvals are complete. Payment still requires an explicit sandbox send." : claim.status === "PAID" ? "The independently fetched PayPal item reports success. Settlement is recorded below." : claim.status === "REJECTED" ? "This claim was rejected. No payment is authorized. The reason is recorded below." : claim.status === "PAYOUT_PROCESSING" ? "Payment has been submitted. An approver can refresh the result below without sending again." : "Review the current issue below. Unknown outcomes require reconciliation, not another send."}</p>
@@ -80,7 +81,7 @@ export default async function ClaimPage({ params, searchParams }: { params: Prom
       <ul className="expense-lines">{view.lines.map(line => {
         const review = view.receiptReview?.lines.find(item => item.lineId === line.id);
         return <li key={line.id}><h3>{line.id}: {line.description} · {usd(line.amountCents)}</h3>
-          <p>Category: <strong>{categories[line.category] ?? line.category}</strong>. Budget: {line.budgetLine === "hospitality" ? "Food and refreshments" : line.budgetLine === "supplies" ? "Supplies" : line.budgetLine}.</p>
+          <p>Category: <strong>{categories[line.category] ?? line.category}</strong>. Budget: {BUDGET_NAMES[line.budgetLine] ?? line.budgetLine}.</p>
           {review ? <><p>{review.provenance === "AI_ACCEPTED" ? "Claimant accepted an AI category suggestion." : "Claimant made a manual category choice."}</p>
             {review.reason && <p>Claimant's reason: {review.reason}</p>}
             {review.proposal && <details><summary>Original AI suggestion: {categories[review.proposal.category] ?? review.proposal.category}</summary><blockquote>{review.proposal.quote}</blockquote><p>The quote matches receipt text. It does not prove the category or funding eligibility.</p></details>}

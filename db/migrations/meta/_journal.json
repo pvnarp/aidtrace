@@ -71,6 +71,27 @@
       "when": 1793326615060,
       "tag": "0009_donation-loop",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1793335677524,
+      "tag": "0010_donation-hardening",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1793337829900,
+      "tag": "0011_receipt-provider-columns",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1793339262073,
+      "tag": "0012_expense-accounts",
+      "breakpoints": true
     }
   ]
 }

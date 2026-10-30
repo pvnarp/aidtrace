@@ -78,7 +78,7 @@ it('AN-04: disabled and unavailable AI leave snapshot facts available and no fin
 });
 it('AN-05: real request shape excludes identifiers and only validated exact facts can return', async () => {
   const current=await snapshot(); const facts=questionFacts(current,'cash'); const body=analyticsRequest(current,'cash');
-  const text=JSON.stringify(body); for(const item of ['Cedar','private-recipient','tara','fund_a','PAYPAL_CLIENT','tools']) expect(text).not.toContain(item === 'tools' ? '"tools":' : item);
+  const text=JSON.stringify(body); for(const item of ['Lanternfield','Cedar','private-recipient','tara','fund_a','PAYPAL_CLIENT','tools']) expect(text).not.toContain(item === 'tools' ? '"tools":' : item);
   expect(body.messages[1]!.content).not.toContain(current.organization);
   const fetcher=vi.fn<typeof fetch>(async () => envelope({selections:[{id:facts[0]!.id,quote:facts[0]!.text}]})); const selector=createAnalyticsSelector(fetcher);
   const before=await financialHash();

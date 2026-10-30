@@ -1,4 +1,5 @@
 import { createHash } from "node:crypto";
+import { isCategory, LEGACY_NAMES } from "../../ai/categories";
 
 export type SourceSegment = { text: string; lineId?: string };
 export type QuoteEvidence = { source: string; segments: SourceSegment[]; grounded: boolean };
@@ -22,7 +23,8 @@ export function quoteEvidence(review: Review, claimVersion: number, lineIds: str
       if (p.quote !== "" || p.start !== null || p.end !== null) return plain;
       continue;
     }
-    if (!["science_kits", "notebooks", "hospitality", "alcohol"].includes(p.category) ||
+    // Legacy ids on preserved rows keep their highlights (display only); confirmation and budgetFor still refuse them.
+    if (!isCategory(p.category) && !Object.hasOwn(LEGACY_NAMES, p.category) ||
         typeof p.quote !== "string" || !p.quote.trim() || p.quote.length > 400 ||
         !Number.isSafeInteger(p.start) || !Number.isSafeInteger(p.end) || p.start! < 0 ||
         p.end! <= p.start! || p.end! > review.source.length ||

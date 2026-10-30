@@ -1,9 +1,9 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { createApplicationSandboxPayments, payPalConfigFromEnvironment, type PayPalConfig } from "../src/paypal/adapter";
+import { DONATION_MAX_CENTS, createApplicationSandboxPayments, payPalConfigFromEnvironment, type PayPalConfig } from "../src/paypal/adapter";
 
 // IAC-379 step 1. Every response here is a stub written by this file. Nothing contacts PayPal. These tests prove
 // our request shape, allowlist parsing and guards, not PayPal behavior.
-const config: PayPalConfig = { baseUrl: "https://api-m.sandbox.paypal.com", clientId: "synthetic-client", clientSecret: "synthetic-secret", payeeAllowlist: [], maxDemoPayoutCents: 50000n, maxDemoDonationCents: 5000n };
+const config: PayPalConfig = { baseUrl: "https://api-m.sandbox.paypal.com", clientId: "synthetic-client", clientSecret: "synthetic-secret", payeeAllowlist: [], maxDemoPayoutCents: 50000n };
 const CREATE_ID = "11111111-1111-4111-8111-111111111111";
 const CAPTURE_ID = "22222222-2222-4222-8222-222222222222";
 const response = (value: unknown, status = 200) => new Response(JSON.stringify(value), { status, headers: { "content-type": "application/json" } });
@@ -89,29 +89,34 @@ describe("DON-08 adapter guards, stubbed provider only", () => {
     for (const unsafe of [{ ...config, baseUrl: "https://api-m.paypal.com" }, { ...config, baseUrl: undefined }, { ...config, clientId: undefined }, { ...config, clientSecret: " " }]) expect(() => createApplicationSandboxPayments(unsafe, false, request)).toThrow();
     expect(request).not.toHaveBeenCalled();
   });
-  it("enforces the donation ceiling: 5000 sends, 5001, 0, negative and non-bigint values do not", async () => {
+  it("DON-H-01 has no business ceiling: USD 50.01 and USD 1000 send, only the technical bound and non-positive or non-bigint values do not", async () => {
     const request = vi.fn<typeof fetch>().mockResolvedValue(oauth());
     const adapter = createApplicationSandboxPayments(config, false, request);
-    for (const amount of [5001n, 0n, -1n, -5000n, 5000.5 as unknown as bigint, 100 as unknown as bigint, "100" as unknown as bigint, undefined as unknown as bigint]) {
-      await expect(adapter.createDonationOrder({ requestId: CREATE_ID, fundId: "fund_b", amountCents: amount })).rejects.toThrow("ceiling");
+    expect(DONATION_MAX_CENTS).toBe(9_999_999_999_999n);
+    for (const amount of [DONATION_MAX_CENTS + 1n, 0n, -1n, -5000n, 5000.5 as unknown as bigint, 100 as unknown as bigint, "100" as unknown as bigint, undefined as unknown as bigint]) {
+      await expect(adapter.createDonationOrder({ requestId: CREATE_ID, fundId: "fund_b", amountCents: amount })).rejects.toThrow("technical bound");
     }
     expect(request).not.toHaveBeenCalled();
-    request.mockReset().mockResolvedValueOnce(oauth()).mockResolvedValueOnce(response({ id: "ORDER1", status: "CREATED" }, 201));
-    await adapter.createDonationOrder({ requestId: CREATE_ID, fundId: "fund_b", amountCents: 5000n });
-    expect(request).toHaveBeenCalledTimes(2);
+    for (const [amount, value] of [[5001n, "50.01"], [100_000n, "1000.00"], [DONATION_MAX_CENTS, "99999999999.99"]] as const) {
+      request.mockReset().mockResolvedValueOnce(oauth()).mockResolvedValueOnce(response({ id: "ORDER1", status: "CREATED" }, 201));
+      await createApplicationSandboxPayments(config, false, request).createDonationOrder({ requestId: CREATE_ID, fundId: "fund_b", amountCents: amount }); // a fresh adapter fetches its own token
+      expect(request).toHaveBeenCalledTimes(2);
+      expect(JSON.parse(String(request.mock.calls[1]![1]!.body))).toEqual({ intent: "CAPTURE", purchase_units: [{ custom_id: "fund_b", amount: { currency_code: "USD", value } }] });
+    }
   });
-  it("defaults the ceiling to 5000 and honors a lower configured ceiling", async () => {
-    const request = vi.fn<typeof fetch>();
-    const { maxDemoDonationCents: _omitted, ...withoutCeiling } = config;
-    await expect(createApplicationSandboxPayments(withoutCeiling, false, request).createDonationOrder({ requestId: CREATE_ID, fundId: "fund_b", amountCents: 5001n })).rejects.toThrow("ceiling");
-    await expect(createApplicationSandboxPayments({ ...config, maxDemoDonationCents: 100n }, false, request).createDonationOrder({ requestId: CREATE_ID, fundId: "fund_b", amountCents: 101n })).rejects.toThrow("ceiling");
-    expect(() => createApplicationSandboxPayments({ ...config, maxDemoDonationCents: 0n }, false, request)).toThrow();
-    expect(request).not.toHaveBeenCalled();
-  });
-  it("reads MAX_DEMO_DONATION_CENTS as a positive integer and defaults to 5000", () => {
-    expect(payPalConfigFromEnvironment({}).maxDemoDonationCents).toBe(5000n);
-    expect(payPalConfigFromEnvironment({ MAX_DEMO_DONATION_CENTS: "2500" }).maxDemoDonationCents).toBe(2500n);
-    for (const bad of ["0", "-5", "50.5", "1e3", " 5", "05", "abc", "99999999999999999"]) expect(() => payPalConfigFromEnvironment({ MAX_DEMO_DONATION_CENTS: bad })).toThrow("MAX_DEMO_DONATION_CENTS");
+  it("DON-H-02 payPalConfigFromEnvironment reads no donation variable: a malformed MAX_DEMO_DONATION_CENTS cannot throw or change the payout config", () => {
+    const text = (value: unknown) => JSON.stringify(value, (_key, item) => typeof item === "bigint" ? `bigint:${item}` : item);
+    const bases = [{}, { PAYPAL_BASE_URL: BASE, PAYPAL_CLIENT_ID: "synthetic-client", PAYPAL_CLIENT_SECRET: "synthetic-secret", PAYEE_ALLOWLIST: "a@example.invalid, b@example.invalid", MAX_DEMO_PAYOUT_CENTS: "12345" }];
+    for (const base of bases) {
+      const expected = text(payPalConfigFromEnvironment(base));
+      expect(expected).not.toContain("Donation");
+      for (const bad of ["abc", "0", "-5", "50.5", "1e3", " 5", "05", "", "99999999999999999", "2500"]) {
+        expect(() => payPalConfigFromEnvironment({ ...base, MAX_DEMO_DONATION_CENTS: bad })).not.toThrow();
+        expect(text(payPalConfigFromEnvironment({ ...base, MAX_DEMO_DONATION_CENTS: bad }))).toBe(expected);
+      }
+    }
+    expect(payPalConfigFromEnvironment({}).maxDemoPayoutCents).toBe(50000n);
+    expect(() => payPalConfigFromEnvironment({ MAX_DEMO_PAYOUT_CENTS: "abc" })).toThrow("MAX_DEMO_PAYOUT_CENTS"); // the payout variable stays fail-closed
   });
   it("refuses malformed request IDs, fund IDs and order IDs before any request", async () => {
     const request = vi.fn<typeof fetch>();

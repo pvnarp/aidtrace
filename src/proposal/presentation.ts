@@ -5,7 +5,7 @@ export const proposalMoney = (cents: string | bigint) => {
   return `$${value / 100n}.${(value % 100n).toString().padStart(2, "0")}`;
 };
 const steps = { CATEGORIES_VALIDATED: "Category suggestions passed source-quote validation.", POLICY_PREVIEWED: "Current funding rules and capacity checked.", HUMAN_CONFIRMATION_REQUIRED: "Waiting for your category confirmation." };
-export function proposalPresentation(run: { state: ProposalState; errorCode: string | null; result: ProposalResult | null } | null, fundNames: Record<string, string>, total: bigint) {
+export function proposalPresentation(run: { state: ProposalState; errorCode: string | null; result: ProposalResult | null } | null, fundNames: Record<string, string>, total: bigint, lineCategories: Record<string, string> = {}) {
   const state = run?.state ?? null;
   const messages = {
     RUNNING: ["Preparation in progress", "Category suggestions and funding checks are running. Refresh status to see the result. No funds are reserved."],
@@ -22,7 +22,7 @@ export function proposalPresentation(run: { state: ProposalState; errorCode: str
   return { heading, message, state, steps: result?.steps.map(step => steps[step]) ?? [],
     split: general === null ? null : `${proposalMoney(total - general)} from restricted funds, ${proposalMoney(general)} from General.`,
     edges: result?.edges.map(edge => ({ lineId: edge.lineId, fund: fundNames[edge.fundId] ?? "Eligible fund", amount: proposalMoney(edge.amountCents), reason: edge.reason })) ?? [],
-    issues: result?.issues.map(issue => ({ lineId: issue.lineId, message: issue.code === "UNKNOWN" ? "Choose and confirm a category manually." : issue.code === "PROHIBITED" ? `${proposalMoney(issue.amountCents)} is in a prohibited category.` : `${proposalMoney(issue.amountCents)} has no available eligible funding.` })) ?? [],
+    issues: result?.issues.map(issue => ({ lineId: issue.lineId, message: issue.code === "UNKNOWN" ? "Choose and confirm a category manually." : issue.code === "PROHIBITED" ? lineCategories[issue.lineId] === "gift_cards" ? `${proposalMoney(issue.amountCents)} is a gift card line. Gift cards need pre-approval outside AidTrace and are never allocated here.` : `${proposalMoney(issue.amountCents)} is in a prohibited category.` : `${proposalMoney(issue.amountCents)} has no available eligible funding.` })) ?? [],
   };
 }
 export type ProposalPanel = ReturnType<typeof proposalPresentation>;

@@ -3,7 +3,8 @@ import type { AppDatabase } from "../server/db";
 import * as s from "../../db/schema";
 import { receiptContext, suggestReceipt, suggestionHash } from "../receipt/service";
 import { budgetFor, digest, draftHash } from "../receipt/terms";
-import { validateProposals, ReceiptAiError, type createReceiptCategorizer } from "../ai/receipt";
+import { validateProposals, ReceiptAiError } from "../ai/receipt";
+import type { AnyReceiptCategorizer } from "../ai/audit";
 import { readSnapshot, type Snapshot } from "../ledger/snapshot";
 import { allocate } from "../domain/allocate";
 import type { ProposalResult, ProposalState } from "./types";
@@ -80,7 +81,7 @@ export async function readExpenseReview(db: AppDatabase, id: string, actor: stri
   }, { isolationLevel: "repeatable read", accessMode: "read only" });
 }
 
-export async function prepareExpenseProposal(db: AppDatabase, id: string, actor: string, terms: PreparationTerms, categorize: ReturnType<typeof createReceiptCategorizer>) {
+export async function prepareExpenseProposal(db: AppDatabase, id: string, actor: string, terms: PreparationTerms, categorize: AnyReceiptCategorizer) {
   if (!terms || !hashPattern.test(terms.draftHash) || !hashPattern.test(terms.suggestionHash) || !hashPattern.test(terms.runHash)) throw new Error("Invalid preparation terms");
   const key = digest(stable({ id, actor, ...terms }));
   const start = await db.transaction(async tx => {

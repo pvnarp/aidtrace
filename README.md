@@ -65,9 +65,9 @@ The shared dependency volume is read-only; each session has its own database and
 Sign in as maria. Choose Review Maria's $500 receipt. Create the default fictional receipt:
 USD 280 kits, USD 150 notebooks and USD 70 refreshments. Select Prepare expense proposal
 once. Check the local AI suggestions against highlighted saved receipt text, confirm each
-category and choose View allocation. The fresh unchanged example computes STEM B USD 200,
-Education A USD 230 and General USD 70. The ordered first-eligible comparison uses USD 200
-General. The USD 130 difference is specific to this fixture and ordering, not measured
+category and choose View allocation. The fresh unchanged example computes Tallow Creek Robot Kit Initiative USD 200,
+Ashmere County Afterschool STEM Subgrant USD 230 and General Operating USD 70. The ordered first-eligible comparison uses USD 200
+General Operating. The USD 130 difference is specific to this fixture and ordering, not measured
 customer savings. Changes to categories or capacity can change the result.
 
 Freeze the reviewed allocation as maria. Sign out, sign in as tara and approve the same

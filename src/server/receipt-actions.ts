@@ -1,11 +1,11 @@
 import type { AppDatabase } from "./db";
 import { findSession, isSameOrigin, sessionToken } from "./auth";
-import { createReceiptCategorizer, ReceiptAiError, localReceiptCategorizer } from "../ai/receipt";
+import { defaultReceiptCategorizer } from "../ai/provider";
+import type { AnyReceiptCategorizer } from "../ai/audit";
 import { configuredReceiptPayee, createReceiptDraft, editReceiptDraft, readReceiptView, suggestReceipt, confirmReceipt } from "../receipt/service";
 import type { DraftInput } from "../receipt/terms";
 import { judgeSession } from "./judge-mode";
-const localCategorizer = localReceiptCategorizer;
-export async function handleReceiptAction(request: Request, id: string | null, deps: { db: AppDatabase; categorize?: ReturnType<typeof createReceiptCategorizer>; env?: Record<string, string | undefined> }) {
+export async function handleReceiptAction(request: Request, id: string | null, deps: { db: AppDatabase; categorize?: AnyReceiptCategorizer; env?: Record<string, string | undefined> }) {
   const headers = { "Cache-Control": "no-store" };
   if (!isSameOrigin(request)) return new Response("Request origin rejected", { status: 403, headers });
   const user = await findSession(sessionToken(request), deps.db);
@@ -34,7 +34,7 @@ export async function handleReceiptAction(request: Request, id: string | null, d
     if (!id) throw new Error("Receipt required");
     const reviewId = form.get("reviewId") ?? ""; const hash = form.get("draftHash") ?? "";
     if (action === "suggest") {
-      const categorize = deps.categorize ?? ((deps.env ?? process.env).AI_RECEIPT_ENABLED === "true" ? localCategorizer : async () => { throw new ReceiptAiError("UNAVAILABLE"); });
+      const categorize = deps.categorize ?? defaultReceiptCategorizer(deps.env ?? process.env);
       const result = await suggestReceipt(deps.db, id, user.id, reviewId, hash, categorize, form.get("suggestionHash") ?? "");
       return destination(id, result === null ? "running" : result ? "suggested" : "manual");
     }

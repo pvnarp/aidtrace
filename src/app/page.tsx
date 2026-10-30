@@ -24,6 +24,6 @@ export default async function Home() {
     {user.role === "APPROVER" && <section><h2>Expenses awaiting approvals</h2>{awaiting.length ? <><p>Open an expense to check whether it still needs your approval of the frozen terms.</p><ul className="draft-list">{awaiting.map(claim => <li key={`${claim.id}:${claim.version}`}><Link href={`/claims/${claim.id}`} prefetch={false}>{claim.vendor}</Link><span>Awaiting approval</span></li>)}</ul></> : <p>No practice expense is awaiting approvals. The claimant must confirm categories and freeze its funding terms first.</p>}</section>}
     {user.role === "APPROVER" && <p><Link className="button-link secondary" href="/analytics" prefetch={false}>View funding and cash</Link></p>}
     {drafts.length > 0 && <section><h2>Continue a receipt</h2><ul className="draft-list">{drafts.map(claim => <li key={`${claim.id}:${claim.version}`}><Link href={`/claims/${claim.id}`} prefetch={false}>{claim.vendor}<small className="claim-reference">Claim {claim.id}</small></Link><span>{claim.status === "DRAFT" ? "Draft" : claim.status.toLowerCase().replaceAll("_", " ")}</span></li>)}</ul></section>}
-    <footer>Fictional data for Cedar Hollow Youth Robotics. Funds follow organization-approved rules. General is flexible, not exempt from those rules.</footer>
+    <footer>Fictional data for Lanternfield Community Alliance. Funds follow organization-approved rules. General Operating is flexible, not exempt from those rules.</footer>
   </main>;
 }

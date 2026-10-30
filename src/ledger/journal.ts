@@ -4,7 +4,12 @@ import * as s from "../../db/schema";
 
 export type LedgerTransaction = Parameters<Parameters<AppDatabase["transaction"]>[0]>[0];
 export type SourceType = typeof s.sourceType.enumValues[number];
-export type AccountCode = "1010" | "2010" | "3100" | "3200" | "4100" | "5100" | "5200" | "5900";
+export type AccountCode = "1010" | "2010" | "3100" | "3200" | "4100" | "5100" | "5200" | "5300" | "5400" | "5500" | "5900";
+// SF-424A object class to expense account. 5200 was "hospitality" and is now "Other" (same code).
+// "hospitality" stays as a legacy alias for preserved lines only; new code never writes it.
+export const ACCOUNT_FOR_BUDGET_LINE: Record<string, AccountCode> = {
+  supplies: "5100", other: "5200", hospitality: "5200", travel: "5300", equipment: "5400", contractual: "5500",
+};
 export interface Posting { accountCode: AccountCode; subKey?: string | null; debitCents: bigint; creditCents: bigint; }
 export interface Journal { sourceType: SourceType; sourceId: string; purpose: string; effectiveOn: string; postings: readonly Posting[]; }
 const signature = (postings: readonly Posting[]) => postings.map(row => JSON.stringify([row.accountCode, row.subKey ?? null, row.debitCents.toString(), row.creditCents.toString()])).sort().join("\n");

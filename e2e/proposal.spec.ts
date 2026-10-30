@@ -29,7 +29,7 @@ test.beforeEach(async ({}, testInfo) => {
       if (mode === "unavailable") { response.writeHead(503).end(); return; }
       const chunks: Buffer[] = []; for await (const chunk of request) chunks.push(Buffer.from(chunk)); const body = JSON.parse(Buffer.concat(chunks).toString());
       const data = JSON.parse(body.messages[1].content);
-      const categories = ["science_kits", "notebooks", "hospitality"];
+      const categories = ["robot_kits_parts", "classroom_supplies", "participant_meals"];
       const content = JSON.stringify({ proposals: data.lines.map((line: { id: string; description: string }, i: number) => ({ lineId: line.id, category: mode === "unknown" ? "UNKNOWN" : mode === "alcohol" ? "alcohol" : categories[i], quote: mode === "unknown" ? "" : line.description })) });
       response.writeHead(200, { "content-type": "application/json" }).end(JSON.stringify({ model: "aidtrace-category-qwen3", choices: [{ finish_reason: "stop", message: { role: "assistant", content } }] }));
     });
@@ -154,7 +154,7 @@ test.describe("Synthetic response interface checks", () => {
     await expect(page.locator("#receipt-source-L1")).toBeInViewport();
     await expect(page.locator("#receipt-source-L1")).toHaveText("Science experiment kit");
     await page.getByRole("button", { name: "Confirm categories", exact: true }).click(); expect(await page.getByLabel(/I checked every category/).evaluate((el: HTMLInputElement) => el.validity.valueMissing)).toBe(true);
-    await page.getByLabel("Category for L1", { exact: true }).selectOption("notebooks"); await page.getByLabel("Reason for manual choice L1", { exact: true }).fill("Human correction for this fixture");
+    await page.getByLabel("Category for L1", { exact: true }).selectOption("classroom_supplies"); await page.getByLabel("Reason for manual choice L1", { exact: true }).fill("Human correction for this fixture");
     await expect(page.locator(".proposal-split")).toHaveCount(0); await expect(page.getByRole("button", { name: "Refresh funding preview" })).toBeDisabled();
     await page.getByLabel(/I checked every category/).check(); await page.getByRole("button", { name: "Confirm categories", exact: true }).click(); await expect(page.getByRole("heading", { name: "Human confirmation recorded" })).toBeVisible();
     await page.getByRole("link", { name: "View allocation", exact: true }).click(); await expect(page.getByRole("button", { name: "Freeze allocation for approval" })).toBeVisible();
@@ -163,7 +163,7 @@ test.describe("Synthetic response interface checks", () => {
     await page.getByRole("button", { name: "Freeze allocation for approval" }).click(); await expect(page.getByText("The allocation is frozen.", { exact: false })).toBeVisible();
     await expect(page.getByText("Ledger tie-out: Matches.", { exact: true })).toBeVisible();
     await expect(page.locator(".expense-review")).toContainText("Human correction for this fixture");
-    await expect(page.locator(".expense-review")).toContainText("Original AI suggestion: Science kits");
+    await expect(page.locator(".expense-review")).toContainText("Original AI suggestion: Robot kits and parts");
     await expect(page.locator(".recipient-review")).toHaveCount(0);
     const claimUrl = receipt.replace(/\/receipt$/, "");
     await page.getByRole("button", { name: "Sign out" }).click(); await login(page, "tara"); await page.goto(claimUrl);
@@ -193,7 +193,7 @@ test.describe("Synthetic response interface checks", () => {
     await page.getByRole("button", { name: "Refresh funding preview", exact: true }).click(); await expect(page.locator(".proposal-split")).toHaveText("$0.00 from restricted funds, $6.00 from General."); expect(calls).toBe(1);
     await page.route("**/proposal", route => route.fulfill({ status: 409, contentType: "application/json", body: JSON.stringify({ error: "Review changed" }) }));
     await page.getByRole("button", { name: "Refresh funding preview", exact: true }).click(); await expect(page.locator(".proposal-panel").getByRole("alert")).toContainText("This review changed"); expect(new URL(page.url()).pathname).toContain("/claims/"); await page.unroute("**/proposal");
-    await page.getByLabel("Category for L1", { exact: true }).selectOption("notebooks"); await expect(page.getByRole("button", { name: "Refresh funding preview" })).toBeDisabled(); await expect(page.getByLabel("Category for L1", { exact: true })).toHaveValue("notebooks");
+    await page.getByLabel("Category for L1", { exact: true }).selectOption("classroom_supplies"); await expect(page.getByRole("button", { name: "Refresh funding preview" })).toBeDisabled(); await expect(page.getByLabel("Category for L1", { exact: true })).toHaveValue("classroom_supplies");
     expect(await connection.db.select().from(s.receiptConfirmations)).toHaveLength(0); expect(await connection.db.select().from(s.disbursements)).toHaveLength(0);
   });
   test("AP-03/09: prohibited, unknown and unavailable proposals preserve manual review", async ({ page }) => {
@@ -210,7 +210,7 @@ test.describe("Synthetic response interface checks", () => {
     await page.getByRole("button", { name: "Confirm categories", exact: true }).click(); expect(await page.getByLabel("Category for L1", { exact: true }).evaluate((el: HTMLSelectElement) => el.validity.valueMissing)).toBe(true);
     await page.goto("/receipts/new"); await page.getByLabel("This receipt is fictional sandbox data.").check(); await page.getByRole("button", { name: "Create receipt draft", exact: true }).click(); mode = "unavailable";
     await page.getByRole("button", { name: "Prepare expense proposal", exact: true }).click(); await expect(page.getByRole("heading", { name: "Preparation unavailable", exact: true })).toBeVisible();
-    for (const [line, category] of [["L1", "science_kits"], ["L2", "notebooks"], ["L3", "hospitality"]]) { await page.getByLabel(`Category for ${line}`, { exact: true }).selectOption(category!); await page.getByLabel(`Reason for manual choice ${line}`, { exact: true }).fill("Checked invented source"); }
+    for (const [line, category] of [["L1", "robot_kits_parts"], ["L2", "classroom_supplies"], ["L3", "participant_meals"]]) { await page.getByLabel(`Category for ${line}`, { exact: true }).selectOption(category!); await page.getByLabel(`Reason for manual choice ${line}`, { exact: true }).fill("Checked invented source"); }
     await page.getByLabel(/I checked every category/).check(); await page.getByRole("button", { name: "Confirm categories", exact: true }).click(); await expect(page.getByRole("heading", { name: "Human confirmation recorded" })).toBeVisible();
     expect(await connection.db.select().from(s.disbursements)).toHaveLength(0); expect(await connection.db.select().from(s.approvals)).toHaveLength(0);
   });
@@ -226,7 +226,7 @@ test.describe("Synthetic response interface checks", () => {
   test("AP-09: AI disabled still allows explicit manual category confirmation", async ({ page }) => {
     await create(page); await page.getByRole("button", { name: "Prepare expense proposal", exact: true }).click();
     await expect(page.getByRole("heading", { name: "Preparation unavailable", exact: true })).toBeVisible(); expect(calls).toBe(0);
-    for (const [line, category] of [["L1", "science_kits"], ["L2", "notebooks"], ["L3", "hospitality"]]) {
+    for (const [line, category] of [["L1", "robot_kits_parts"], ["L2", "classroom_supplies"], ["L3", "participant_meals"]]) {
       await page.getByLabel(`Category for ${line}`, { exact: true }).selectOption(category!); await page.getByLabel(`Reason for manual choice ${line}`, { exact: true }).fill("Manual check with AI disabled");
     }
     await page.getByLabel(/I checked every category/).check(); await page.getByRole("button", { name: "Confirm categories", exact: true }).click();
@@ -280,7 +280,7 @@ test.describe("Isolated single-receipt judging", () => {
     await page.getByRole("button", { name: "Prepare expense proposal", exact: true }).click();
     await expect(page.getByRole("heading", { name: "Category review needed", exact: true })).toBeVisible();
     await expect(page.getByRole("button", { name: "Freeze allocation for approval", exact: true })).toHaveCount(0);
-    for (const [line, category] of [["L1", "alcohol"], ["L2", "notebooks"], ["L3", "hospitality"]]) { await page.getByLabel(`Category for ${line}`, { exact: true }).selectOption(category!); await page.getByLabel(`Reason for manual choice ${line}`, { exact: true }).fill("Manual prohibited-item boundary check"); }
+    for (const [line, category] of [["L1", "alcohol"], ["L2", "classroom_supplies"], ["L3", "participant_meals"]]) { await page.getByLabel(`Category for ${line}`, { exact: true }).selectOption(category!); await page.getByLabel(`Reason for manual choice ${line}`, { exact: true }).fill("Manual prohibited-item boundary check"); }
     await page.getByLabel(/I checked every category/).check(); await page.getByRole("button", { name: "Confirm categories", exact: true }).click();
     await page.getByRole("link", { name: "View allocation", exact: true }).click();
     await expect(page.getByRole("heading", { level: 1, name: "Organization policy stops this expense.", exact: true })).toBeVisible();

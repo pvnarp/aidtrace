@@ -4,8 +4,8 @@ import * as s from "../../db/schema";
 import type { AppDatabase } from "../server/db";
 import type { LedgerTransaction } from "../ledger/journal";
 import { serializable } from "../ledger/service";
-import { createReceiptCategorizer, ReceiptAiError, validateProposals, PROMPT_VERSION } from "../ai/receipt";
-import lock from "../../ai/model-lock.json" with { type: "json" };
+import { ReceiptAiError, validateProposals } from "../ai/receipt";
+import { receiptAuditColumns, storedReceiptAudit, type AnyReceiptCategorizer, type StoredReceiptAudit } from "../ai/audit";
 import { CLAIM_ID, digest, draftHash, budgetFor, normalizeDraft, type DraftInput } from "./terms";
 
 async function actorFor(tx: LedgerTransaction, id: string) {
@@ -80,7 +80,7 @@ export async function editReceiptDraft(db: AppDatabase, id: string, actor: strin
       sourceHash: digest(parsed.source), draftHash: draftHash(claim!, lines), createdBy: actor });
   });
 }
-export async function suggestReceipt(db: AppDatabase, id: string, actor: string, reviewId: string, expectedHash: string, categorize: ReturnType<typeof createReceiptCategorizer>, expectedSuggestionHash: string) {
+export async function suggestReceipt(db: AppDatabase, id: string, actor: string, reviewId: string, expectedHash: string, categorize: AnyReceiptCategorizer, expectedSuggestionHash: string) {
   const begin = () => serializable(db, async tx => {
     const value = await context(tx, id, actor, true); currentTerms(value, reviewId, expectedHash);
     if (value.confirmation) throw new Error("Edit the draft before requesting another review");
@@ -112,16 +112,18 @@ export async function suggestReceipt(db: AppDatabase, id: string, actor: string,
     const value = await context(tx, id, actor);
     let valid = value.claim.status === "DRAFT" && value.review.id === reviewId && !value.confirmation && value.suggestion?.id === start.attempt.id && value.review.draftHash === draftHash(value.claim, value.lines);
     let proposals: ReturnType<typeof validateProposals> | undefined;
+    // The categorizer's own audit is validated and stored under its own provider tag (see src/ai/audit.ts).
+    let audit: StoredReceiptAudit | undefined;
     if (result && valid) {
       try {
         proposals = validateProposals({ source: start.source, lines: start.lines }, { proposals: result.proposals.map(p => ({ lineId: p.lineId, category: p.category, quote: p.quote })) });
-        if (result.audit.sourceSha256 !== digest(start.source) || !/^[a-f0-9]{64}$/.test(result.audit.requestSha256) || !/^[a-f0-9]{64}$/.test(result.audit.responseSha256 ?? "")) throw new Error("Invalid audit");
-      } catch { proposals = undefined; errorCode = "VALIDATION"; }
+        audit = storedReceiptAudit(result, start.source);
+      } catch { proposals = undefined; audit = undefined; errorCode = "VALIDATION"; }
     }
     if (!valid) errorCode = "STALE";
-    const ready = Boolean(result && proposals && valid);
+    const ready = Boolean(result && proposals && audit && valid);
     await tx.update(s.receiptSuggestions).set({ status: ready ? "READY" : "FAILED", errorCode: ready ? null : errorCode ?? "UNAVAILABLE", proposals: ready ? proposals : null,
-      audit: ready ? { sourceSha256: digest(start.source), requestSha256: result!.audit.requestSha256, responseSha256: result!.audit.responseSha256!, modelSha256: lock.modelSha256, modelRevision: lock.modelRevision, promptVersion: PROMPT_VERSION } : null }).where(and(eq(s.receiptSuggestions.id, start.attempt.id), eq(s.receiptSuggestions.status, "RUNNING")));
+      audit: ready ? audit! : null, provider: ready ? receiptAuditColumns(audit!).provider : null, model: ready ? receiptAuditColumns(audit!).model : null }).where(and(eq(s.receiptSuggestions.id, start.attempt.id), eq(s.receiptSuggestions.status, "RUNNING")));
     return ready;
   });
 }

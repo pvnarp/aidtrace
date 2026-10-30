@@ -4,7 +4,7 @@ import { quoteEvidence } from "../src/app/receipts/quote-evidence";
 const source = "INVENTED RECEIPT\nScience experiment kit\nBlank notebook";
 const hash = (text: string) => createHash("sha256").update(text).digest("hex");
 const review = { id: "review-one", claimVersion: 1, source, sourceHash: hash(source) };
-const proposal = { lineId: "L1", category: "science_kits", quote: "Science experiment kit", start: source.indexOf("Science"), end: source.indexOf("Science") + "Science experiment kit".length };
+const proposal = { lineId: "L1", category: "robot_kits_parts", quote: "Science experiment kit", start: source.indexOf("Science"), end: source.indexOf("Science") + "Science experiment kit".length };
 const suggestion = { reviewId: review.id, status: "READY", audit: { sourceSha256: review.sourceHash }, proposals: [proposal] };
 const build = (value: NonNullable<Parameters<typeof quoteEvidence>[3]> = suggestion) => quoteEvidence(review, 1, ["L1"], value);
 it("highlights the exact saved range while preserving all receipt text", () => {
@@ -36,7 +36,7 @@ it("rejects repeated source quotes even when one offset matches", () => {
 });
 it("rejects overlapping or duplicate-line highlights as a whole", () => {
   const start = source.indexOf("experiment");
-  const nested = { lineId: "L2", category: "notebooks", quote: "experiment", start, end: start + 10 };
+  const nested = { lineId: "L2", category: "classroom_supplies", quote: "experiment", start, end: start + 10 };
   expect(quoteEvidence(review, 1, ["L1", "L2"], { ...suggestion, proposals: [proposal, nested] }).grounded).toBe(false);
   expect(quoteEvidence(review, 1, ["L1", "L2"], { ...suggestion, proposals: [proposal, proposal] }).grounded).toBe(false);
 });

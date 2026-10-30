@@ -54,7 +54,7 @@ describe("IAC-133 real Postgres migration, fixture, and sessions", () => {
     const funds = await db.select().from(schema.funds);
     expect(funds.length).toBe(3);
     const lines = await db.select().from(schema.claimLines).orderBy(schema.claimLines.id);
-    expect(lines.map(row => [row.id, row.category, row.amountCents])).toEqual([["L1", "science_kits", 28000n], ["L2", "notebooks", 15000n], ["L3", "hospitality", 7000n]]);
+    expect(lines.map(row => [row.id, row.category, row.amountCents])).toEqual([["L1", "robot_kits_parts", 28000n], ["L2", "classroom_supplies", 15000n], ["L3", "participant_meals", 7000n]]);
     const credits = await db.select().from(schema.fundCredits).orderBy(schema.fundCredits.fundId);
     expect(credits.map(row => [row.fundId, row.amountCents, row.sourceType, row.isOpening])).toEqual([["fund_a", 30000n, "fixture_opening_balance", true], ["fund_b", 20000n, "fixture_opening_balance", true], ["fund_g", 100000n, "fixture_opening_balance", true]]);
     expect(credits.every(row => row.effectiveOn === "2026-10-14" && row.recordedAt instanceof Date)).toBe(true);

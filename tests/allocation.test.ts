@@ -23,9 +23,9 @@ it("SOL-02: follows the comparison-only baseline and preserves the expected 130 
   expect(baseline.unrestrictedCents).toBe(20000n); expect(baseline.unrestrictedCents - optimal.unrestrictedCents).toBe(13000n);
   expect(() => validateAllocation(input, baseline.edges)).not.toThrow();
 });
-it("SOL-03: rejects a forced hospitality edge with the STEM policy reason", () => {
+it("SOL-03: rejects a forced participant meals edge with the STEM policy reason", () => {
   const input = fixture();
-  expect(() => validateAllocation(input, [{ fundId: "fund_b", lineId: "L3", amountCents: 7000n, policyVersion: 1, solverPriorityVersion: 1, reason: "Forced edge" }])).toThrow(/STEM B policy v1: does not allow category hospitality/);
+  expect(() => validateAllocation(input, [{ fundId: "fund_b", lineId: "L3", amountCents: 7000n, policyVersion: 1, solverPriorityVersion: 1, reason: "Forced edge" }])).toThrow(/Tallow Creek Robot Kit Initiative policy v1: does not allow category participant_meals/);
 });
 it("IAC-346: the fixture comparison advantage disappears when kit-only funding sorts first", () => {
   const original = fixture();
@@ -80,7 +80,7 @@ it("is deterministic across repeated calls and input permutations without mutati
 });
 it("preserves minimum unrestricted spend when scalar v1 weights exceed their small-instance range", () => {
   const original = fixture(); const broad = original.funds[0]!;
-  const categories = ["science_kits", ...Array.from({ length: 1000 }, (_, index) => `category_${index}`)];
+  const categories = ["robot_kits_parts", ...Array.from({ length: 1000 }, (_, index) => `category_${index}`)];
   const input: AllocationInput = { ...original, lines: [{ ...original.lines[0]!, amountCents: 1n }], funds: [{ ...broad, balanceCents: 1n, policy: { ...broad.policy, allowedCategories: categories, breadth: categories.length }, budgetLines: [{ id: "supplies", capCents: 1n }] }, { ...original.funds[2]!, balanceCents: 1n }] };
   const result = allocate(input); if (result.status !== "FUNDED") throw new Error("One cent is feasible");
   expect(result.unrestrictedCents).toBe(0n); expect(result.priorityCost).toBe(1001000n);
@@ -97,5 +97,5 @@ it("refuses malformed money, dates, duplicate IDs, and incomplete budget snapsho
   expect(() => allocate({ ...input, lines: [{ ...input.lines[0]!, amountCents: 0n }] })).toThrow("bigint cents");
   expect(() => allocate({ ...input, lines: [{ ...input.lines[0]!, incurredOn: "2026-02-30" }] })).toThrow("calendar date");
   expect(() => allocate({ ...input, lines: [input.lines[0]!, input.lines[0]!] })).toThrow("Duplicate");
-  expect(() => allocate({ ...input, funds: input.funds.map(fund => fund.id === "fund_a" ? { ...fund, budgetLines: [] } : fund) })).toThrow("Missing Education A budget line");
+  expect(() => allocate({ ...input, funds: input.funds.map(fund => fund.id === "fund_a" ? { ...fund, budgetLines: [] } : fund) })).toThrow("Missing Ashmere County Afterschool STEM Subgrant budget line");
 });

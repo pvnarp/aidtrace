@@ -58,17 +58,17 @@ const sampleArbitrary = fc.record({
 });
 type Sample = typeof sampleArbitrary extends fc.Arbitrary<infer Value> ? Value : never;
 function instance(sample: Sample): AllocationInput {
-  const original = fixture(); const names = ["science_kits", "notebooks", "hospitality"];
+  const original = fixture(); const names = ["robot_kits_parts", "classroom_supplies", "participant_meals"];
   const toCents = (amount: number) => BigInt(amount * 100);
-  // One fund is General; two add Education A; three add STEM B as well.
+  // One fund is General Operating; two add Ashmere County Afterschool STEM Subgrant; three add Tallow Creek Robot Kit Initiative as well.
   const selected = sample.fundCount === 1 ? [original.funds[2]!] : sample.fundCount === 2 ? [original.funds[0]!, original.funds[2]!] : [...original.funds];
-  return { ...original, decisionId: "own", program: sample.wrongProgram ? "football" : "robotics", prohibitedCategories: sample.prohibited ? ["hospitality"] : [],
-    lines: original.lines.slice(0, sample.lineCount).map((line, index) => ({ ...line, category: names[sample.categories[index]!]!, budgetLine: sample.categories[index] === 2 ? "hospitality" : "supplies", incurredOn: sample.outOfPeriod ? "2028-01-01" : line.incurredOn, amountCents: toCents(sample.amounts[index]!) })),
+  return { ...original, decisionId: "own", program: sample.wrongProgram ? "football" : "robotics", prohibitedCategories: sample.prohibited ? ["participant_meals"] : [],
+    lines: original.lines.slice(0, sample.lineCount).map((line, index) => ({ ...line, category: names[sample.categories[index]!]!, budgetLine: sample.categories[index] === 2 ? "other" : "supplies", incurredOn: sample.outOfPeriod ? "2028-01-01" : line.incurredOn, amountCents: toCents(sample.amounts[index]!) })),
     funds: selected.map(fund => {
       const index = original.funds.findIndex(row => row.id === fund.id);
       const categories = names.filter((_name, bit) => ((fund.id === "fund_a" ? sample.maskA : sample.maskB) & (1 << bit)) !== 0);
       const caps = fund.id === "fund_a" ? sample.capsA : sample.capsB;
-      return { ...fund, balanceCents: toCents(sample.balances[index]!), ...(fund.fundClass === "RESTRICTED" ? { policy: { ...fund.policy, allowedCategories: categories, breadth: categories.length }, budgetLines: ["supplies", "hospitality"].map((id, bit) => ({ id, capCents: toCents(sample.capped ? caps[bit]! : 20) })) } : {}) };
+      return { ...fund, balanceCents: toCents(sample.balances[index]!), ...(fund.fundClass === "RESTRICTED" ? { policy: { ...fund.policy, allowedCategories: categories, breadth: categories.length }, budgetLines: ["supplies", "other"].map((id, bit) => ({ id, capCents: toCents(sample.capped ? caps[bit]! : 20) })) } : {}) };
     }),
     priorDebits: sample.capped && sample.fundCount > 1 && sample.prior ? [{ fundId: "fund_a", budgetLine: "supplies", amountCents: toCents(sample.prior) }] : [],
     reservations: sample.fundCount > 1 ? [...(sample.held ? [{ fundId: "fund_a", budgetLine: "supplies", decisionId: "other", active: sample.active, amountCents: toCents(sample.held) }] : []), ...(sample.own ? [{ fundId: "fund_a", budgetLine: "supplies", decisionId: "own", active: true, amountCents: toCents(sample.own) }] : [])] : [],

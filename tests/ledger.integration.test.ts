@@ -28,7 +28,7 @@ const mustFreeze = async (id = "C-104") => {
 async function extraClaim(id: string, amount = 100n) {
   const [claim] = await db.select().from(s.claims).where(eq(s.claims.id, "C-104"));
   await db.insert(s.claims).values({ ...claim!, id, status: "DRAFT" });
-  await db.insert(s.claimLines).values({ claimId: id, claimVersion: 1, id: "extra-line", description: "Test only", category: "hospitality", budgetLine: "hospitality", amountCents: amount });
+  await db.insert(s.claimLines).values({ claimId: id, claimVersion: 1, id: "extra-line", description: "Test only", category: "participant_meals", budgetLine: "other", amountCents: amount });
 }
 beforeAll(async () => {
   await admin`create database ${admin(databaseName)}`; created = true;
@@ -125,7 +125,7 @@ describe("IAC-135 real PostgreSQL ledger and approval boundaries", () => {
     expect(exact("restriction_release")).toEqual([["3100", "fund_b", 20000n, 0n], ["3100", "fund_a", 23000n, 0n], ["3200", null, 0n, 43000n]]);
     for (const entry of entries) expect(postings.filter(row => row.entryId === entry.id).reduce((sum, row) => sum + row.debitCents - row.creditCents, 0n)).toBe(0n);
     const debits = await db.select().from(s.fundDebits).orderBy(s.fundDebits.fundId);
-    expect(debits.map(row => [row.fundId, row.budgetLine, row.amountCents])).toEqual([["fund_a", "supplies", 23000n], ["fund_b", "supplies", 20000n], ["fund_g", "hospitality", 7000n]]);
+    expect(debits.map(row => [row.fundId, row.budgetLine, row.amountCents])).toEqual([["fund_a", "supplies", 23000n], ["fund_b", "supplies", 20000n], ["fund_g", "other", 7000n]]);
     const report = await db.transaction(tx => reconcile(tx, "cedar-hollow"));
     expect(report.openPayableCents).toBe(50000n); expect(report.matches).toBe(true);
     expect((await db.select().from(s.claims))[0]!.status).toBe("APPROVED");

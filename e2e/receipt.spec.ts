@@ -36,7 +36,7 @@ test.beforeEach(async () => {
     const chunks: Buffer[] = []; for await (const chunk of request) chunks.push(Buffer.from(chunk));
     const body = JSON.parse(Buffer.concat(chunks).toString());
     const data = JSON.parse(body.messages[1].content);
-    const categories = ["science_kits", "notebooks", "hospitality"];
+    const categories = ["robot_kits_parts", "classroom_supplies", "participant_meals"];
     const content = JSON.stringify({ proposals: data.lines.map((line: { id: string; description: string }, i: number) => ({ lineId: line.id, category: categories[i], quote: line.description })) });
     response.writeHead(200, { "content-type": "application/json" }).end(JSON.stringify({ model: "aidtrace-category-qwen3", choices: [{ finish_reason: "stop", message: { role: "assistant", content } }] }));
   });
@@ -80,8 +80,12 @@ async function create(page: Page) {
 }
 test("GB-02: 375-pixel receipt quotes, explicit confirmation, allocation and edits requiring new review", async ({ page }) => {
   await create(page); const receiptUrl = page.url().split("?")[0]!;
+  // IAC-383: before any suggestion exists the page names no provider, and never derives one from the environment.
+  await expect(page.locator(".receipt-evidence .muted")).toContainText("No AI suggestion is saved yet"); await expect(page.locator(".receipt-evidence")).not.toContainText("Local Qwen3 model");
   await page.getByRole("button", { name: "Request AI suggestions" }).click();
   await expect(page.locator(".notice")).toContainText("AI suggestions are ready"); expect(modelCalls).toBe(1);
+  await expect(page.locator(".receipt-evidence .muted")).toContainText("Local Qwen3 model. Text in, category suggestions out. No PayPal tools or approval access.");
+  await expect(page.locator(".ai-label").first()).toContainText("Local AI suggests:");
   await expect(page.locator("blockquote")).toHaveCount(3); await noOverflow(page);
   await page.getByRole("button", { name: "Confirm categories", exact: true }).click();
   expect(await page.getByLabel(/I checked every category/).evaluate((el: HTMLInputElement) => el.validity.valueMissing)).toBe(true);
@@ -98,6 +102,28 @@ test("GB-02: 375-pixel receipt quotes, explicit confirmation, allocation and edi
   const confirmations = await connection.db.select().from(s.receiptConfirmations); expect(confirmations).toHaveLength(1);
   expect(await connection.db.select().from(s.disbursements)).toHaveLength(0);
   expect((await connection.db.select().from(s.journalEntries)).every(entry => entry.sourceType === "fixture_opening_balance")).toBe(true);
+});
+test("CAI-35: the receipt page names the provider and model from the stored audit, never from the environment", async ({ page }) => {
+  await create(page); modelCalls = 0;
+  const [review] = await connection.db.select().from(s.receiptReviews); const lines = await connection.db.select().from(s.claimLines).where(eq(s.claimLines.claimId, review!.claimId));
+  const categories = ["robot_kits_parts", "classroom_supplies", "participant_meals"];
+  const proposals = lines.sort((a, b) => a.id.localeCompare(b.id)).map((line, index) => { const start = review!.source.indexOf(line.description);
+    return { lineId: line.id, category: categories[index]!, quote: line.description, start, end: start + line.description.length }; });
+  const sha = review!.sourceHash; const hash = (letter: string) => letter.repeat(64);
+  const claude = (model: string) => ({ provider: "claude", model, responseModel: model, effort: "low", promptVersion: "receipt-category-claude-v1", schemaVersion: "receipt-proposals-v1",
+    sourceSha256: sha, requestSha256: hash("a"), responseSha256: hash("b"), latencyMs: 1200, inputTokens: 812, outputTokens: 57 });
+  // Direct inserts of stored suggestions only. This server runs with no provider variable, so a Claude name here can only come from the audit.
+  const check = async (attempt: number, audit: Record<string, string | number>, columns: { provider: "local" | "claude"; model: string }, model: string, label: string) => {
+    await connection.db.insert(s.receiptSuggestions).values({ reviewId: review!.id, attempt, status: "READY", proposals, audit, ...columns }); await page.reload();
+    await expect(page.locator(".receipt-evidence .muted")).toContainText(`${model}. Text in, category suggestions out. No PayPal tools or approval access.`);
+    await expect(page.locator(".ai-label").first()).toContainText(`${label} suggests:`); await expect(page.locator("blockquote")).toHaveCount(3);
+  };
+  await check(1, claude("claude-haiku-5-5"), { provider: "claude", model: "claude-haiku-5-5" }, "Claude Haiku 5.5", "Claude Haiku 5.5");
+  await check(2, claude("claude-sonnet-5-5"), { provider: "claude", model: "claude-sonnet-5-5" }, "Claude Sonnet 5.5", "Claude Sonnet 5.5");
+  await check(3, { sourceSha256: sha, requestSha256: hash("a"), responseSha256: hash("b"), modelSha256: hash("c"), modelRevision: "d".repeat(40), promptVersion: "receipt-category-v1" }, { provider: "local", model: "d".repeat(40) }, "Local Qwen3 model", "Local AI");
+  // The database check refuses a provider the audit contradicts, so the unrecognized case is an audit the columns accept but the reader refuses (effort outside the stored contract).
+  await check(4, { ...claude("claude-haiku-5-5"), effort: "high" }, { provider: "claude", model: "claude-haiku-5-5" }, "Unrecognized AI record", "AI");
+  expect(modelCalls).toBe(0); expect(await connection.db.select().from(s.disbursements)).toHaveLength(0);
 });
 test("IAC-351: proposal-disabled manual-review link reaches an editable category without posting", async ({ page }) => {
   await create(page);
@@ -116,7 +142,7 @@ test("GB-02: unavailable model leaves human review usable and approvers read-onl
   await create(page); unavailable = true;
   await page.getByRole("button", { name: "Request AI suggestions" }).click();
   await expect(page.getByText("No usable AI suggestions are available.", { exact: false })).toBeVisible(); expect(modelCalls).toBe(1);
-  for (const [line, category] of [["L1", "science_kits"], ["L2", "notebooks"], ["L3", "hospitality"]]) {
+  for (const [line, category] of [["L1", "robot_kits_parts"], ["L2", "classroom_supplies"], ["L3", "participant_meals"]]) {
     await page.getByLabel(`Category for ${line}`, { exact: true }).selectOption(category!);
     await page.getByLabel(`Reason for manual choice ${line}`, { exact: true }).fill("Checked fictional receipt");
   }

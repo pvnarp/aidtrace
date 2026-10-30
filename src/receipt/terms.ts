@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { CATEGORIES } from "../ai/receipt";
+import { BUDGET_LINE, isCategory } from "../ai/categories";
 export const CLAIM_ID = /^R-[a-f0-9-]{36}$/;
 export type DraftInput = { vendor: string; program: string; incurredOn: string; source: string; total: string; lines: { description: string; amount: string }[] };
 export const digest = (value: string) => createHash("sha256").update(value).digest("hex");
@@ -32,6 +32,6 @@ export function draftHash(claim: ClaimTerms, lines: LineTerms[], includeCategori
     lines: [...lines].sort((a, b) => a.id < b.id ? -1 : a.id > b.id ? 1 : 0).map(line => ({ id: line.id, description: line.description, amountCents: line.amountCents.toString(), ...(includeCategories ? { category: line.category, budgetLine: line.budgetLine } : {}) })) }));
 }
 export function budgetFor(category: string) {
-  if (!(CATEGORIES as readonly string[]).includes(category) || category === "UNKNOWN") throw new Error("Every line requires a confirmed category");
-  return category === "science_kits" || category === "notebooks" ? "supplies" : category === "hospitality" ? "hospitality" : "prohibited";
+  if (!isCategory(category) || category === "UNKNOWN") throw new Error("Every line requires a confirmed category");
+  return BUDGET_LINE[category];
 }

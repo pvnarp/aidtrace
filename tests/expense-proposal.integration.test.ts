@@ -35,7 +35,7 @@ afterAll(async () => { await admin.end(); });
 const draft = (value = input) => createReceiptDraft(connection.db, "maria", value, payee);
 const view = (id: string) => readReceiptView(connection.db, id, "maria");
 async function terms(id: string) { const v = await view(id); const p = await readExpenseProposal(connection.db, id, "maria"); return { reviewId: v.review.id, draftHash: v.review.draftHash, suggestionHash: suggestionHash(v.suggestion), runHash: p.runHash }; }
-const fake = (category = "science_kits"): ReturnType<typeof createReceiptCategorizer> => async value => ({ proposals: validateProposals(value, { proposals: value.lines.map(line => ({ lineId: line.id, category, quote: category === "UNKNOWN" ? "" : value.source })) }), audit: { sourceSha256: digest(value.source), requestSha256: "a".repeat(64), responseSha256: "b".repeat(64), promptVersion: PROMPT_VERSION, modelSha256: lock.modelSha256, modelRevision: lock.modelRevision, latencyMs: 1 } });
+const fake = (category = "robot_kits_parts"): ReturnType<typeof createReceiptCategorizer> => async value => ({ proposals: validateProposals(value, { proposals: value.lines.map(line => ({ lineId: line.id, category, quote: category === "UNKNOWN" ? "" : value.source })) }), audit: { sourceSha256: digest(value.source), requestSha256: "a".repeat(64), responseSha256: "b".repeat(64), promptVersion: PROMPT_VERSION, modelSha256: lock.modelSha256, modelRevision: lock.modelRevision, latencyMs: 1 } });
 async function prepare(id: string, categorize = fake()) { return prepareExpenseProposal(connection.db, id, "maria", await terms(id), categorize); }
 async function financial() {
   const tables = ["claims", "claim_lines", "fund_credits", "fund_debits", "allocation_decisions", "allocation_edges", "fund_reservations", "reservation_budget_lines", "approvals", "journal_entries", "journal_postings", "disbursements", "disbursement_attempts", "donation_receipts", "retry_authorizations", "provider_events", "receipt_confirmations"];
@@ -63,7 +63,7 @@ it("AP-01/06: reuses ready evidence and exact replays without inference", async 
   expect(again).toEqual(first); expect(noInference).not.toHaveBeenCalled(); expect(await connection.db.select().from(s.receiptSuggestions)).toHaveLength(1);
 });
 it("AP-02/03: rejects malformed model financial fields and keeps UNKNOWN unresolved", async () => {
-  const id = await draft(); const bad = createReceiptCategorizer(async () => new Response(JSON.stringify({ model: lock.alias, choices: [{ finish_reason: "stop", message: { role: "assistant", content: JSON.stringify({ proposals: [{ lineId: "L1", category: "science_kits", quote: input.source }], payee: "attacker@example.invalid" }) } }] }), { headers: { "content-type": "application/json" } }));
+  const id = await draft(); const bad = createReceiptCategorizer(async () => new Response(JSON.stringify({ model: lock.alias, choices: [{ finish_reason: "stop", message: { role: "assistant", content: JSON.stringify({ proposals: [{ lineId: "L1", category: "robot_kits_parts", quote: input.source }], payee: "attacker@example.invalid" }) } }] }), { headers: { "content-type": "application/json" } }));
   expect((await prepare(id, bad)).run?.state).toBe("UNAVAILABLE");
   const unknown = await draft(); expect((await prepare(unknown, fake("UNKNOWN"))).run).toMatchObject({ state: "NEEDS_REVIEW", result: { summary: "UNRESOLVED_CATEGORIES", edges: [] } });
 });
@@ -150,7 +150,7 @@ it("AP-06: a crashed process requires a new reviewed request after lease expiry 
 it("AP-06: legacy receipt inference shares the per-process adapter guard and preparation fails busy", async () => {
   const legacy = await draft(); const next = await draft(); let started!: () => void; let release!: () => void;
   const ready = new Promise<void>(r => { started = r; }); const gate = new Promise<void>(r => { release = r; }); let requests = 0;
-  const shared = createReceiptCategorizer(async () => { requests++; started(); await gate; return new Response(JSON.stringify({ model: lock.alias, choices: [{ finish_reason: "stop", message: { role: "assistant", content: JSON.stringify({ proposals: [{ lineId: "L1", category: "science_kits", quote: input.source }] }) } }] }), { headers: { "content-type": "application/json" } }); });
+  const shared = createReceiptCategorizer(async () => { requests++; started(); await gate; return new Response(JSON.stringify({ model: lock.alias, choices: [{ finish_reason: "stop", message: { role: "assistant", content: JSON.stringify({ proposals: [{ lineId: "L1", category: "robot_kits_parts", quote: input.source }] }) } }] }), { headers: { "content-type": "application/json" } }); });
   const v = await view(legacy); const work = suggestReceipt(connection.db, legacy, "maria", v.review.id, v.review.draftHash, shared, suggestionHash(v.suggestion)); await ready;
   try { expect((await prepare(next, shared)).run).toMatchObject({ state: "UNAVAILABLE", errorCode: "BUSY" }); expect(requests).toBe(1); }
   finally { release(); await work; }
@@ -173,14 +173,21 @@ it("AP-06: a second receipt is rejected as busy while preparation is running, wi
 });
 it("AP-03/04: mixed receipt honors category policy and a later reservation invalidates the preview", async () => {
   const mixed = await draft({ ...input, total: "6.00", source: "Science experiment kit\nBlank writing notebook\nSandwich", lines: [{ description: "Science experiment kit", amount: "3.00" }, { description: "Blank writing notebook", amount: "2.00" }, { description: "Sandwich", amount: "1.00" }] });
-  const categories = ["science_kits", "notebooks", "hospitality"];
+  const categories = ["robot_kits_parts", "classroom_supplies", "participant_meals"];
   const classify: ReturnType<typeof createReceiptCategorizer> = async value => ({ ...(await fake("UNKNOWN")(value)), proposals: validateProposals(value, { proposals: value.lines.map((line, index) => ({ lineId: line.id, category: categories[index], quote: value.source.split("\n")[index] })) }) });
   const result = await prepare(mixed, classify); expect(result.run?.result).toMatchObject({ generalCents: "100" });
   expect(result.run?.result?.edges.filter(edge => edge.lineId === "L3").map(edge => edge.fundId)).toEqual(["fund_g"]);
   const other = await draft(); await prepare(other); const v = await view(other);
-  await confirmReceipt(connection.db, other, "maria", v.review.id, v.review.draftHash, v.suggestion!.id, suggestionHash(v.suggestion), [{ lineId: "L1", category: "science_kits", reason: "" }]);
+  await confirmReceipt(connection.db, other, "maria", v.review.id, v.review.draftHash, v.suggestion!.id, suggestionHash(v.suggestion), [{ lineId: "L1", category: "robot_kits_parts", reason: "" }]);
   await freezeDecision(connection.db, other, "maria");
   expect((await readExpenseProposal(connection.db, mixed, "maria")).run?.state).toBe("STALE");
+});
+it("CAT-15: gift cards and alcohol are blocked as PROHIBITED_CATEGORY for every fund, with nothing reserved or written", async () => {
+  for (const category of ["gift_cards", "alcohol"]) {
+    const id = await draft(); const before = await financial(); const result = await prepare(id, fake(category));
+    expect(result.run).toMatchObject({ state: "POLICY_BLOCKED", result: { summary: "PROHIBITED_CATEGORY", edges: [], generalCents: null, issues: [{ lineId: "L1", code: "PROHIBITED", amountCents: "300" }] } });
+    expect(await financial()).toEqual(before); expect(await connection.db.select().from(s.fundReservations)).toHaveLength(0);
+  }
 });
 it("AP-05: repeated fields and oversized bodies fail without run creation", async () => {
   const id = await draft(); const fields = { action: "prepare", ...await terms(id) };
@@ -199,7 +206,7 @@ it("AP-05: default-disabled route cannot invoke preparation or require the addit
 it("AP-08: proposal cannot replace claimant confirmation or either independent approval", async () => {
   const id = await draft(); await prepare(id); const v = await view(id);
   await expect(freezeDecision(connection.db, id, "maria")).rejects.toThrow("confirmation");
-  await confirmReceipt(connection.db, id, "maria", v.review.id, v.review.draftHash, v.suggestion!.id, suggestionHash(v.suggestion), [{ lineId: "L1", category: "science_kits", reason: "" }]);
+  await confirmReceipt(connection.db, id, "maria", v.review.id, v.review.draftHash, v.suggestion!.id, suggestionHash(v.suggestion), [{ lineId: "L1", category: "robot_kits_parts", reason: "" }]);
   expect((await readExpenseProposal(connection.db, id, "maria")).run?.state).toBe("STALE");
   const decision = await freezeDecision(connection.db, id, "maria"); if (decision.status !== "AWAITING_APPROVAL") throw new Error("Expected funded decision");
   await expect(approveDecision(connection.db, decision.decisionId, "maria", decision.decisionHash)).rejects.toThrow();

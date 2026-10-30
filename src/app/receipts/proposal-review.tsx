@@ -2,9 +2,10 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import type { ProposalPanel } from "../../proposal/presentation";
 import { CategoryChoice } from "./category-choice";
-const names: Record<string, string> = { science_kits: "Science kits", notebooks: "Notebooks", hospitality: "Food and refreshments", alcohol: "Alcohol: prohibited" };
-export function ProposalReview({ id, reviewId, draftHash, suggestionHash, suggestionId, runHash, panel, lines, editable, receiptRunning, editForm }: {
-  id: string; reviewId: string; draftHash: string; suggestionHash: string; suggestionId: string | null; runHash: string; panel: ProposalPanel;
+import { CATEGORY_NAMES } from "../../ai/categories";
+const names = CATEGORY_NAMES;
+export function ProposalReview({ id, reviewId, draftHash, suggestionHash, suggestionId, runHash, aiName, panel, lines, editable, receiptRunning, editForm }: {
+  id: string; reviewId: string; draftHash: string; suggestionHash: string; suggestionId: string | null; runHash: string; aiName: string; panel: ProposalPanel;
   lines: { id: string; description: string; amount: string; proposal: { category: string; quote: string } | null }[];
   editable: boolean; receiptRunning: boolean; editForm: ReactNode;
 }) {
@@ -57,10 +58,10 @@ export function ProposalReview({ id, reviewId, draftHash, suggestionHash, sugges
       <form action={`/api/receipts/${id}`} method="post" className="receipt-form category-form" onChange={event => { setDirty(true); const input = event.target; if (!(input instanceof HTMLInputElement) || input.name !== "confirm") setReviewChanged(true); }}>
         <input type="hidden" name="action" value="confirm" /><input type="hidden" name="reviewId" value={reviewId} /><input type="hidden" name="draftHash" value={draftHash} /><input type="hidden" name="suggestionId" value={suggestionId ?? ""} /><input type="hidden" name="suggestionHash" value={suggestionHash} />
         {lines.map(line => <section key={line.id}><h3>{line.id}: {line.description}</h3><p>{line.amount}</p>
-          {line.proposal && line.proposal.category !== "UNKNOWN" ? <><p className="ai-label">Local AI suggests: <strong>{names[line.proposal.category]}</strong></p><blockquote>{line.proposal.quote}</blockquote><a href={`#receipt-source-${line.id}`}>See quote in receipt</a>{line.proposal.category === "alcohol" && <p className="notice warning">Alcohol is prohibited across all funds. Correct the expense before it can proceed.</p>}</> : <p>No supported category suggested. Choose a category manually.</p>}
+          {line.proposal && line.proposal.category !== "UNKNOWN" ? <><p className="ai-label">{aiName} suggests: <strong>{names[line.proposal.category]}</strong></p><blockquote>{line.proposal.quote}</blockquote><a href={`#receipt-source-${line.id}`}>See quote in receipt</a>{line.proposal.category === "alcohol" && <p className="notice warning">Alcohol is prohibited across all funds. Correct the expense before it can proceed.</p>}{line.proposal.category === "gift_cards" && <p className="notice warning">Gift cards need pre-approval outside AidTrace and are never allocated here. Correct or remove this line.</p>}</> : <p>No supported category suggested. Choose a category manually.</p>}
           <CategoryChoice lineId={line.id} proposed={line.proposal?.category} editable={editable && !running && !editDirty} />
         </section>)}
-        {editable && <><label className="confirm"><input type="checkbox" name="confirm" value="yes" required disabled={running || editDirty} /> I checked every category and quote. I understand alcohol cannot be reimbursed.</label><button disabled={running || editDirty}>Confirm categories</button></>}
+        {editable && <><label className="confirm"><input type="checkbox" name="confirm" value="yes" required disabled={running || editDirty} /> I checked every category and quote. I understand alcohol cannot be reimbursed and gift cards need pre-approval outside AidTrace.</label><button disabled={running || editDirty}>Confirm categories</button></>}
       </form>
     </section>
     {editable && <details className="receipt-edit" onChange={() => setEditDirty(true)}><summary>Edit receipt or amounts</summary><p>Saving edits discards the current review and requires fresh confirmation.</p><fieldset disabled={running}>{editForm}</fieldset></details>}

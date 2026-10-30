@@ -9,7 +9,7 @@ process.once("message", async (message: { id: string; terms: PreparationTerms; h
     const result = await prepareExpenseProposal(connection.db, message.id, "maria", message.terms, async input => {
       process.send?.({ started: true });
       if (message.hold) await new Promise<void>(resolve => process.once("message", () => resolve()));
-      return { proposals: validateProposals(input, { proposals: [{ lineId: "L1", category: "science_kits", quote: "Science experiment kit" }] }),
+      return { proposals: validateProposals(input, { proposals: [{ lineId: "L1", category: "robot_kits_parts", quote: "Science experiment kit" }] }),
         audit: { sourceSha256: digest(input.source), requestSha256: "a".repeat(64), responseSha256: "b".repeat(64), promptVersion: PROMPT_VERSION, modelSha256: lock.modelSha256, modelRevision: lock.modelRevision, latencyMs: 1 } };
     });
     process.send?.({ result });
