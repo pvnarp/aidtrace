@@ -1,6 +1,16 @@
 {
   "supplemental": [
     {
+      "component": "Inter 4.1 unmodified variable WOFF2, SIL OFL 1.1",
+      "url": "https://raw.githubusercontent.com/rsms/inter/e3a3d4c57d5ecc01453a575621882a384c1995a3/LICENSE.txt",
+      "httpStatus": 200,
+      "retained": true,
+      "path": "src/app/fonts/OFL.txt",
+      "sha256": "262481e844521b326f5ecd053e59b98c8b2da78c8ee1bdbb6e8174305e54935a",
+      "assetSha256": "693b77d4f32ee9b8bfc995589b5fad5e99adf2832738661f5402f9978429a8e3",
+      "assetBytes": 352240
+    },
+    {
       "component": "llama.cpp pinned MIT",
       "url": "https://raw.githubusercontent.com/ggml-org/llama.cpp/c7fc5094179bf8a9c73c18593db714f8da41a402/LICENSE",
       "httpStatus": 200,

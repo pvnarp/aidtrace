@@ -1,5 +1,10 @@
 # Preserve licensing boundaries
 
+The one bundled unmodified Inter 4.1 WOFF2 retains SIL OFL 1.1 at src/app/fonts/OFL.txt.
+Exact immutable upstream paths, size and hashes are in docs/FONT_PROVENANCE.md. This is a
+font-only exception to historical source-only/binary inventory statements below. It does
+not relicense the font under MIT or grant clearance for other binary/image distribution.
+
 ## 1. Retain MIT: application source
 
 The repository already contained an MIT LICENSE, Copyright (c) 2026 Pavan Aripakula,

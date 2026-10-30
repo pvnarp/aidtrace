@@ -7,7 +7,9 @@ This notice does not change the terms of LICENSE or any third-party license.
 Third-party packages retain their own licenses and copyright notices. See
 THIRD_PARTY_NOTICES.txt, DEPENDENCY_LICENSES.json and UPSTREAM_LICENSE_SOURCES.json.
 Model/runtime artifact pins and separate licenses are in docs/THIRD_PARTY_MODELS.md.
-No dependency binaries, container images or model weights are distributed here.
+The one bundled font, Inter 4.1, remains under SIL OFL 1.1. Its unmodified license is
+src/app/fonts/OFL.txt; exact upstream bytes and hashes are in docs/FONT_PROVENANCE.md.
+No other dependency binaries, container images or model weights are distributed here.
 This is the separately prepared native dashboard variant. The Studio implementation and
 its commercial notices remain preserved in the original private source/history. This
 variant makes no AG sponsor-use claim and grants no rights in the separate Studio version.

@@ -61,8 +61,9 @@ async function create(page: Page, wine = false) {
   return page.url().split("?")[0]!;
 }
 async function noOverflow(page: Page) {
+  const width = page.viewportSize()!.width;
   await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
-  for (const control of await page.locator("button,input,select,textarea").all()) { if (!await control.isVisible()) continue; const box = await control.boundingBox(); if (box) { expect(box.x).toBeGreaterThanOrEqual(0); expect(box.x + box.width).toBeLessThanOrEqual(375); } }
+  for (const control of await page.locator("button,input,select,textarea").all()) { if (!await control.isVisible()) continue; const box = await control.boundingBox(); if (box) { expect(box.x).toBeGreaterThanOrEqual(0); expect(box.x + box.width).toBeLessThanOrEqual(width); } }
 }
 async function financial() {
   const hash = createHash("sha256");
@@ -73,6 +74,47 @@ async function financial() {
 }
 test.describe("Synthetic response interface checks", () => {
   test.skip(actual, "Separate actual-model run");
+  test("FONT-04: local font renders offline with tabular amounts and a usable blocked-font fallback", async ({ page, browser }) => {
+    await page.route("**/*", async route => {
+      expect(new URL(route.request().url()).hostname).toBe("127.0.0.1");
+      await route.continue();
+    });
+    const fontResponse = page.waitForResponse(response => /\.woff2(?:\?|$)/.test(response.url()) && response.ok());
+    await page.goto("/login");
+    expect(createHash("sha256").update(await (await fontResponse).body()).digest("hex")).toBe("693b77d4f32ee9b8bfc995589b5fad5e99adf2832738661f5402f9978429a8e3");
+    await login(page, "maria");
+    await page.evaluate(() => document.fonts.ready);
+    const cdp = await page.context().newCDPSession(page);
+    await cdp.send("DOM.enable"); await cdp.send("CSS.enable");
+    const doc = await cdp.send("DOM.getDocument");
+    const node = await cdp.send("DOM.querySelector", { nodeId: doc.root.nodeId, selector: "h1" });
+    const rendered = await cdp.send("CSS.getPlatformFontsForNode", { nodeId: node.nodeId });
+    expect(rendered.fonts.some(font => font.isCustomFont && /Inter/.test(font.familyName))).toBe(true);
+    const widths = await page.evaluate(() => {
+      const sample = document.createElement("span"); sample.style.cssText = "font-size:24px;position:absolute;visibility:hidden";
+      document.body.append(sample); sample.textContent = "$111.11"; const ones = sample.getBoundingClientRect().width;
+      sample.textContent = "$888.88"; const eights = sample.getBoundingClientRect().width;
+      const numeric = getComputedStyle(sample).fontVariantNumeric, family = getComputedStyle(sample).fontFamily;
+      sample.remove(); return { ones, eights, numeric, family };
+    });
+    console.log(JSON.stringify({ check: "loaded local font and numeric layout", widths, renderedFonts: rendered.fonts }));
+    expect(Math.abs(widths.ones - widths.eights)).toBeLessThan(0.1);
+    for (const width of [1440, 390]) { await page.setViewportSize({ width, height: 900 }); await noOverflow(page); }
+    const fallback = await browser.newContext({ baseURL: "http://127.0.0.1:3100", viewport: { width: 390, height: 844 } });
+    try {
+      await fallback.route("**/*", async route => {
+        expect(new URL(route.request().url()).hostname).toBe("127.0.0.1");
+        if (/\.woff2(?:\?|$)/.test(route.request().url())) await route.abort(); else await route.continue();
+      });
+      const other = await fallback.newPage(); await login(other, "maria"); await other.evaluate(() => document.fonts.ready);
+      await expect(other.getByRole("heading", { level: 1 })).toBeVisible(); await noOverflow(other);
+      const status = await other.evaluate(() => Array.from(document.fonts).filter(face => /inter/i.test(face.family)).map(face => face.status));
+      expect(status).toContain("error");
+      await other.goto("/receipts/new"); await other.getByLabel("Fictional vendor").fill("Font fallback remains editable");
+      await expect(other.getByLabel("Fictional vendor")).toHaveValue("Font fallback remains editable"); await noOverflow(other);
+    } finally { await fallback.close(); }
+    expect(calls).toBe(0);
+  });
   test("IAC-366: HTML-shaped source remains text in grounded highlights", async ({ page }) => {
     await login(page, "maria"); await page.goto("/receipts/new");
     const literal = '<img src="/never-load" onerror="window.__receiptInjection=1">';

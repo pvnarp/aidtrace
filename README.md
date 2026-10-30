@@ -5,6 +5,9 @@ receipt categories with source quotes. Rules compute USD 430 restricted and USD 
 on the fresh example. Two people approve the same terms. A read-only PayPal handoff shows
 what an explicitly authorized reimbursement would require. This judging session stays unpaid.
 
+Typography is self-hosted: one pinned Inter 4.1 font and its OFL notice travel with the source.
+No CDN or system font installation is needed. See docs/FONT_PROVENANCE.md.
+
 ## 1. Prepare Docker: keep execution in containers
 
 Use an existing Docker Engine or Docker Desktop with Compose v2, Linux ARM64 or AMD64,

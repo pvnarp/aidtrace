@@ -1,7 +1,8 @@
 # Build one judging story: IAC-370/371/372
 
 Status: Pavan adopted sections 1 and 2 on October 29 with "Keep going" after the prepared
-scope and adoption question. Section 3 typography remains a proposal. The review itself is
+scope and adoption question, then explicitly adopted IAC-372 visual polish and requested
+commit/push/merge before another review. Section 3 is now adopted. The review itself is
 reference evidence, not a general financial contract. Preserve Gate A/B and IAC-365/366.
 
 ## 1. Follow one receipt: use a separate fresh judging session
@@ -54,8 +55,9 @@ Mac font, add a CDN, or assume the review's approximate 300 KB size. Measure act
 Current source preparation rejects binary/non-UTF-8 input. Any font adoption needs a narrow
 binary allowlist and rejection tests, not a blanket scanner relaxation.
 
-Cost: font bytes, notices, export work and cross-platform fallback checks. No font has been
-downloaded or adopted in this proposal. Sources: [Inter upstream](https://github.com/rsms/inter)
+Cost: font bytes, notices, export work and cross-platform fallback checks. The adopted
+exact unmodified 4.1 asset is documented in [font provenance](../FONT_PROVENANCE.md).
+Sources: [Inter upstream](https://github.com/rsms/inter)
 and [upstream license](https://github.com/rsms/inter/blob/master/LICENSE.txt).
 
 ## 4. Keep the review limits: promote only verified work
@@ -79,7 +81,7 @@ pages 1 and 7. This is context, not an accounting or legal compliance verdict.
 ## 5. Preserve the schedule: require owner adoption
 
 IAC-365/366 remain In Review, target October 30. IAC-370/371 target October 31 for implementation
-and review; IAC-372 remains Backlog planning. Access/rights review is November 2,
+and review; IAC-372 is adopted and In Progress. Access/rights review is November 2,
 preflight November 3, media/entry preparation November 4 and conditional early eligibility
 entry November 5. Final corrections target November 11 before the November 12 cutoff.
 Dates do not authorize merging, publishing, hosting, recording, contact or submission.

@@ -1,4 +1,4 @@
-:root { color-scheme: light; font-family: ui-sans-serif, system-ui, sans-serif; color: #183b35; background: #f7f8f4; }
+:root { color-scheme: light; font-family: var(--font-aidtrace), Arial, sans-serif; color: #183b35; background: #f7f8f4; font-variant-numeric: tabular-nums; text-rendering: geometricPrecision; }
 * { box-sizing: border-box; }
 body { margin: 0; }
 main { max-width: 800px; margin: auto; padding: 72px 24px; }
@@ -208,7 +208,7 @@ a:focus-visible, summary:focus-visible { outline: 3px solid #327763; outline-off
 .analytics-page { max-width: 1220px; padding-top: 28px; }
 .snapshot-time { font-size: 14px; overflow-wrap: anywhere; }
 .analytics-dashboard { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; margin: 24px 0 36px; }
-.analytics-widget { min-width: 0; padding: 16px; border: 1px solid #cbd8d0; border-radius: 10px; font: 15px/1.45 system-ui, sans-serif; }
+.analytics-widget { min-width: 0; padding: 16px; border: 1px solid #cbd8d0; border-radius: 10px; font-size: 15px; line-height: 1.45; }
 .analytics-widget h2 { font-size: 21px; margin: 0 0 18px; }
 .analytics-widget h3 { font-size: 17px; margin: 0 0 8px; overflow-wrap: anywhere; }
 .analytics-widget label { display: grid; gap: 6px; }
@@ -286,7 +286,7 @@ button:disabled { cursor:not-allowed; }
 .story-hero { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:48px; align-items:center; padding:12px 0 40px; }
 .story-kicker { font-size:12px; line-height:1.5; letter-spacing:.07em; text-transform:uppercase; font-weight:750; color:var(--accent); }
 .story-dot { display:inline-block; width:8px; height:8px; border-radius:50%; background:var(--accent); margin-right:6px; }
-.story-page .story-pitch h1 { font-size:clamp(36px,4vw,51px); line-height:1.12; letter-spacing:-.045em; margin:22px 0; }
+.story-page .story-pitch h1 { font-size:clamp(36px,4vw,51px); line-height:1.12; letter-spacing:-.035em; margin:22px 0; }
 .story-pitch h1 > span { color:var(--accent); }
 .story-lead { font-size:18px; line-height:1.6; color:var(--muted); max-width:470px; }
 .story-promise { font-size:18px; line-height:1.65; max-width:470px; margin:24px 0; }

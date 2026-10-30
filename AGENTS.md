@@ -5,7 +5,8 @@ judge-new/judge-up with a separate named session, not the retained owner runtime
 USD 500 receipt passes actual AI review, confirmation, freeze and two logins/approvals,
 ending Approved at a read-only PayPal handoff. Preserve previous sessions and unchanged caps.
 Judge payment actions are disabled server-side; do not edit configuration to turn them on.
-C-104 stays in tests and history, not the primary judge flow. No font adoption follows.
+C-104 stays in tests and history, not the primary judge flow. Apply the October 29 adopted
+local Inter typography scope in section 3 and retain docs/FONT_PROVENANCE.md and the OFL.
 
 Apply docs/plans/JOURNEY_ARCHITECTURE_SCOPE.md for five saved-state journey stages and
 role handoffs. The clickable /architecture explorer uses fictional illustrations, not

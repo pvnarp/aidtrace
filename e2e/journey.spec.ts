@@ -52,23 +52,11 @@ async function compactJourney(page: Page) {
 test("IAC-350: architecture is authenticated, keyboard-operable and executes no requests", async ({ page }) => {
   await page.goto("/architecture"); await expect(page).toHaveURL(/\/login$/);
   await login(page, "maria"); await page.getByRole("link", { name: "Explore how it works", exact: true }).click();
-  await expect(page.getByRole("heading", { level: 1 })).toHaveText("A nonprofit expense.Three funds. One clear answer.");
-  await expect(page.locator(".story-promise")).toContainText("AI reviews receipt text.");
-  await expect(page.locator(".story-promise")).toContainText("PayPal reimburses.");
-  await expect(page.locator(".story-funds")).toContainText("Part of the $280 kits");
-  await expect(page.locator(".story-paypal")).toContainText("$500 reimbursement to Maria");
-  await expect(page.locator(".story-receipt-note")).toContainText("This illustration sends no request");
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("One $500 expense. Every decision explained.");
+  await expect(page.locator(".technical-explorer")).toHaveAttribute("open", "");
+  await expect(page.getByRole("button", {name:"Allowed expense: $500",exact:true})).toBeVisible();
+  await expect(page.locator(".explorer-detail")).toContainText("$280 of science kits, $150 of notebooks and $70 of refreshments");
   const requests: string[] = []; page.on("request", request => requests.push(request.url()));
-  await expect(page.getByRole("button", { name: "AI proposes", exact: true })).toBeEnabled();
-  await expect(page.getByRole("button", { name: "AI proposes", exact: true })).toHaveAttribute("aria-pressed", "true");
-  await page.getByRole("button", { name: "AI proposes", exact: true }).focus(); await page.keyboard.press("Enter");
-  await expect(page.locator(".story-stage-detail")).toContainText("AI cannot approve or pay.");
-  await page.getByRole("button", { name: "PayPal reimburses", exact: true }).click();
-  await expect(page.locator(".story-stage-detail")).toContainText("Only verified SUCCESS permits settlement");
-  await page.getByRole("button", { name: "What if one item is prohibited?", exact: false }).click();
-  await expect(page.locator(".story-result")).toContainText("General cannot bypass an organization-wide ban");
-  await page.getByRole("button", { name: "Return to the allowed receipt", exact: false }).click();
-  await page.getByText("Inside the architecture: inspect the components and handoffs", { exact: true }).click();
   const explanation = page.locator(".explorer-heading");
   await expect(explanation).not.toBeFocused();
   await expect(page.getByText(/This is not live telemetry/)).toBeVisible();
