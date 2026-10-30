@@ -79,7 +79,7 @@ export function readReceiptAudit(row: StoredReceiptRow | null | undefined): Rece
   return stored as unknown as ClaudeReceiptAudit;
 }
 
-const CLAUDE_NAMES: Record<ClaudeModel, string> = { "claude-haiku-5-5": "Claude Haiku 5.5", "claude-sonnet-5-5": "Claude Sonnet 5.5" };
+export const CLAUDE_NAMES: Record<ClaudeModel, string> = { "claude-haiku-5-5": "Claude Haiku 5.5", "claude-sonnet-5-5": "Claude Sonnet 5.5" };
 // Names come only from the stored columns and the audit they agree with, never from the environment.
 export function receiptAuditLabel(row: StoredReceiptRow | null | undefined): { short: string; model: string } | null {
   const audit = readReceiptAudit(row);

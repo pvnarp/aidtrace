@@ -3,7 +3,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import { afterEach, expect, it, vi } from "vitest";
 import { CATEGORIES, localReceiptCategorizer, type ReceiptInput } from "../src/ai/receipt";
 import { CLAUDE_EFFORT, CLAUDE_MAX_TOKENS, CLAUDE_PROMPT_VERSION, CLAUDE_SCHEMA_VERSION, DEFAULT_CLAUDE_MODEL, ReceiptAiConfigError, claudeCategoryRequest, createClaudeReceiptCategorizer, resolveClaudeModel, type ClaudeMessagesClient } from "../src/ai/claude-receipt";
-import { resolveReceiptAiProvider, selectReceiptCategorizer } from "../src/ai/provider";
+import { configuredReceiptAiName, resolveReceiptAiProvider, selectReceiptCategorizer } from "../src/ai/provider";
 
 // CAI-01 to CAI-21: IAC-383 stubbed evidence. No test calls Anthropic. The key below is a
 // fake string that only proves it never appears in results, errors or logs.
@@ -302,4 +302,15 @@ it("CAI-22 accepts the requested model or its dated snapshot, and refuses every 
     await expect(run(stub(() => Promise.resolve(message({ model: served }))).client)).resolves.toMatchObject({ audit: { model: MODEL, responseModel: served } });
   for (const served of ["claude-sonnet-5-5-20261001", `${MODEL}-latest`, `${MODEL}-2026100`, `${MODEL}-202610011`, `x${MODEL}`, `${MODEL}-20261001x`, null])
     await expect(run(stub(() => Promise.resolve(message({ model: served }))).client)).rejects.toMatchObject({ code: "SHAPE" });
+});
+
+it("CAI-36 names the configured provider for the idle receipt strip, and nothing when AI is off or misconfigured", () => {
+  const on = { AI_RECEIPT_ENABLED: "true" };
+  expect(configuredReceiptAiName(on)).toEqual({ provider: "local", name: "Qwen3-1.7B" });
+  expect(configuredReceiptAiName({ ...on, AIDTRACE_RECEIPT_AI_PROVIDER: "claude" })).toEqual({ provider: "claude", name: "Claude Haiku 5.5" });
+  expect(configuredReceiptAiName({ ...on, AIDTRACE_RECEIPT_AI_PROVIDER: "claude", AIDTRACE_CLAUDE_MODEL: "claude-sonnet-5-5" })).toEqual({ provider: "claude", name: "Claude Sonnet 5.5" });
+  for (const env of [{}, { AI_RECEIPT_ENABLED: "false", AIDTRACE_RECEIPT_AI_PROVIDER: "claude" }, { ...on, AIDTRACE_RECEIPT_AI_PROVIDER: "" },
+    { ...on, AIDTRACE_RECEIPT_AI_PROVIDER: "sk-ant-secret-looking-value" }, { ...on, AIDTRACE_RECEIPT_AI_PROVIDER: "claude", AIDTRACE_CLAUDE_MODEL: "claude-opus-5-5" }]) {
+    expect(configuredReceiptAiName(env)).toBeNull();
+  }
 });

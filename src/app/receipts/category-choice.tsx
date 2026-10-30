@@ -7,7 +7,7 @@ export function CategoryChoice({ lineId, proposed, editable }: { lineId: string;
   const [category, setCategory] = useState(accepted);
   const manual = !accepted || category !== accepted;
   return <div className="category-choice">
-    <label htmlFor={`category${lineId}`}>Category for {lineId}</label>
+    <div className="category-choice-head"><label htmlFor={`category${lineId}`}>Category for {lineId}</label>{accepted && (manual ? <span className="ai-tag changed">Changed by you</span> : <span className="ai-tag">AI suggested</span>)}</div>
     <select id={`category${lineId}`} name={`category${lineId}`} value={category} onChange={event => setCategory(event.target.value)} required disabled={!editable}>
       <option value="">Choose a category</option>{SELECTABLE.map(value => <option value={value} key={value}>{CATEGORY_NAMES[value]}</option>)}
     </select>

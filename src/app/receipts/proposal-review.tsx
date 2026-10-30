@@ -3,11 +3,13 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import type { ProposalPanel } from "../../proposal/presentation";
 import { CategoryChoice } from "./category-choice";
 import { CATEGORY_NAMES } from "../../ai/categories";
+import type { ProhibitedMatch } from "../../receipt/prohibited-screen";
+import { ProhibitedNotice } from "./prohibited-notice";
 const names = CATEGORY_NAMES;
-export function ProposalReview({ id, reviewId, draftHash, suggestionHash, suggestionId, runHash, aiName, panel, lines, editable, receiptRunning, editForm }: {
+export function ProposalReview({ id, reviewId, draftHash, suggestionHash, suggestionId, runHash, aiName, panel, lines, editable, receiptRunning, editForm, flagged }: {
   id: string; reviewId: string; draftHash: string; suggestionHash: string; suggestionId: string | null; runHash: string; aiName: string; panel: ProposalPanel;
   lines: { id: string; description: string; amount: string; proposal: { category: string; quote: string } | null }[];
-  editable: boolean; receiptRunning: boolean; editForm: ReactNode;
+  editable: boolean; receiptRunning: boolean; editForm: ReactNode; flagged: readonly ProhibitedMatch[];
 }) {
   const submitted = useRef(false); const [pending, setPending] = useState(false); const [dirty, setDirty] = useState(false); const [message, setMessage] = useState("");
   const [editDirty, setEditDirty] = useState(false); const [interactive, setInteractive] = useState(false);
@@ -32,7 +34,7 @@ export function ProposalReview({ id, reviewId, draftHash, suggestionHash, sugges
     submitted.current = false; setPending(false);
   }
   return <>
-    <section className="proposal-panel" aria-labelledby="proposal-heading" data-state={panel.state ?? "NOT_STARTED"} aria-busy={running}>
+    <section className="proposal-panel" id="prepare-proposal" aria-labelledby="proposal-heading" data-state={panel.state ?? "NOT_STARTED"} aria-busy={running}>
       <p className="eyebrow">Expense preparation</p><h2 id="proposal-heading">{pending ? "Preparation in progress" : message ? "Reload the saved review" : reviewChanged || editDirty ? "Review changes before continuing" : panel.heading}</h2>
       <p role="status">{pending ? "Preparing category suggestions, then checking funding rules. This can take about a minute. Submit once; manual review stays available after this request finishes." : message || reviewChanged || editDirty ? "The earlier preview is hidden until your current saved review is checked again." : panel.message}</p>
       {!pending && !message && !reviewChanged && !editDirty && panel.steps.length > 0 && <details><summary>How this proposal was prepared</summary><ol className="proposal-steps" aria-label="Preparation steps">{panel.steps.map(step => <li key={step}>{step}</li>)}</ol></details>}
@@ -55,13 +57,13 @@ export function ProposalReview({ id, reviewId, draftHash, suggestionHash, sugges
     <section id="category-review" aria-labelledby="category-review-heading"><h2 id="category-review-heading">Review and confirm each category</h2>
       <p>Check each suggested category and its quote against the receipt. Matching text does not prove the category is right. Changing a category requires your reason.</p>
       {running && <p>Wait for this request to finish or refresh its status before confirming, so you review the current suggestions.</p>}
-      <form action={`/api/receipts/${id}`} method="post" className="receipt-form category-form" onChange={event => { setDirty(true); const input = event.target; if (!(input instanceof HTMLInputElement) || input.name !== "confirm") setReviewChanged(true); }}>
+      <form action={`/api/receipts/${id}`} method="post" className="receipt-form category-form" onChange={event => { setDirty(true); const input = event.target; if (!(input instanceof HTMLInputElement) || !["confirm", "acknowledgeProhibited"].includes(input.name)) setReviewChanged(true); }}>
         <input type="hidden" name="action" value="confirm" /><input type="hidden" name="reviewId" value={reviewId} /><input type="hidden" name="draftHash" value={draftHash} /><input type="hidden" name="suggestionId" value={suggestionId ?? ""} /><input type="hidden" name="suggestionHash" value={suggestionHash} />
         {lines.map(line => <section key={line.id}><h3>{line.id}: {line.description}</h3><p>{line.amount}</p>
           {line.proposal && line.proposal.category !== "UNKNOWN" ? <><p className="ai-label">{aiName} suggests: <strong>{names[line.proposal.category]}</strong></p><blockquote>{line.proposal.quote}</blockquote><a href={`#receipt-source-${line.id}`}>See quote in receipt</a>{line.proposal.category === "alcohol" && <p className="notice warning">Alcohol is prohibited across all funds. Correct the expense before it can proceed.</p>}{line.proposal.category === "gift_cards" && <p className="notice warning">Gift cards need pre-approval outside AidTrace and are never allocated here. Correct or remove this line.</p>}</> : <p>No supported category suggested. Choose a category manually.</p>}
           <CategoryChoice lineId={line.id} proposed={line.proposal?.category} editable={editable && !running && !editDirty} />
         </section>)}
-        {editable && <><label className="confirm"><input type="checkbox" name="confirm" value="yes" required disabled={running || editDirty} /> I checked every category and quote. I understand alcohol cannot be reimbursed and gift cards need pre-approval outside AidTrace.</label><button disabled={running || editDirty}>Confirm categories</button></>}
+        {editable && <><ProhibitedNotice matches={flagged} /><label className="confirm"><input type="checkbox" name="confirm" value="yes" required disabled={running || editDirty} /> I checked every category and quote. I understand alcohol cannot be reimbursed and gift cards need pre-approval outside AidTrace.</label><button disabled={running || editDirty}>Confirm categories</button></>}
       </form>
     </section>
     {editable && <details className="receipt-edit" onChange={() => setEditDirty(true)}><summary>Edit receipt or amounts</summary><p>Saving edits discards the current review and requires fresh confirmation.</p><fieldset disabled={running}>{editForm}</fieldset></details>}

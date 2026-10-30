@@ -58,7 +58,7 @@ async function freeze(page: Page) { await login(page, "maria"); await page.getBy
 test("UX-01: 375-pixel allocation, both independent approvals and synthetic payout status", async ({ page }) => {
   await freeze(page);
   for (const user of ["tara", "ben"] as const) {
-    await login(page, user); await expect(page.getByRole("heading", { level: 1 })).toContainText("$430.00 restricted. $70.00 General.");
+    await login(page, user); await expect(page.getByRole("heading", { level: 1 })).toHaveText(user === "tara" ? "Frozen. Awaiting two approvals." : "1 of 2 approvals saved. One more needed.");
     await expect(page.getByText("$200.00 from General", { exact: true })).toBeVisible(); await page.getByText("Why each fund can pay", { exact: true }).click(); await expect(page.locator(".reasons")).toBeVisible();
     await expect(page.getByText("$70.00 from General", { exact: true })).toBeVisible();
     const cards = page.locator(".comparison-card"); await expect(cards).toHaveCount(2);

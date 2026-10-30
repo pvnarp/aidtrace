@@ -200,7 +200,10 @@ export const receiptConfirmations = pgTable("receipt_confirmations", {
   id: uuid().primaryKey().defaultRandom(), reviewId: uuid("review_id").notNull().unique().references(() => receiptReviews.id),
   suggestionId: uuid("suggestion_id").references(() => receiptSuggestions.id), confirmedBy: text("confirmed_by").notNull().references(() => users.id),
   termsHash: text("terms_hash").notNull(), selections: jsonb().$type<{ lineId: string; category: string; provenance: "AI_ACCEPTED" | "HUMAN"; reason: string }[]>().notNull(), confirmedAt: recordedAt(),
-}, t => [check("receipt_confirmation_hash", sql`${t.termsHash} ~ '^[a-f0-9]{64}$'`)]);
+  // IAC-394: the receipt text screen stored with the confirmation. Null only on rows confirmed before migration 0013.
+  prohibitedScreen: jsonb("prohibited_screen").$type<{ version: string; matches: { category: "alcohol" | "gift_cards"; term: string }[]; unresolved: { category: "alcohol" | "gift_cards"; term: string }[]; acknowledged: boolean } | null>(),
+}, t => [check("receipt_confirmation_hash", sql`${t.termsHash} ~ '^[a-f0-9]{64}$'`),
+  check("receipt_prohibited_screen_shape", sql`${t.prohibitedScreen} is null or (case when jsonb_typeof(${t.prohibitedScreen}) = 'object' and jsonb_typeof(${t.prohibitedScreen}->'version') = 'string' and jsonb_typeof(${t.prohibitedScreen}->'matches') = 'array' and jsonb_typeof(${t.prohibitedScreen}->'unresolved') = 'array' and jsonb_typeof(${t.prohibitedScreen}->'acknowledged') = 'boolean' then (${t.prohibitedScreen}->'acknowledged' = 'true'::jsonb) = (jsonb_array_length(${t.prohibitedScreen}->'unresolved') > 0) else false end)`)]);
 
 export const expenseProposals = pgTable("expense_proposals", {
   id: uuid().primaryKey().defaultRandom(), reviewId: uuid("review_id").notNull().references(() => receiptReviews.id),
@@ -251,3 +254,39 @@ export const donationOrders = pgTable("donation_orders", {
   check("donation_order_lease_pair", sql`(${t.leaseToken} is null) = (${t.leaseExpiresAt} is null)`),
   check("donation_order_final_has_no_lease", sql`${t.status} not in ('COMPLETED','FAILED','MISMATCH','EXPIRED') or ${t.leaseToken} is null`),
 ]);
+
+// IAC-379 step 3b (docs/plans/DONATION_LOOP_SCOPE.md sections 6, 8 and 10). A donor impact note approved by a person who is
+// not the claimant, and the per-line gift applications written with it. Both tables are immutable (migration 0014 guards).
+// Staleness is computed when the page is read, never by updating a row. No money moves and nothing posts to the ledger here.
+export const giftNoteModes = ["TEMPLATE", "AI"] as const;
+export const giftPayoutStatuses = ["NO_PAYMENT", "PROCESSING", "UNKNOWN", "NEEDS_ATTENTION", "PAID"] as const;
+export type GiftPayoutStatus = (typeof giftPayoutStatuses)[number];
+export const giftNotes = pgTable("gift_notes", {
+  id: uuid().primaryKey().defaultRandom(), captureId: text("capture_id").notNull().references(() => donationReceipts.captureId),
+  claimId: text("claim_id").notNull(), claimVersion: integer("claim_version").notNull(),
+  decisionHash: text("decision_hash").notNull().references(() => allocationDecisions.decisionHash),
+  factSetVersion: text("fact_set_version").notNull(), factDigest: text("fact_digest").notNull(),
+  templateId: text("template_id").notNull(), optionalFactIds: text("optional_fact_ids").array().notNull().default(sql`'{}'::text[]`),
+  renderedText: text("rendered_text").notNull(), textHash: text("text_hash").notNull(),
+  mode: text().$type<(typeof giftNoteModes)[number]>().notNull(), modelMetadata: jsonb("model_metadata").$type<Record<string, string | number> | null>(),
+  approverId: text("approver_id").notNull().references(() => users.id), approvedAt: timestamp("approved_at", { withTimezone: true }).notNull().defaultNow(),
+  payoutStatus: text("payout_status").$type<GiftPayoutStatus>().notNull(), policyVersion: text("policy_version").notNull(),
+}, t => [foreignKey({ columns: [t.claimId, t.claimVersion], foreignColumns: [claims.id, claims.version] }),
+  unique("gift_note_identity").on(t.id, t.captureId, t.claimId, t.claimVersion),
+  unique("gift_note_facts_unique").on(t.captureId, t.claimId, t.claimVersion, t.factDigest),
+  check("gift_note_fact_set", sql`${t.factSetVersion} = 'donor-note-facts-v1'`),
+  check("gift_note_policy", sql`${t.policyVersion} = 'GIFT_ATTRIBUTION_V1'`),
+  check("gift_note_mode", sql`${t.mode} in ('TEMPLATE','AI')`),
+  check("gift_note_model_metadata", sql`(${t.mode} = 'AI') or (${t.modelMetadata} is null)`),
+  check("gift_note_hashes", sql`${t.factDigest} ~ '^[a-f0-9]{64}$' and ${t.textHash} ~ '^[a-f0-9]{64}$'`),
+  check("gift_note_payout_status", sql`${t.payoutStatus} in ('NO_PAYMENT','PROCESSING','UNKNOWN','NEEDS_ATTENTION','PAID')`),
+  check("gift_note_text_bounded", sql`char_length(${t.renderedText}) between 1 and 8000`)]);
+
+export const giftApplications = pgTable("gift_applications", {
+  noteId: uuid("note_id").notNull(), captureId: text("capture_id").notNull(), claimId: text("claim_id").notNull(), claimVersion: integer("claim_version").notNull(),
+  lineId: text("line_id").notNull(), fundId: text("fund_id").notNull().references(() => funds.id), appliedCents: cents("applied_cents"), policyVersion: text("policy_version").notNull(),
+}, t => [primaryKey({ columns: [t.noteId, t.lineId, t.fundId] }),
+  foreignKey({ columns: [t.noteId, t.captureId, t.claimId, t.claimVersion], foreignColumns: [giftNotes.id, giftNotes.captureId, giftNotes.claimId, giftNotes.claimVersion] }),
+  foreignKey({ columns: [t.claimId, t.claimVersion, t.lineId], foreignColumns: [claimLines.claimId, claimLines.claimVersion, claimLines.id] }),
+  check("gift_application_positive", sql`${t.appliedCents} > 0`),
+  check("gift_application_policy", sql`${t.policyVersion} = 'GIFT_ATTRIBUTION_V1'`)]);

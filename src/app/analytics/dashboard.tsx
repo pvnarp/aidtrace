@@ -1,6 +1,6 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
-import { QUESTIONS, usd, type AnalyticsSnapshot, type Question } from '../../analytics/model';
+import { QUESTIONS, questionFacts, usd,type AnalyticsSnapshot, type Question } from '../../analytics/model';
 import { snapshotAnswer } from '../../analytics/client-facts';
 
 function Funding({ snapshot }: { snapshot: AnalyticsSnapshot }) {
@@ -17,14 +17,14 @@ function Cash({ snapshot }: { snapshot: AnalyticsSnapshot }) {
   </article>;
 }
 export default function AccountingDashboard({ snapshot }: { snapshot: AnalyticsSnapshot }) {
-  const [answer, setAnswer] = useState(''); const [busy, setBusy] = useState(false); const [notice, setNotice] = useState('');
+  const [answer, setAnswer] = useState(''); const [selection, setSelection] = useState(''); const [busy, setBusy] = useState(false); const [notice, setNotice] = useState('');
   const active = useRef<AbortController | null>(null);
   useEffect(() => () => { active.current?.abort(); active.current = null; }, [snapshot.digest]);
   async function ask(question: Question) {
     if (active.current) return;
     const controller = new AbortController(); active.current = controller;
     const timer = setTimeout(() => controller.abort(), 45000);
-    setBusy(true); setNotice(''); setAnswer('');
+    setBusy(true); setNotice(''); setAnswer(''); setSelection('');
     try {
       const response = await fetch('/api/analytics/explain', { method: 'POST', credentials: 'same-origin', cache: 'no-store',
         headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ question, snapshotDigest: snapshot.digest }), signal: controller.signal });
@@ -32,8 +32,10 @@ export default function AccountingDashboard({ snapshot }: { snapshot: AnalyticsS
         if (active.current === controller) setNotice(response.status === 409 ? 'Snapshot changed. Reload the dashboard before asking again.' : 'AI is unavailable or its answer could not be verified. Read the snapshot facts below.');
         return;
       }
-      const text = snapshotAnswer(snapshot, question, await response.json());
-      if (active.current === controller && !controller.signal.aborted) setAnswer(text);
+      const body = await response.json();
+      const text = snapshotAnswer(snapshot, question, body);
+      // snapshotAnswer has validated body.facts; the offered count is the fixed set for this question.
+      if (active.current === controller && !controller.signal.aborted) { setAnswer(text); setSelection(`AI selected ${body.facts.length} of ${questionFacts(snapshot, question).length} verified facts offered for this question.`); }
     } catch {
       if (active.current === controller) setNotice('AI is unavailable or its answer could not be verified. Read the snapshot facts below.');
     } finally {
@@ -46,7 +48,7 @@ export default function AccountingDashboard({ snapshot }: { snapshot: AnalyticsS
     <section aria-labelledby="explanation-title"><h2 id="explanation-title">Explain this snapshot</h2><p>AI selects relevant, exact snapshot facts. AidTrace formats every amount and validates every selected quote. AI has no financial tools.</p>
       <div className="analytics-questions">{(Object.keys(QUESTIONS) as Question[]).map(question => <button key={question} disabled={busy} onClick={() => ask(question)}>{QUESTIONS[question]}</button>)}</div>
       <p role="status" data-testid="analytics-status">{busy ? 'Checking snapshot facts...' : notice || (answer ? 'Verified snapshot facts selected by AI.' : 'Choose a question, or read the facts without AI.')}</p>
-      <output className="analytics-answer" data-testid="analytics-answer">{answer}</output>
+      <output className="analytics-answer" data-testid="analytics-answer">{answer}</output>{selection && <p data-testid="analytics-selection">{selection}</p>}
       <details data-testid="snapshot-facts"><summary>Read all snapshot facts without AI</summary><ul>{snapshot.facts.map(fact => <li key={fact.id}><p>{fact.text}</p><small>Source: {fact.source}</small></li>)}</ul></details>
     </section>
   </>;

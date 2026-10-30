@@ -21,6 +21,8 @@ export async function loadClaimView(db: AppDatabase, claimId: string, actorId: s
     if (receipt?.confirmation) await requireReceiptConfirmation(tx, snapshot.claim);
     const receiptReview = receipt?.confirmation ? {
       confirmedAt: receipt.confirmation.confirmedAt,
+      // IAC-394: stored at confirmation, read only. It is evidence for the approver and changes no decision.
+      prohibitedScreen: receipt.confirmation.prohibitedScreen,
       lines: receipt.confirmation.selections.map(selection => ({ ...selection,
         proposal: receipt.suggestion?.id === receipt.confirmation!.suggestionId && receipt.suggestion.status === "READY"
           ? receipt.suggestion.proposals?.find(proposal => proposal.lineId === selection.lineId) ?? null : null,

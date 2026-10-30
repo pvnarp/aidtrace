@@ -2,7 +2,7 @@ import type { AppDatabase } from "./db";
 import { findSession, isSameOrigin, sessionToken } from "./auth";
 import { defaultReceiptCategorizer } from "../ai/provider";
 import type { AnyReceiptCategorizer } from "../ai/audit";
-import { configuredReceiptPayee, createReceiptDraft, editReceiptDraft, readReceiptView, suggestReceipt, confirmReceipt } from "../receipt/service";
+import { configuredReceiptPayee, createReceiptDraft, editReceiptDraft, readReceiptView, suggestReceipt, confirmReceipt, ProhibitedAcknowledgementRequired } from "../receipt/service";
 import type { DraftInput } from "../receipt/terms";
 import { judgeSession } from "./judge-mode";
 export async function handleReceiptAction(request: Request, id: string | null, deps: { db: AppDatabase; categorize?: AnyReceiptCategorizer; env?: Record<string, string | undefined> }) {
@@ -18,7 +18,7 @@ export async function handleReceiptAction(request: Request, id: string | null, d
   for (;;) { const { done, value } = await reader.read(); if (done) break; length += value.length; if (length > 131072) { await reader.cancel(); return new Response("Form too large", { status: 413, headers }); } chunks.push(value); }
   const form = new URLSearchParams(Buffer.concat(chunks).toString("utf8"));
   const action = form.get("action");
-  const fields = action === "create" || action === "edit" ? ["vendor", "program", "incurredOn", "source", "total", "syntheticReceipt", ...Array.from({ length: 12 }, (_, i) => [`description${i + 1}`, `amount${i + 1}`]).flat()] : action === "confirm" ? ["suggestionId", "suggestionHash", "confirm", ...Array.from({ length: 12 }, (_, i) => [`categoryL${i + 1}`, `reasonL${i + 1}`]).flat()] : action === "suggest" ? ["suggestionHash"] : [];
+  const fields = action === "create" || action === "edit" ? ["vendor", "program", "incurredOn", "source", "total", "syntheticReceipt", ...Array.from({ length: 12 }, (_, i) => [`description${i + 1}`, `amount${i + 1}`]).flat()] : action === "confirm" ? ["suggestionId", "suggestionHash", "confirm", "acknowledgeProhibited", ...Array.from({ length: 12 }, (_, i) => [`categoryL${i + 1}`, `reasonL${i + 1}`]).flat()] : action === "suggest" ? ["suggestionHash"] : [];
   const allowed = new Set(["action", "reviewId", "draftHash", ...fields]);
   if ([...form.keys()].some(key => !allowed.has(key) || form.getAll(key).length !== 1)) return new Response("Unexpected or repeated field", { status: 400, headers });
   const destination = (claimId: string, notice: string) => new Response(null, { status: 303, headers: { ...headers, Location: `/claims/${claimId}/receipt?notice=${notice}` } });
@@ -42,12 +42,12 @@ export async function handleReceiptAction(request: Request, id: string | null, d
       if (form.get("confirm") !== "yes") throw new Error("Explicit confirmation required");
       const view = await readReceiptView(deps.db, id, user.id);
       await confirmReceipt(deps.db, id, user.id, reviewId, hash, form.get("suggestionId") || null, form.get("suggestionHash") ?? "",
-        view.lines.map(line => ({ lineId: line.id, category: form.get(`category${line.id}`) ?? "", reason: form.get(`reason${line.id}`) ?? "" })));
+        view.lines.map(line => ({ lineId: line.id, category: form.get(`category${line.id}`) ?? "", reason: form.get(`reason${line.id}`) ?? "" })), form.get("acknowledgeProhibited") === "yes");
       return destination(id, "confirmed");
     }
     throw new Error("Unknown action");
-  } catch {
-    if (id) return destination(id, "review-changed");
+  } catch (error) {
+    if (id) return destination(id, error instanceof ProhibitedAcknowledgementRequired ? "acknowledge-required" : "review-changed");
     return new Response("This form is invalid. Check the receipt fields and total. No draft or payment was requested.", { status: 409, headers });
   }
 }

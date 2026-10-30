@@ -6,6 +6,7 @@ import type { LedgerTransaction } from "../ledger/journal";
 import { serializable } from "../ledger/service";
 import { ReceiptAiError, validateProposals } from "../ai/receipt";
 import { receiptAuditColumns, storedReceiptAudit, type AnyReceiptCategorizer, type StoredReceiptAudit } from "../ai/audit";
+import { screenReceiptText, unresolvedMatches } from "./prohibited-screen";
 import { CLAIM_ID, digest, draftHash, budgetFor, normalizeDraft, type DraftInput } from "./terms";
 
 async function actorFor(tx: LedgerTransaction, id: string) {
@@ -127,7 +128,11 @@ export async function suggestReceipt(db: AppDatabase, id: string, actor: string,
     return ready;
   });
 }
-export async function confirmReceipt(db: AppDatabase, id: string, actor: string, reviewId: string, expectedHash: string, suggestionId: string | null, expectedSuggestionHash: string, selections: { lineId: string; category: string; reason: string }[]) {
+// IAC-394: receipt text names alcohol or gift cards and no confirmed line carries that category.
+export class ProhibitedAcknowledgementRequired extends Error {
+  constructor() { super("Receipt mentions a possibly prohibited item; choose that category for the line or acknowledge it is not claimed"); this.name = "ProhibitedAcknowledgementRequired"; }
+}
+export async function confirmReceipt(db: AppDatabase, id: string, actor: string, reviewId: string, expectedHash: string, suggestionId: string | null, expectedSuggestionHash: string, selections: { lineId: string; category: string; reason: string }[], acknowledgeProhibited = false) {
   await serializable(db, async tx => {
     const value = await context(tx, id, actor, true); currentTerms(value, reviewId, expectedHash);
     if (value.confirmation || (value.suggestion?.id ?? null) !== suggestionId || suggestionHash(value.suggestion) !== expectedSuggestionHash || selections.length !== value.lines.length || new Set(selections.map(s => s.lineId)).size !== selections.length) throw new Error("Receipt confirmation is stale");
@@ -139,8 +144,13 @@ export async function confirmReceipt(db: AppDatabase, id: string, actor: string,
       if (!aiAccepted && selection.reason.trim().length < 3) throw new Error("Explain each manual category choice");
       return { lineId: selection.lineId, category: selection.category, provenance: aiAccepted ? "AI_ACCEPTED" as const : "HUMAN" as const, reason: selection.reason.trim() };
     });
+    // Flag only: the screen never changes a category, a budget line or an amount. Nothing is written when acknowledgement is missing.
+    const screen = screenReceiptText(value.review.source, value.lines.map(line => line.description));
+    const unresolved = unresolvedMatches(screen.matches, accepted.map(selected => selected.category));
+    if (unresolved.length && acknowledgeProhibited !== true) throw new ProhibitedAcknowledgementRequired();
     for (const selected of accepted) await tx.update(s.claimLines).set({ category: selected.category, budgetLine: budgetFor(selected.category) }).where(and(eq(s.claimLines.claimId, id), eq(s.claimLines.claimVersion, value.claim.version), eq(s.claimLines.id, selected.lineId)));
     const lines = value.lines.map(line => ({ ...line, category: accepted.find(s => s.lineId === line.id)!.category, budgetLine: budgetFor(accepted.find(s => s.lineId === line.id)!.category) }));
-    await tx.insert(s.receiptConfirmations).values({ reviewId, suggestionId, confirmedBy: actor, termsHash: draftHash(value.claim, lines, true), selections: accepted });
+    await tx.insert(s.receiptConfirmations).values({ reviewId, suggestionId, confirmedBy: actor, termsHash: draftHash(value.claim, lines, true), selections: accepted,
+      prohibitedScreen: { version: screen.version, matches: screen.matches, unresolved, acknowledged: unresolved.length > 0 } });
   });
 }

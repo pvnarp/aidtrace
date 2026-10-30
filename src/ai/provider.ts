@@ -1,5 +1,5 @@
 import { ReceiptAiError, localReceiptCategorizer, type createReceiptCategorizer } from "./receipt";
-import type { AnyReceiptCategorizer } from "./audit";
+import { CLAUDE_NAMES, type AnyReceiptCategorizer } from "./audit";
 import { ReceiptAiConfigError, createClaudeReceiptCategorizer, resolveClaudeModel, type ClaudeMessagesClient, type ClaudeModel, type ClaudeReceiptCategorizer } from "./claude-receipt";
 
 // IAC-383 provider switch. defaultReceiptCategorizer below is the default for both receipt
@@ -46,4 +46,13 @@ export function defaultReceiptCategorizer(env: Env = process.env): AnyReceiptCat
     console.error("Receipt AI provider configuration refused:", error instanceof Error ? error.name : "UnknownError");
     return unavailable;
   }
+}
+
+// Display only: the provider a new suggestion request would use, for the receipt page before any
+// suggestion exists. A saved suggestion is always named from its own stored audit (src/ai/audit.ts),
+// never from this. Returns null when AI is off or the configuration is invalid, so the page names nothing.
+export function configuredReceiptAiName(env: Env = process.env): { provider: ReceiptAiProvider; name: string } | null {
+  if (env.AI_RECEIPT_ENABLED !== "true") return null;
+  try { return resolveReceiptAiProvider(env) === "local" ? { provider: "local", name: "Qwen3-1.7B" } : { provider: "claude", name: CLAUDE_NAMES[resolveClaudeModel(env)] }; }
+  catch { return null; }
 }

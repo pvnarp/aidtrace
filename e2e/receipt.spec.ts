@@ -87,6 +87,16 @@ test("GB-02: 375-pixel receipt quotes, explicit confirmation, allocation and edi
   await expect(page.locator(".receipt-evidence .muted")).toContainText("Local Qwen3 model. Text in, category suggestions out. No PayPal tools or approval access.");
   await expect(page.locator(".ai-label").first()).toContainText("Local AI suggests:");
   await expect(page.locator("blockquote")).toHaveCount(3); await noOverflow(page);
+  await expect(page.locator(".ai-recommendation")).toContainText("A person confirms each category."); await expect(page.locator(".category-choice .ai-tag")).toHaveCount(3);
+  // 44 px hit area for the confirmation checkbox, and a whole current-step label in the rail.
+  const checkbox = (await page.getByLabel(/I checked every category/).boundingBox())!; expect(checkbox.width).toBeGreaterThanOrEqual(44); expect(checkbox.height).toBeGreaterThanOrEqual(44);
+  // Every word of every stage label must fit its own column, so no word is split mid-word.
+  const rail = await page.locator(".journey > ol li").evaluateAll(items => items.map(el => {
+    const text = [...el.childNodes].find(node => node.nodeType === Node.TEXT_NODE)!; const words = text.textContent!.trim().split(/\s+/); let start = text.textContent!.indexOf(words[0]!);
+    const widest = Math.max(...words.map(word => { const range = document.createRange(); start = text.textContent!.indexOf(word, start); range.setStart(text, start); range.setEnd(text, start + word.length); start += word.length; return range.getBoundingClientRect().width; }));
+    return { label: text.textContent, column: Math.round(el.clientWidth), widest: Math.round(widest), whole: el.scrollWidth <= el.clientWidth };
+  }));
+  expect(rail.filter(item => !item.whole || item.widest > item.column)).toEqual([]);
   await page.getByRole("button", { name: "Confirm categories", exact: true }).click();
   expect(await page.getByLabel(/I checked every category/).evaluate((el: HTMLInputElement) => el.validity.valueMissing)).toBe(true);
   await page.getByLabel(/I checked every category/).check(); await page.getByRole("button", { name: "Confirm categories", exact: true }).click();
@@ -103,6 +113,22 @@ test("GB-02: 375-pixel receipt quotes, explicit confirmation, allocation and edi
   expect(await connection.db.select().from(s.disbursements)).toHaveLength(0);
   expect((await connection.db.select().from(s.journalEntries)).every(entry => entry.sourceType === "fixture_opening_balance")).toBe(true);
 });
+test("Demo UI: changing one category shows Changed by you on review and Person chose on the claim", async ({ page }) => {
+  await create(page);
+  await page.getByRole("button", { name: "Request AI suggestions" }).click();
+  await expect(page.locator(".notice")).toContainText("AI suggestions are ready");
+  const tags = page.locator(".category-choice-head .ai-tag");
+  await expect(tags).toHaveText(["AI suggested", "AI suggested", "AI suggested"]);
+  await page.getByLabel("Category for L1", { exact: true }).selectOption("participant_meals");
+  await expect(tags).toHaveText(["Changed by you", "AI suggested", "AI suggested"]);
+  await page.getByLabel("Reason for manual choice L1").fill("Receipt shows this item is a snack");
+  await page.getByLabel(/I checked every category/).check(); await page.getByRole("button", { name: "Confirm categories", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "Human confirmation recorded" })).toBeVisible(); await page.getByRole("link", { name: "View allocation", exact: true }).click();
+  const provenance = page.locator(".provenance-tags");
+  await expect(provenance).toHaveCount(3);
+  await expect(provenance.nth(0)).toHaveText("Person chose"); await expect(provenance.nth(0)).not.toContainText("AI suggested");
+  await expect(provenance.nth(1)).toHaveText("AI suggestedPerson confirmed"); await expect(provenance.nth(2)).toHaveText("AI suggestedPerson confirmed");
+});
 test("CAI-35: the receipt page names the provider and model from the stored audit, never from the environment", async ({ page }) => {
   await create(page); modelCalls = 0;
   const [review] = await connection.db.select().from(s.receiptReviews); const lines = await connection.db.select().from(s.claimLines).where(eq(s.claimLines.claimId, review!.claimId));
@@ -113,16 +139,19 @@ test("CAI-35: the receipt page names the provider and model from the stored audi
   const claude = (model: string) => ({ provider: "claude", model, responseModel: model, effort: "low", promptVersion: "receipt-category-claude-v1", schemaVersion: "receipt-proposals-v1",
     sourceSha256: sha, requestSha256: hash("a"), responseSha256: hash("b"), latencyMs: 1200, inputTokens: 812, outputTokens: 57 });
   // Direct inserts of stored suggestions only. This server runs with no provider variable, so a Claude name here can only come from the audit.
-  const check = async (attempt: number, audit: Record<string, string | number>, columns: { provider: "local" | "claude"; model: string }, model: string, label: string) => {
+  const check = async (attempt: number, audit: Record<string, string | number>, columns: { provider: "local" | "claude"; model: string }, model: string, label: string, recommendation: string) => {
     await connection.db.insert(s.receiptSuggestions).values({ reviewId: review!.id, attempt, status: "READY", proposals, audit, ...columns }); await page.reload();
     await expect(page.locator(".receipt-evidence .muted")).toContainText(`${model}. Text in, category suggestions out. No PayPal tools or approval access.`);
     await expect(page.locator(".ai-label").first()).toContainText(`${label} suggests:`); await expect(page.locator("blockquote")).toHaveCount(3);
+    await expect(page.locator(".ai-recommendation .ai-model-line")).toContainText(recommendation);
   };
-  await check(1, claude("claude-haiku-5-5"), { provider: "claude", model: "claude-haiku-5-5" }, "Claude Haiku 5.5", "Claude Haiku 5.5");
-  await check(2, claude("claude-sonnet-5-5"), { provider: "claude", model: "claude-sonnet-5-5" }, "Claude Sonnet 5.5", "Claude Sonnet 5.5");
-  await check(3, { sourceSha256: sha, requestSha256: hash("a"), responseSha256: hash("b"), modelSha256: hash("c"), modelRevision: "d".repeat(40), promptVersion: "receipt-category-v1" }, { provider: "local", model: "d".repeat(40) }, "Local Qwen3 model", "Local AI");
+  // The idle strip names the configured provider: AI is on and no provider variable is set, so local.
+  await expect(page.locator(".ai-recommendation.ai-strip .ai-model-line")).toContainText("Local model Qwen3-1.7B through llama.cpp");
+  await check(1, claude("claude-haiku-5-5"), { provider: "claude", model: "claude-haiku-5-5" }, "Claude Haiku 5.5", "Claude Haiku 5.5", "Model: Claude Haiku 5.5 through the Claude API");
+  await check(2, claude("claude-sonnet-5-5"), { provider: "claude", model: "claude-sonnet-5-5" }, "Claude Sonnet 5.5", "Claude Sonnet 5.5", "Model: Claude Sonnet 5.5 through the Claude API");
+  await check(3, { sourceSha256: sha, requestSha256: hash("a"), responseSha256: hash("b"), modelSha256: hash("c"), modelRevision: "d".repeat(40), promptVersion: "receipt-category-v1" }, { provider: "local", model: "d".repeat(40) }, "Local Qwen3 model", "Local AI", "Model: Qwen3-1.7B through llama.cpp");
   // The database check refuses a provider the audit contradicts, so the unrecognized case is an audit the columns accept but the reader refuses (effort outside the stored contract).
-  await check(4, { ...claude("claude-haiku-5-5"), effort: "high" }, { provider: "claude", model: "claude-haiku-5-5" }, "Unrecognized AI record", "AI");
+  await check(4, { ...claude("claude-haiku-5-5"), effort: "high" }, { provider: "claude", model: "claude-haiku-5-5" }, "Unrecognized AI record", "AI", "the saved AI record is not recognized");
   expect(modelCalls).toBe(0); expect(await connection.db.select().from(s.disbursements)).toHaveLength(0);
 });
 test("IAC-351: proposal-disabled manual-review link reaches an editable category without posting", async ({ page }) => {
@@ -175,4 +204,33 @@ test("GB-02: double submit shows progress and duplicate/stale posts return to th
   expect(await connection.db.select().from(s.receiptSuggestions)).toHaveLength(1);
   expect(await connection.db.select().from(s.receiptConfirmations)).toHaveLength(0);
   expect(await connection.db.select().from(s.disbursements)).toHaveLength(0);
+});
+test("PTG-22: a gift card mention shows the notice, needs the unticked acknowledgement, and reaches the claim page as a flag at 375 pixels", async ({ page }) => {
+  await create(page); const receiptUrl = page.url().split("?")[0]!;
+  await page.getByText("Edit receipt or amounts", { exact: true }).click();
+  const source = await page.getByLabel("Invented receipt text").inputValue();
+  await page.getByLabel("Invented receipt text").fill(`${source}\nRaffle prize: gift card`); await page.getByLabel("This receipt is fictional sandbox data.").check();
+  await page.getByRole("button", { name: "Save edits and require a new review" }).click();
+  await expect(page.getByRole("status")).toContainText("Earlier suggestions and confirmation no longer apply");
+  const choose = async () => { for (const [line, category] of [["L1", "robot_kits_parts"], ["L2", "classroom_supplies"], ["L3", "participant_meals"]]) {
+    await page.getByLabel(`Category for ${line}`, { exact: true }).selectOption(category!); await page.getByLabel(`Reason for manual choice ${line}`, { exact: true }).fill("Checked fictional receipt"); } };
+  await expect(page.locator(".prohibited-notice")).toContainText("This receipt mentions: gift card (Gift cards: needs pre-approval)."); await noOverflow(page);
+  const acknowledge = page.getByLabel(/I checked: this is not claimed under another category/);
+  await expect(acknowledge).not.toBeChecked();
+  // Without the tick the server refuses, saves nothing and says why.
+  await choose(); await page.getByLabel(/I checked every category/).check(); await page.getByRole("button", { name: "Confirm categories", exact: true }).click();
+  await expect(page.getByRole("status")).toContainText("This receipt mentions a possibly prohibited item"); await expect(page).toHaveURL(/notice=acknowledge-required$/);
+  expect(await connection.db.select().from(s.receiptConfirmations)).toHaveLength(0);
+  await expect(page.getByRole("heading", { name: "Human confirmation recorded" })).toHaveCount(0);
+  await expect(acknowledge).not.toBeChecked(); await noOverflow(page);
+  await choose(); await acknowledge.check(); await page.getByLabel(/I checked every category/).check(); await page.getByRole("button", { name: "Confirm categories", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "Human confirmation recorded" })).toBeVisible();
+  await expect(page.locator(".prohibited-flag")).toContainText("Receipt text flag (prohibited-terms-v1): mentions gift card (Gift cards: needs pre-approval). You acknowledged it is not claimed under another category."); await noOverflow(page);
+  await page.getByRole("link", { name: "View allocation", exact: true }).click();
+  await expect(page.locator(".prohibited-flag")).toContainText("Receipt text flag (prohibited-terms-v1): mentions gift card (Gift cards: needs pre-approval). The claimant acknowledged it is not claimed under another category.");
+  await expect(page.getByRole("button", { name: "Freeze allocation for approval" })).toBeVisible(); await noOverflow(page);
+  const [confirmation] = await connection.db.select().from(s.receiptConfirmations);
+  expect(confirmation!.prohibitedScreen).toEqual({ version: "prohibited-terms-v1", matches: [{ category: "gift_cards", term: "gift card" }], unresolved: [{ category: "gift_cards", term: "gift card" }], acknowledged: true });
+  expect(receiptUrl).toContain("/receipt"); expect(await connection.db.select().from(s.disbursements)).toHaveLength(0);
+  expect((await connection.db.select().from(s.journalEntries)).every(entry => entry.sourceType === "fixture_opening_balance")).toBe(true);
 });

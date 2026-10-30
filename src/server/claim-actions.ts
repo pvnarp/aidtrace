@@ -7,6 +7,7 @@ import { refreshClaimPayout, sendClaimPayout } from "../ledger/payout";
 import { authorizePayoutRetry, sendAuthorizedPayoutRetry } from "../ledger/retry";
 import type { PayoutTransport } from "../paypal/adapter";
 import { claimFailureNotice } from "./claim-notices";
+import { approveGiftNote } from "../donation/note-approval";
 
 export async function handleClaimAction(request: Request, claimId: string, dependencies: { db: AppDatabase; provider: () => PayoutTransport; judgeSession?: boolean }) {
   if (!isSameOrigin(request)) return new Response("Request origin rejected", { status: 403 });
@@ -42,6 +43,14 @@ export async function handleClaimAction(request: Request, claimId: string, depen
       if (decision?.claimId !== claimId) return new Response("Decision does not belong to this claim", { status: 403 });
       const result = await approveDecision(dependencies.db, decisionId, user.id, hash);
       return redirect(result.status === "INVALIDATED" ? "invalidated" : result.status === "APPROVED" ? "approved" : "approval-saved");
+    }
+    if (action === "approve-note") {
+      // IAC-379 step 3b: approving a donor impact note moves no money. A judge (keyless) session reaches this only for an R- claim,
+      // and approveGiftNote refuses unless a recorded gift was applied to a recognized claim, which a keyless session cannot have.
+      const captureId = body.get("captureId") ?? ""; const digest = body.get("factDigest") ?? "";
+      if (!/^[A-Za-z0-9_-]{1,64}$/.test(captureId) || !/^[a-f0-9]{64}$/.test(digest)) return new Response("Valid gift and note digest required", { status: 400 });
+      const result = await approveGiftNote(dependencies.db, user.id, { captureId, claimId, claimVersion: claim.version, factDigest: digest });
+      return redirect(result.status === "APPROVED" ? "note-approved" : result.status === "ALREADY_APPROVED" ? "note-exists" : result.status === "STALE" ? "note-stale" : "note-refused");
     }
     if (action === "reject") { await rejectClaim(dependencies.db, claimId, user.id, body.get("reason") ?? ""); return redirect("rejected"); }
     if (action === "send") {

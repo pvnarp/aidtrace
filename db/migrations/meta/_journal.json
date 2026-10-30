@@ -92,6 +92,20 @@
       "when": 1793339262073,
       "tag": "0012_expense-accounts",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1793360224266,
+      "tag": "0013_prohibited-screen",
+      "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1793368331530,
+      "tag": "0014_gift-notes",
+      "breakpoints": true
     }
   ]
 }

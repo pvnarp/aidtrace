@@ -43,6 +43,30 @@ services:
       timeout: 5s
       start_period: 30s
       retries: 12
+  # IAC-379 step 3a: opt-in donation sweep. Plain `docker compose up` does not start it: it needs --profile donations.
+  # Judge and release sessions are keyless and create no orders, so they never run it.
+  donation-worker:
+    profiles: [donations]
+    build: .
+    init: true
+    mem_limit: 512m
+    cpus: 1
+    restart: unless-stopped
+    env_file:
+      - path: ./local/.env
+        required: false
+    environment:
+      DATABASE_URL: postgres://aidtrace@db:5432/aidtrace
+      NEXT_TELEMETRY_DISABLED: "1"
+    volumes:
+      - .:/workspace
+      - node_modules:/workspace/node_modules
+      - pnpm_store:/pnpm/store
+    networks: [default, database]
+    depends_on:
+      db:
+        condition: service_healthy
+    command: [pnpm, exec, tsx, scripts/donation-sweep.ts, --loop]
 volumes:
   postgres_data:
   node_modules:
