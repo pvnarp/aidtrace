@@ -1,0 +1,226 @@
+import { randomUUID } from "node:crypto";
+import { and, eq, inArray, isNull, lt, or, sql } from "drizzle-orm";
+import * as s from "../../db/schema";
+import type { DonationOrderStatus } from "../../db/schema";
+import type { AppDatabase } from "../server/db";
+import type { DonationObservation, DonationOrderWriter, DonationReader } from "../paypal/adapter";
+import { recordDesignatedDonation } from "../ledger/donation";
+
+// IAC-379 step 1: server-authoritative donation order lifecycle (docs/plans/DONATION_LOOP_SCOPE.md sections 3 and 8).
+// This module never writes journal entries. Every posting goes through recordDesignatedDonation, which is unchanged.
+//
+// Owner decision 8: gifts are recorded under seeded Tara's approver identity as a system attribution, exactly as
+// scripts/record-donation.ts resolves it. This is NOT a Tara login session: no one is signed in as Tara, the donor
+// approves nothing, and no claim, approval, freeze or confirmation is touched.
+export const DONATION_RECORDING_ACTOR_ID = "tara";
+
+export type DonationOrderPayments = DonationOrderWriter & DonationReader;
+export type DonationOrderErrorCode = "INVALID_REQUEST" | "AMOUNT_OUT_OF_RANGE" | "FUND_NOT_ELIGIBLE" | "CREATE_REJECTED" | "CREATE_UNKNOWN" | "UNKNOWN_ORDER" | "NOT_APPROVED" | "READ_FAILED" | "LEASE_LOST";
+// Messages are fixed text. Provider responses, headers, tokens and underlying error messages are never copied in.
+export class DonationOrderError extends Error {
+  constructor(readonly code: DonationOrderErrorCode, message: string) { super(message); this.name = "DonationOrderError"; }
+}
+export type DonationOrderReason = "READ_FAILED" | "RECORD_FAILED" | "POST_UNCONFIRMED" | "UNEXPECTED_RESPONSE" | "RETRY_EXHAUSTED";
+export interface DonationOrderResult {
+  id: string; orderId: string | null; status: DonationOrderStatus;
+  posted: boolean;          // true only for the call whose recordDesignatedDonation actually wrote the journal
+  captureId?: string;
+  inProgress?: boolean;     // another caller holds the lease, or the order is waiting for reconcile
+  reason?: DonationOrderReason;
+}
+
+type OrderRow = typeof s.donationOrders.$inferSelect;
+const FINAL: ReadonlySet<DonationOrderStatus> = new Set(["COMPLETED", "FAILED", "MISMATCH"]);
+const RECONCILABLE: readonly DonationOrderStatus[] = ["CAPTURE_UNKNOWN", "PENDING", "CAPTURING"];
+const CAPTURABLE: readonly DonationOrderStatus[] = ["CREATED", "APPROVED"];
+const MAX_CAPTURE_ATTEMPTS = 2; // the first send plus exactly one same-ID retry; the database enforces the same cap
+// A lease outlives the longest chain of four 15 second provider calls. A crashed caller is recoverable after it expires.
+const LEASE = sql`now() + interval '5 minutes'`;
+const ORDER_ID = /^[A-Za-z0-9_-]{1,64}$/;
+const FUND_ID = /^[a-z0-9_-]{1,64}$/;
+
+// Integer cents only. Accepts a bigint, a safe integer number or a plain digit string. Everything else is refused.
+export function parseDonationCents(value: unknown, maxCents: bigint): bigint {
+  if (typeof maxCents !== "bigint" || maxCents <= 0n) throw new DonationOrderError("INVALID_REQUEST", "A positive donation ceiling is required");
+  let cents: bigint;
+  if (typeof value === "bigint") cents = value;
+  else if (typeof value === "number" && Number.isSafeInteger(value)) cents = BigInt(value);
+  else if (typeof value === "string" && /^[1-9][0-9]{0,15}$/.test(value)) cents = BigInt(value);
+  else throw new DonationOrderError("INVALID_REQUEST", "Donation amount must be a whole number of cents");
+  if (cents <= 0n || cents > maxCents) throw new DonationOrderError("AMOUNT_OUT_OF_RANGE", "Donation amount is outside the allowed range");
+  return cents;
+}
+function cleanDisplayName(value: unknown): string | null {
+  if (value === undefined || value === null) return null;
+  if (typeof value !== "string") throw new DonationOrderError("INVALID_REQUEST", "Display name must be text");
+  const name = value.trim();
+  if (!name) return null;
+  if (Array.from(name).length > 40 || /[\p{Cc}\p{Cf}\p{Zl}\p{Zp}]/u.test(name)) throw new DonationOrderError("INVALID_REQUEST", "Display name must be at most 40 visible characters");
+  return name;
+}
+function outcome(row: OrderRow, extra: Partial<Pick<DonationOrderResult, "posted" | "captureId" | "inProgress" | "reason">> = {}): DonationOrderResult {
+  return { id: row.id, orderId: row.orderId, status: row.status, posted: false, ...extra };
+}
+function providerOrderId(row: OrderRow) {
+  if (!row.orderId) throw new DonationOrderError("UNKNOWN_ORDER", "The donation order has no provider order ID yet");
+  return row.orderId;
+}
+async function findByOrderId(db: AppDatabase, orderId: unknown) {
+  if (typeof orderId !== "string" || !ORDER_ID.test(orderId)) throw new DonationOrderError("INVALID_REQUEST", "A valid provider order ID is required");
+  const [row] = await db.select().from(s.donationOrders).where(eq(s.donationOrders.orderId, orderId));
+  if (!row) throw new DonationOrderError("UNKNOWN_ORDER", "No stored donation order has that ID");
+  return row;
+}
+async function busy(db: AppDatabase, id: string) {
+  const [row] = await db.select().from(s.donationOrders).where(eq(s.donationOrders.id, id));
+  if (!row) throw new DonationOrderError("UNKNOWN_ORDER", "No stored donation order has that ID");
+  return outcome(row, { inProgress: !FINAL.has(row.status) });
+}
+
+// Lease and conditional-update primitives. Each is one statement, so PostgreSQL row locking decides the winner:
+// a concurrent UPDATE waits, re-evaluates its WHERE clause on the committed row, and matches nothing if it lost.
+// A stale CAPTURING row (lease expired) is converted to CAPTURE_UNKNOWN by the same statement that claims it.
+async function claim(db: AppDatabase, id: string, statuses: readonly DonationOrderStatus[]) {
+  const leaseToken = randomUUID();
+  const [row] = await db.update(s.donationOrders).set({
+    leaseToken, leaseExpiresAt: LEASE,
+    status: sql`case when ${s.donationOrders.status} = 'CAPTURING' then 'CAPTURE_UNKNOWN' else ${s.donationOrders.status} end`,
+  }).where(and(eq(s.donationOrders.id, id), inArray(s.donationOrders.status, [...statuses]), or(isNull(s.donationOrders.leaseExpiresAt), lt(s.donationOrders.leaseExpiresAt, sql`now()`)))).returning();
+  return row ? { row, token: leaseToken } : undefined;
+}
+// Moves a leased row from its current status to `to` (the same status just releases the lease). Only the lease holder
+// can do this. Intermediate steps keep the lease; stopping states clear it. `attempt` records one capture send.
+async function advance(db: AppDatabase, row: OrderRow, token: string, to: DonationOrderStatus, options: { keepLease?: boolean; attempt?: boolean } = {}) {
+  const [next] = await db.update(s.donationOrders).set({
+    status: to,
+    ...(options.attempt ? { captureAttempts: row.captureAttempts + 1 } : {}),
+    ...(options.keepLease ? { leaseExpiresAt: LEASE } : { leaseToken: null, leaseExpiresAt: null }),
+  }).where(and(eq(s.donationOrders.id, row.id), eq(s.donationOrders.status, row.status), eq(s.donationOrders.captureAttempts, row.captureAttempts), eq(s.donationOrders.leaseToken, token))).returning();
+  if (!next) throw new DonationOrderError("LEASE_LOST", "The donation order changed under this caller; no further action was taken");
+  return next;
+}
+// A caller that cannot decide stops without a verdict. CAPTURING becomes CAPTURE_UNKNOWN; other statuses are unchanged.
+async function park(db: AppDatabase, row: OrderRow, token: string, reason: DonationOrderReason) {
+  return outcome(await advance(db, row, token, row.status === "CAPTURING" ? "CAPTURE_UNKNOWN" : row.status), { reason });
+}
+
+type Verdict = { kind: "COMPLETED"; captureId: string } | { kind: "PENDING" | "FAILED" | "MISMATCH" | "NO_CAPTURE" | "UNKNOWN" };
+// The order binding the server stored, never anything the browser sent: intent, one unit, fund, exact USD cents.
+function bindingMismatch(row: OrderRow, observation: DonationObservation) {
+  const unit = observation.units[0];
+  return observation.intent !== "CAPTURE" || observation.units.length !== 1 || unit?.fundId !== row.fundId || unit.amountCents !== row.expectedAmountCents;
+}
+function interpret(row: OrderRow, observation: DonationObservation): Verdict {
+  if (observation.httpStatus !== 200 || observation.orderId !== row.orderId) return { kind: "UNKNOWN" };
+  if (bindingMismatch(row, observation) || observation.captures.length > 1) return { kind: "MISMATCH" };
+  const capture = observation.captures[0];
+  if (!capture) return observation.status === "APPROVED" ? { kind: "NO_CAPTURE" } : { kind: "UNKNOWN" };
+  if (capture.amountCents !== undefined && capture.amountCents !== row.expectedAmountCents) return { kind: "MISMATCH" };
+  if (capture.status === "COMPLETED") return capture.captureId && capture.amountCents === row.expectedAmountCents ? { kind: "COMPLETED", captureId: capture.captureId } : { kind: "UNKNOWN" };
+  if (capture.status === "PENDING") return { kind: "PENDING" };
+  if (capture.status === "DECLINED" || capture.status === "FAILED") return { kind: "FAILED" };
+  return { kind: "UNKNOWN" };
+}
+
+// Read the order, decide, apply. Used after a capture response and by reconcile. The capture response body itself is
+// never trusted for a verdict: the order is re-read. `allowRetry` permits one same-ID re-send, from reconcile only.
+async function settle(db: AppDatabase, payments: DonationOrderPayments, row: OrderRow, token: string, allowRetry: boolean): Promise<DonationOrderResult> {
+  let observation: DonationObservation;
+  try { observation = await payments.donationOrder(providerOrderId(row)); }
+  catch { return park(db, row, token, "READ_FAILED"); }
+  const verdict = interpret(row, observation);
+  switch (verdict.kind) {
+    case "MISMATCH": return outcome(await advance(db, row, token, "MISMATCH"));
+    case "FAILED": return outcome(await advance(db, row, token, "FAILED"));
+    case "PENDING": return outcome(await advance(db, row, token, "PENDING"));
+    case "UNKNOWN": return park(db, row, token, "UNEXPECTED_RESPONSE");
+    case "NO_CAPTURE": {
+      // Still APPROVED with no capture. Only a stored CAPTURE_UNKNOWN row may be re-sent, once, with the same capture request ID.
+      if (row.status !== "CAPTURE_UNKNOWN" || !allowRetry) return park(db, row, token, "POST_UNCONFIRMED");
+      if (row.captureAttempts >= MAX_CAPTURE_ATTEMPTS) return park(db, row, token, "RETRY_EXHAUSTED");
+      return sendCapture(db, payments, await advance(db, row, token, "CAPTURING", { keepLease: true, attempt: true }), token);
+    }
+    case "COMPLETED": {
+      let recorded: Awaited<ReturnType<typeof recordDesignatedDonation>>;
+      try {
+        recorded = await recordDesignatedDonation(db, DONATION_RECORDING_ACTOR_ID, { orderId: providerOrderId(row), captureId: verdict.captureId, fundId: row.fundId, amountCents: row.expectedAmountCents }, payments);
+      } catch { return park(db, row, token, "RECORD_FAILED"); }
+      if (recorded.status === "COMPLETED") return outcome(await advance(db, row, token, "COMPLETED"), { posted: recorded.posted, captureId: verdict.captureId });
+      return outcome(await advance(db, row, token, "PENDING")); // the ledger's own independent read saw a pending capture
+    }
+  }
+}
+
+// One capture POST for a row already persisted as CAPTURING with its attempt counted. The persisted capture_request_id
+// is the only ID ever sent for this order.
+async function sendCapture(db: AppDatabase, payments: DonationOrderPayments, row: OrderRow, token: string): Promise<DonationOrderResult> {
+  let response: Awaited<ReturnType<DonationOrderPayments["captureDonationOrder"]>>;
+  try { response = await payments.captureDonationOrder(providerOrderId(row), row.captureRequestId); }
+  catch { return park(db, row, token, "POST_UNCONFIRMED"); } // timeout or transport failure: outcome unknown, nothing posted
+  if (response.httpStatus === 422 && response.errorIssues.includes("INSTRUMENT_DECLINED")) return outcome(await advance(db, row, token, "FAILED"));
+  if (response.httpStatus >= 200 && response.httpStatus < 300) return settle(db, payments, row, token, false);
+  return park(db, row, token, "POST_UNCONFIRMED"); // 5xx or any other answer cannot prove that nothing was captured
+}
+
+// Step 2 and 1 of the scope table: validate, persist the row with a fresh create_request_id, then call the adapter.
+export async function createDonationOrder(
+  db: AppDatabase, payments: DonationOrderWriter,
+  input: { fundId: unknown; amountCents: unknown; displayName?: unknown }, options: { maxDonationCents: bigint },
+): Promise<DonationOrderResult> {
+  if (typeof input.fundId !== "string" || !FUND_ID.test(input.fundId)) throw new DonationOrderError("INVALID_REQUEST", "A valid fund ID is required");
+  const amountCents = parseDonationCents(input.amountCents, options.maxDonationCents);
+  const displayName = cleanDisplayName(input.displayName);
+  // Refuse before taking money anything recordDesignatedDonation would later refuse: a restricted fund in the recording approver's organization.
+  const [actor] = await db.select().from(s.users).where(eq(s.users.id, DONATION_RECORDING_ACTOR_ID));
+  const [fund] = await db.select().from(s.funds).where(eq(s.funds.id, input.fundId));
+  if (!actor || actor.role !== "APPROVER" || !fund || fund.organizationId !== actor.organizationId || fund.fundClass !== "RESTRICTED") throw new DonationOrderError("FUND_NOT_ELIGIBLE", "Donations are accepted for restricted funds only");
+  const [row] = await db.insert(s.donationOrders).values({ fundId: fund.id, expectedAmountCents: amountCents, createRequestId: randomUUID(), captureRequestId: randomUUID(), displayName }).returning();
+  if (!row) throw new DonationOrderError("CREATE_UNKNOWN", "The donation order was not persisted");
+  // The row above is committed before the provider call. The adapter receives the persisted values, not the inputs.
+  let created: Awaited<ReturnType<DonationOrderWriter["createDonationOrder"]>>;
+  try { created = await payments.createDonationOrder({ requestId: row.createRequestId, fundId: row.fundId, amountCents: row.expectedAmountCents }); }
+  catch { throw new DonationOrderError("CREATE_UNKNOWN", "Order creation outcome is unknown; no donation can be captured without a stored provider order ID"); }
+  if ((created.httpStatus === 200 || created.httpStatus === 201) && created.orderId && created.status === "CREATED") {
+    const [stored] = await db.update(s.donationOrders).set({ orderId: created.orderId }).where(and(eq(s.donationOrders.id, row.id), eq(s.donationOrders.status, "CREATED"), isNull(s.donationOrders.orderId))).returning();
+    if (!stored) throw new DonationOrderError("CREATE_UNKNOWN", "The provider order ID could not be stored");
+    return outcome(stored);
+  }
+  if (created.httpStatus >= 400 && created.httpStatus < 500 && created.httpStatus !== 408) {
+    await db.update(s.donationOrders).set({ status: "FAILED" }).where(and(eq(s.donationOrders.id, row.id), eq(s.donationOrders.status, "CREATED"), isNull(s.donationOrders.orderId)));
+    throw new DonationOrderError("CREATE_REJECTED", "The provider rejected the donation order");
+  }
+  throw new DonationOrderError("CREATE_UNKNOWN", "Order creation outcome is unknown; no donation can be captured without a stored provider order ID");
+}
+
+// Steps 4 and 5. `orderId` comes from the browser's onApprove, so it only selects a stored row. Fund, amount and
+// currency come from the stored expectation. No provider call is made unless this caller wins the lease.
+export async function captureDonationOrder(db: AppDatabase, payments: DonationOrderPayments, orderId: unknown): Promise<DonationOrderResult> {
+  const stored = await findByOrderId(db, orderId);
+  if (!CAPTURABLE.includes(stored.status)) return outcome(stored); // never a second capture from here; use reconcile
+  const held = await claim(db, stored.id, CAPTURABLE);
+  if (!held) return busy(db, stored.id);
+  const { token } = held; let row = held.row;
+  let observation: DonationObservation;
+  try { observation = await payments.donationOrder(providerOrderId(row)); }
+  catch { await advance(db, row, token, row.status); throw new DonationOrderError("READ_FAILED", "The provider order could not be read; nothing was captured"); }
+  if (observation.httpStatus !== 200 || observation.orderId !== row.orderId) {
+    await advance(db, row, token, row.status); throw new DonationOrderError("READ_FAILED", "The provider order could not be read; nothing was captured");
+  }
+  // Any binding difference, an existing capture or an unexpected provider status needs a person. CREATED or PAYER_ACTION_REQUIRED
+  // only means the donor has not approved yet, so the row stays as it was and the donor may still approve.
+  if (bindingMismatch(row, observation) || observation.captures.length > 0 || (observation.status !== "APPROVED" && observation.status !== "CREATED" && observation.status !== "PAYER_ACTION_REQUIRED")) return outcome(await advance(db, row, token, "MISMATCH"));
+  if (observation.status !== "APPROVED") { await advance(db, row, token, row.status); throw new DonationOrderError("NOT_APPROVED", "The donor has not approved this order; nothing was captured"); }
+  if (row.status === "CREATED") row = await advance(db, row, token, "APPROVED", { keepLease: true });
+  row = await advance(db, row, token, "CAPTURING", { keepLease: true, attempt: true }); // committed before the POST
+  return sendCapture(db, payments, row, token);
+}
+
+// Resolve CAPTURE_UNKNOWN, PENDING and a crashed CAPTURING row. Read the order first. Record only through the ledger.
+// A still-APPROVED order with no capture gets exactly one re-send with the same persisted capture_request_id.
+export async function reconcileDonationOrder(db: AppDatabase, payments: DonationOrderPayments, orderId: unknown): Promise<DonationOrderResult> {
+  const stored = await findByOrderId(db, orderId);
+  if (!RECONCILABLE.includes(stored.status)) return outcome(stored);
+  const held = await claim(db, stored.id, RECONCILABLE);
+  if (!held) return busy(db, stored.id);
+  return settle(db, payments, held.row, held.token, true);
+}

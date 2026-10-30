@@ -64,6 +64,13 @@
       "when": 1792773365877,
       "tag": "0008_expense-proposals",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1793326615060,
+      "tag": "0009_donation-loop",
+      "breakpoints": true
     }
   ]
 }

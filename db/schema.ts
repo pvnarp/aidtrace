@@ -216,3 +216,27 @@ export const expenseProposals = pgTable("expense_proposals", {
   check("expense_proposal_hashes", sql`${t.requestKey} ~ '^[a-f0-9]{64}$' and ${t.draftHash} ~ '^[a-f0-9]{64}$' and ${t.sourceHash} ~ '^[a-f0-9]{64}$' and ${t.payeeHash} ~ '^[a-f0-9]{64}$'`),
   check("expense_proposal_completion", sql`(${t.state} = 'RUNNING' and ${t.completedAt} is null and ${t.result} is null) or (${t.state} <> 'RUNNING' and ${t.completedAt} is not null)`),
 ]);
+
+// IAC-379 step 1. Server-authoritative donation order lifecycle (docs/plans/DONATION_LOOP_SCOPE.md sections 3 and 8).
+// Stores no payer email, payer ID, address or card data. Posting stays in donation_receipts and the ledger.
+export const donationOrderStatuses = ["CREATED", "APPROVED", "CAPTURING", "CAPTURE_UNKNOWN", "PENDING", "COMPLETED", "FAILED", "MISMATCH"] as const;
+export type DonationOrderStatus = (typeof donationOrderStatuses)[number];
+export const donationOrders = pgTable("donation_orders", {
+  id: uuid().primaryKey().defaultRandom(), orderId: text("order_id").unique(),
+  fundId: text("fund_id").notNull().references(() => funds.id), expectedAmountCents: cents("expected_amount_cents"),
+  createRequestId: uuid("create_request_id").notNull().unique(), captureRequestId: uuid("capture_request_id").notNull().unique(),
+  status: text().$type<DonationOrderStatus>().notNull().default("CREATED"), captureAttempts: integer("capture_attempts").notNull().default(0),
+  displayName: text("display_name"), leaseToken: uuid("lease_token"), leaseExpiresAt: timestamp("lease_expires_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(), updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+}, t => [
+  check("donation_order_expected_positive", sql`${t.expectedAmountCents} > 0`),
+  check("donation_order_id_format", sql`${t.orderId} is null or ${t.orderId} ~ '^[A-Za-z0-9_-]{1,64}$'`),
+  check("donation_order_request_ids_differ", sql`${t.createRequestId} <> ${t.captureRequestId}`),
+  check("donation_order_status", sql`${t.status} in ('CREATED','APPROVED','CAPTURING','CAPTURE_UNKNOWN','PENDING','COMPLETED','FAILED','MISMATCH')`),
+  check("donation_order_id_required", sql`${t.status} in ('CREATED','FAILED') or ${t.orderId} is not null`),
+  check("donation_order_attempts", sql`${t.captureAttempts} between 0 and 2`),
+  check("donation_order_attempts_by_status", sql`${t.captureAttempts} > 0 or ${t.status} in ('CREATED','APPROVED','FAILED','MISMATCH')`),
+  check("donation_order_display_name", sql`${t.displayName} is null or (char_length(${t.displayName}) between 1 and 40 and ${t.displayName} = btrim(${t.displayName}))`),
+  check("donation_order_lease_pair", sql`(${t.leaseToken} is null) = (${t.leaseExpiresAt} is null)`),
+  check("donation_order_final_has_no_lease", sql`${t.status} not in ('COMPLETED','FAILED','MISMATCH') or ${t.leaseToken} is null`),
+]);

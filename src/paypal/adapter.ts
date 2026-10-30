@@ -2,13 +2,19 @@ const SANDBOX_BASE_URL = "https://api-m.sandbox.paypal.com";
 export interface PayPalConfig {
   baseUrl?: string; clientId?: string; clientSecret?: string;
   payeeAllowlist: readonly string[]; maxDemoPayoutCents: bigint;
+  // IAC-379: donation ceiling in integer cents. Omitted means DEFAULT_MAX_DEMO_DONATION_CENTS.
+  maxDemoDonationCents?: bigint;
 }
+export const DEFAULT_MAX_DEMO_DONATION_CENTS = 5000n;
 export function payPalConfigFromEnvironment(env: Readonly<Record<string, string | undefined>>): PayPalConfig {
   const maximum = env.MAX_DEMO_PAYOUT_CENTS || "50000";
   if (!/^[1-9][0-9]*$/.test(maximum)) throw new Error("MAX_DEMO_PAYOUT_CENTS must be a positive integer");
+  const donationMaximum = env.MAX_DEMO_DONATION_CENTS || DEFAULT_MAX_DEMO_DONATION_CENTS.toString();
+  if (!/^[1-9][0-9]{0,15}$/.test(donationMaximum)) throw new Error("MAX_DEMO_DONATION_CENTS must be a positive integer");
   return {
     baseUrl: env.PAYPAL_BASE_URL, clientId: env.PAYPAL_CLIENT_ID, clientSecret: env.PAYPAL_CLIENT_SECRET,
     payeeAllowlist: (env.PAYEE_ALLOWLIST ?? "").split(",").map(v => v.trim()).filter(Boolean), maxDemoPayoutCents: BigInt(maximum),
+    maxDemoDonationCents: BigInt(donationMaximum),
   };
 }
 export function createPayPalAdapter(config: PayPalConfig, request: typeof fetch = fetch) {
@@ -60,9 +66,20 @@ export interface DonationObservation {
   captures: { captureId?: string; status?: string; amountCents?: bigint; grossCents?: bigint; feeCents?: bigint; netCents?: bigint; effectiveOn?: string }[];
 }
 export interface DonationReader { donationOrder(orderId: string): Promise<DonationObservation>; }
+// IAC-379 Orders v2 writer. Inputs are persisted by the caller first. Responses keep only allowlisted fields:
+// never payer email, payer ID, address, card data, links or free text.
+export interface PersistedDonationOrder { requestId: string; fundId: string; amountCents: bigint; }
+export interface DonationOrderCreateResult { httpStatus: number; orderId?: string; status?: string; errorCode?: string; errorIssues: string[]; }
+export interface DonationCaptureResult extends DonationObservation { errorCode?: string; errorIssues: string[]; }
+export interface DonationOrderWriter {
+  createDonationOrder(order: PersistedDonationOrder): Promise<DonationOrderCreateResult>;
+  captureDonationOrder(orderId: string, captureRequestId: string): Promise<DonationCaptureResult>;
+}
 // Application requests stay in this file. Manual lab methods never enter the web workflow.
-export function createApplicationSandboxPayments(config: PayPalConfig, balanceReadable = false, request: typeof fetch = fetch): PayoutTransport & WebhookVerifier & DonationReader & WebhookRegistrationReader {
+export function createApplicationSandboxPayments(config: PayPalConfig, balanceReadable = false, request: typeof fetch = fetch): PayoutTransport & WebhookVerifier & DonationReader & DonationOrderWriter & WebhookRegistrationReader {
   const guard = createPayPalAdapter(config, request);
+  const donationCeilingCents = config.maxDemoDonationCents ?? DEFAULT_MAX_DEMO_DONATION_CENTS;
+  if (donationCeilingCents <= 0n) throw new Error("Positive donation ceiling required");
   const object = (value: unknown): Record<string, unknown> => value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, unknown> : {};
   const identifier = (value: unknown) => typeof value === "string" && /^[A-Za-z0-9_-]{1,64}$/.test(value) ? value : undefined;
   const code = (value: unknown) => typeof value === "string" && /^[A-Z0-9_]{1,100}$/.test(value) ? value : undefined;
@@ -83,10 +100,10 @@ export function createApplicationSandboxPayments(config: PayPalConfig, balanceRe
     const lifetime = typeof data.expires_in === "number" && Number.isFinite(data.expires_in) ? Math.max(0, data.expires_in - 60) : 0;
     expiresAt = Date.now() + lifetime * 1000;
   }
-  async function call(path: string, body?: unknown) {
+  async function call(path: string, body?: unknown, extraHeaders: Readonly<Record<string, string>> = {}) {
     if (!token || Date.now() >= expiresAt) await authenticate();
     for (let retry = 0; ; retry++) {
-      const response = await request(`${SANDBOX_BASE_URL}${path}`, { method: body === undefined ? "GET" : "POST", redirect: "error", signal: AbortSignal.timeout(15_000), headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" }, ...(body === undefined ? {} : { body: JSON.stringify(body) }) });
+      const response = await request(`${SANDBOX_BASE_URL}${path}`, { method: body === undefined ? "GET" : "POST", redirect: "error", signal: AbortSignal.timeout(15_000), headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json", ...extraHeaders }, ...(body === undefined ? {} : { body: JSON.stringify(body) }) });
       if (response.status === 401 && retry === 0) { await authenticate(); continue; }
       let data: Record<string, unknown>;
       try { data = object(await response.json()); } catch { data = {}; }
@@ -94,6 +111,23 @@ export function createApplicationSandboxPayments(config: PayPalConfig, balanceRe
     }
   }
   const validId = (id: string) => { if (!identifier(id)) throw new Error("Invalid persisted provider ID"); };
+  const requestUuid = (value: string) => { if (typeof value !== "string" || !/^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/.test(value)) throw new Error("Persist a valid request UUID before sending"); };
+  const issues = (data: Record<string, unknown>) => Array.isArray(data.details) ? data.details.map(object).map(detail => code(detail.issue)).filter((issue): issue is string => Boolean(issue)) : [];
+  // Shared allowlist parse for an order representation. Payer, address, card and link fields are never read.
+  function observeOrder(result: { httpStatus: number; data: Record<string, unknown> }): DonationObservation {
+    const units = Array.isArray(result.data.purchase_units) ? result.data.purchase_units.map(object) : [];
+    return { httpStatus: result.httpStatus, orderId: identifier(result.data.id), intent: code(result.data.intent), status: code(result.data.status),
+      units: units.map(unit => ({ fundId: typeof unit.custom_id === "string" && /^[a-z0-9_-]{1,64}$/.test(unit.custom_id) ? unit.custom_id : undefined, amountCents: money(unit.amount, "currency_code") })),
+      captures: units.flatMap(unit => {
+        const payments = object(unit.payments);
+        return (Array.isArray(payments.captures) ? payments.captures.map(object) : []).map(capture => {
+          const breakdown = object(capture.seller_receivable_breakdown);
+          const time = capture.update_time ?? capture.create_time;
+          const effectiveOn = typeof time === "string" && /^\d{4}-\d{2}-\d{2}T/.test(time) && time.length <= 64 && Number.isFinite(Date.parse(time)) ? new Date(time).toISOString().slice(0, 10) : undefined;
+          return { captureId: identifier(capture.id), status: code(capture.status), amountCents: money(capture.amount, "currency_code"), grossCents: money(breakdown.gross_amount, "currency_code"), feeCents: money(breakdown.paypal_fee, "currency_code"), netCents: money(breakdown.net_amount, "currency_code"), effectiveOn };
+        });
+      }) };
+  }
   return {
     async resendWebhookEvent(eventId, webhookId) {
       validId(webhookId);
@@ -109,19 +143,24 @@ export function createApplicationSandboxPayments(config: PayPalConfig, balanceRe
     validatePayout: guard.validatePayout,
     async donationOrder(orderId) {
       validId(orderId);
-      const result = await call(`/v2/checkout/orders/${orderId}`);
-      const units = Array.isArray(result.data.purchase_units) ? result.data.purchase_units.map(object) : [];
-      return { httpStatus: result.httpStatus, orderId: identifier(result.data.id), intent: code(result.data.intent), status: code(result.data.status),
-        units: units.map(unit => ({ fundId: typeof unit.custom_id === "string" && /^[a-z0-9_-]{1,64}$/.test(unit.custom_id) ? unit.custom_id : undefined, amountCents: money(unit.amount, "currency_code") })),
-        captures: units.flatMap(unit => {
-          const payments = object(unit.payments);
-          return (Array.isArray(payments.captures) ? payments.captures.map(object) : []).map(capture => {
-            const breakdown = object(capture.seller_receivable_breakdown);
-            const time = capture.update_time ?? capture.create_time;
-            const effectiveOn = typeof time === "string" && /^\d{4}-\d{2}-\d{2}T/.test(time) && time.length <= 64 && Number.isFinite(Date.parse(time)) ? new Date(time).toISOString().slice(0, 10) : undefined;
-            return { captureId: identifier(capture.id), status: code(capture.status), amountCents: money(capture.amount, "currency_code"), grossCents: money(breakdown.gross_amount, "currency_code"), feeCents: money(breakdown.paypal_fee, "currency_code"), netCents: money(breakdown.net_amount, "currency_code"), effectiveOn };
-          });
-        }) };
+      return observeOrder(await call(`/v2/checkout/orders/${orderId}`));
+    },
+    // IAC-379. One CAPTURE unit, custom_id is the fund ID, the amount string is built here from integer cents.
+    // The request ID is the caller's persisted create UUID. This POST is not repeated here, except for the
+    // single re-send in call() after a 401 (authentication rejected, so nothing was processed), same body and ID.
+    async createDonationOrder(order) {
+      requestUuid(order.requestId);
+      if (typeof order.fundId !== "string" || !/^[a-z0-9_-]{1,64}$/.test(order.fundId)) throw new Error("Valid fund ID required");
+      if (typeof order.amountCents !== "bigint" || order.amountCents <= 0n || order.amountCents > donationCeilingCents) throw new Error("Donation outside demo ceiling");
+      const result = await call("/v2/checkout/orders", { intent: "CAPTURE", purchase_units: [{ custom_id: order.fundId, amount: { currency_code: "USD", value: decimal(order.amountCents) } }] }, { "PayPal-Request-Id": order.requestId });
+      return { httpStatus: result.httpStatus, orderId: identifier(result.data.id), status: code(result.data.status), errorCode: result.errorCode, errorIssues: issues(result.data) };
+    },
+    // IAC-379. Capture uses the caller's persisted capture UUID. Callers read the order first and never
+    // re-capture blindly after a timeout.
+    async captureDonationOrder(orderId, captureRequestId) {
+      validId(orderId); requestUuid(captureRequestId);
+      const result = await call(`/v2/checkout/orders/${orderId}/capture`, {}, { "PayPal-Request-Id": captureRequestId, Prefer: "return=representation" });
+      return { ...observeOrder(result), errorCode: result.errorCode, errorIssues: issues(result.data) };
     },
     async verifyWebhook(webhookId, headers, event) {
       if (!/^[A-Za-z0-9]{1,50}$/.test(webhookId) || webhookId === "WEBHOOK_ID") throw new Error("Registered sandbox webhook ID required");
