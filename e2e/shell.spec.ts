@@ -7,7 +7,7 @@ import { connectDatabase } from "../src/server/db";
 import { seedFixture } from "../db/fixture";
 import { ensureFixtureOpening } from "../src/ledger/opening";
 
-// SHELL-11 (IAC-373): the app shell at 1440 and 390 px. Rail, both status cards, header tag, footer and no horizontal overflow.
+// SHELL-11 (IAC-373, IAC-415): the app shell at 1440 and 390 px. Trace stepper, both status cards, header tag, footer and no horizontal overflow.
 // The server env fixes the receipt AI configuration, so the header tag and footer line are asserted against it.
 let admin: ReturnType<typeof postgres>, connection: ReturnType<typeof connectDatabase>;
 let server: ChildProcess | undefined, name: string;
@@ -57,14 +57,17 @@ for (const config of CONFIGS) {
       await expect(page.locator(".footer-promise")).toHaveText("AI suggests. People decide. PayPal pays.");
       await expect(page.locator(".footer-built")).toHaveText(config.line);
       await expect(page.locator(".footer-promise .paypal-word")).toHaveText("PayPal");
-      // Rail: five stages, the Funding stage current for a confirmed draft, later stages locked, tags on AI and PayPal.
-      const rail = page.getByRole("navigation", { name: "Expense stages" });
-      await expect(rail.locator("li")).toHaveCount(5);
-      await expect(rail.locator("[aria-current=step]")).toHaveCount(1);
-      await expect(rail.getByLabel(/^Approvals: locked/)).toBeVisible();
-      await expect(rail.getByLabel(/^PayPal: locked\. Locked\./)).toBeVisible();
-      await expect(rail.locator(".rail-tag.ai")).toHaveText("AI");
-      await expect(rail.locator(".rail-tag.paypal")).toHaveText("PayPal");
+      // Trace: six steps, Fund split current for a confirmed draft, Approvals and the PayPal payout not reached.
+      const trace = page.getByRole("navigation", { name: "Expense trace" });
+      await expect(trace.locator("li")).toHaveCount(6);
+      await expect(trace.locator("[aria-current=step]")).toHaveCount(1);
+      await expect(trace.locator("[aria-current=step] .t")).toHaveText("Fund split");
+      const approvals = trace.locator("li").nth(4), payout = trace.locator("li").nth(5);
+      await expect(approvals).toHaveAttribute("data-state", "future"); await expect(approvals).toContainText("Not reached: ");
+      await expect(approvals.locator(".t")).toHaveText("Approvals"); await expect(approvals.locator(".d")).toHaveText("Locked. People: 0 of 2");
+      await expect(payout).toHaveAttribute("data-state", "future"); await expect(payout).toContainText("Not reached: ");
+      await expect(payout.locator(".t")).toHaveText("PayPal sandbox payout"); await expect(payout.locator(".d")).toHaveText("Locked. Not ready");
+      await expect(page.locator(".trace-now")).toContainText("Step 4 of 6, Fund split");
       // Summary cards: AI teal, PayPal blue, boundary notes, states from loaded state only.
       const ai = page.getByLabel("AI review status"), paypal = page.getByLabel("PayPal payout status");
       await expect(ai).toBeVisible(); await expect(paypal).toBeVisible();
@@ -77,16 +80,15 @@ for (const config of CONFIGS) {
       expect(await ai.evaluate(node => getComputedStyle(node).borderTopColor)).not.toBe(await paypal.evaluate(node => getComputedStyle(node).borderTopColor));
       expect(await paypal.locator(".card-kicker .paypal-word").evaluate(node => getComputedStyle(node).color)).toBe("rgb(0, 48, 135)");
       await fits(page);
+      const [c, s] = await Promise.all([".hybrid-content", ".hybrid-summary"].map(selector => page.locator(selector).boundingBox()));
       if (width === 1440) {
-        // Three columns: rail left of the decision area, left of the summary.
-        const [r, c, s] = await Promise.all([".hybrid-rail", ".hybrid-content", ".hybrid-summary"].map(selector => page.locator(selector).boundingBox()));
-        expect(r!.x + r!.width).toBeLessThanOrEqual(c!.x + 1); expect(c!.x + c!.width).toBeLessThanOrEqual(s!.x + 1);
-        expect(Math.round(r!.width)).toBe(180); expect(Math.round(s!.width)).toBe(232);
+        // Two columns of 3fr and 2fr with a 24 px gap: the receipt side left of the Decision panel.
+        expect(c!.x + c!.width).toBeLessThanOrEqual(s!.x + 1);
+        expect(c!.width / s!.width).toBeGreaterThan(1.4); expect(c!.width / s!.width).toBeLessThan(1.6);
       } else {
-        // At 1100 px and below the summary sits above the content and the rail is a two-column grid.
-        const [c, s] = await Promise.all([".hybrid-content", ".hybrid-summary"].map(selector => page.locator(selector).boundingBox()));
-        expect(s!.y).toBeLessThan(c!.y);
-        expect(await page.locator(".stage-rail").evaluate(node => getComputedStyle(node).gridTemplateColumns.split(" ").length)).toBe(2);
+        // At 900 px and below the grid is one column and the Decision panel sits below the receipt side. The trace is compact.
+        expect(s!.y).toBeGreaterThanOrEqual(c!.y + c!.height - 1);
+        await expect(page.locator(".trace-now")).toBeVisible(); await expect(page.locator(".trace-now")).toContainText("Fund split");
       }
     }
     // Sign-in and the claim list carry the same header tag and footer, without a rail or summary.
@@ -99,6 +101,6 @@ for (const config of CONFIGS) {
       }
     }
     await page.context().clearCookies(); await page.goto("/login");
-    await expect(page.locator(".header-tag")).toHaveText(config.tag); await expect(page.locator(".footer-promise")).toBeVisible(); await expect(page.locator(".hybrid-rail")).toHaveCount(0); await fits(page);
+    await expect(page.locator(".header-tag")).toHaveText(config.tag); await expect(page.locator(".footer-promise")).toBeVisible(); await expect(page.locator("[aria-current=step]")).toHaveCount(0); await fits(page);
   });
 }

@@ -9,7 +9,7 @@ export default async function Login({ searchParams }: { searchParams: Promise<{ 
   const token = (await cookies()).get(SESSION_COOKIE)?.value;
   if (token && await findSession(token)) redirect("/");
   const error = (await searchParams).error;
-  return <main className="login-page reference-page"><AppHeader />
+  return <><AppHeader /><main className="login-page reference-page">
     <div className="reference-screen">
       <p className="kicker">{BRAND.name} / {BRAND.tag} for nonprofits</p>
       <h1 className="screen-heading">Review an expense. Honor each fund.</h1>
@@ -34,5 +34,5 @@ export default async function Login({ searchParams }: { searchParams: Promise<{ 
       </div>
     </div>
     <footer>Sandbox demo with fictional data. Sign in separately for each role.</footer>
-  </main>;
+  </main></>;
 }

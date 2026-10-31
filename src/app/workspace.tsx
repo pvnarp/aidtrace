@@ -1,33 +1,19 @@
 import { AppHeader } from "./app-header";
 import { PayPalText } from "./brand";
-import { STAGES, railLines, type AiCard, type PayPalCard, type Stage } from "./shell-copy";
+import { Amount } from "./amount";
+import type { AiCard, PayPalCard, Stage } from "./shell-copy";
+import { TraceStepper, currentTraceStep, traceSteps, type TraceLinks } from "./trace";
 
 export type SummaryData = {
   claimant: string; program: string; amount: string; status: string; statusCode: string; reviews: number | null;
   details: readonly (readonly [string, string])[]; note: string;
 };
-/** Loaded state behind the two status cards and the rail lines. Built by each page from what it already read. */
+/** Loaded state behind the two status cards and the trace lines. Built by each page from what it already read. */
 export type ShellState = { ai: AiCard; paypal: PayPalCard; typedReceipt: boolean };
 
-export type RailLinks = Partial<Record<Stage, string>>;
+export type RailLinks = TraceLinks;
 
-function Check() { return <svg viewBox="0 0 20 20" aria-hidden="true" focusable="false"><path d="M4.5 10.5l3.4 3.4 7.6-8" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>; }
-
-export function StageRail({ stage, state, reviews, links = {} }: { stage: Stage; state: ShellState; reviews: number | null; links?: RailLinks }) {
-  const lines = railLines({ stage, typedReceipt: state.typedReceipt, ai: state.ai, approvals: reviews, paypal: state.paypal });
-  return <aside className="hybrid-rail"><p className="kicker">Expense workspace</p>
-    <nav aria-label="Expense stages"><ol className="stage-rail">{STAGES.map((name, index) => {
-      const number = (index + 1) as Stage; const done = number < stage; const future = number > stage; const href = done ? links[number] : undefined;
-      const line = lines[index]!;
-      const body = <><span className="hybrid-step-number">{done ? <Check /> : number}</span>{name}{line.tag && <span className={`rail-tag ${line.tag === "AI" ? "ai" : "paypal"}`}>{line.tag}</span>}<small className="rail-state">{line.state}</small></>;
-      return <li key={name}>{href
-        ? <a className="stage-item" href={href} aria-label={`${name}: inspect completed step. ${line.state}`}>{body}</a>
-        : <span className="stage-item" aria-current={number === stage ? "step" : undefined} aria-disabled={future || undefined} aria-label={`${name}${done ? ": completed" : future ? ": locked" : ": current step"}. ${line.state}`}>{body}</span>}</li>;
-    })}</ol></nav>
-    <p className="hybrid-rail-note">Review one decision at a time.<br />People keep control.</p></aside>;
-}
-
-/** The AI review card: teal, the boundary note always shown. */
+/** The AI review card: its own accent, the boundary note always shown. */
 export function AiStatusCard({ card }: { card: AiCard }) {
   return <section className="status-card ai-card" aria-label="AI review status" data-ai-state={card.key}>
     <p className="card-kicker">AI review</p>
@@ -44,23 +30,36 @@ export function PayPalStatusCard({ card }: { card: PayPalCard }) {
     <p className="card-note">{card.note}</p></section>;
 }
 
-export function ExpenseSummary({ data, state, stage }: { data: SummaryData; state: ShellState; stage: Stage }) {
-  return <aside className="hybrid-summary" aria-label="Current expense summary">
+/** The Decision panel of the review layout: amount, state, the two status cards, human review count and details. */
+export function ExpenseSummary({ data, state, stage, policyBlocked }: { data: SummaryData; state: ShellState; stage: Stage; policyBlocked: boolean }) {
+  const now = currentTraceStep(traceSteps({ stage, typedReceipt: state.typedReceipt, ai: state.ai, approvals: data.reviews, paypal: state.paypal, policyBlocked }));
+  return <aside className="hybrid-summary panel" aria-label="Current expense summary">
     <div className="hybrid-summary-top"><div><p className="kicker">{data.claimant}&apos;s reimbursement</p><h3>{data.program}</h3></div>
-      <strong className="big-amount">{data.amount}</strong><p className="state-badge" data-state={data.statusCode}>{data.status}</p></div>
+      <strong className="big-amount"><Amount value={data.amount} /></strong><p className="state-badge" data-state={data.statusCode}>{data.status}</p></div>
     <div className="status-cards"><AiStatusCard card={state.ai} /><PayPalStatusCard card={state.paypal} /></div>
     <p className="hybrid-review-count">Human reviews: <strong>{data.reviews === null ? "see the claim" : `${data.reviews} of 2`}</strong></p>
     <details className="hybrid-case-details"><summary>Expense details</summary><dl>{data.details.map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}</dl>
       <p className="caption">An expense becomes a payable only after both human approvals.</p></details>
-    <div className="hybrid-current"><p className="kicker">Current step</p><strong>{STAGES[stage - 1]}</strong><span>{data.note}</span></div>
+    <div className="hybrid-current"><p className="kicker">Current step</p><strong><PayPalText text={now.name} /></strong><span>{data.note}</span></div>
   </aside>;
 }
 
-/** Three columns: stage rail, one decision, expense summary. Layout only; the page supplies saved state. */
-export function Workspace({ user, stage, summary, state, links, children }: {
-  user: { displayName: string; role: string }; stage: Stage; summary: SummaryData; state: ShellState; links?: RailLinks; children: React.ReactNode;
+/**
+ * The expense workspace under the shared header. Layout only; the page supplies saved state.
+ * "review" (claim page): trace, then the receipt side and the Decision panel in two columns (one column at 900 px and below).
+ * "single" (receipt pages): trace, the decision area at full width, then the two status cards in a row.
+ */
+export function Workspace({ user, stage, summary, state, links, layout = "review", policyBlocked = false, children }: {
+  user: { displayName: string; role: string }; stage: Stage; summary: SummaryData; state: ShellState; links?: TraceLinks;
+  layout?: "review" | "single"; policyBlocked?: boolean; children: React.ReactNode;
 }) {
-  return <main className="workspace-page"><div className="product-frame"><AppHeader user={user} />
-    <div className="hybrid-shell"><StageRail stage={stage} state={state} reviews={summary.reviews} links={links} /><div className="hybrid-content">{children}</div><ExpenseSummary data={summary} state={state} stage={stage} /></div>
-  </div></main>;
+  return <><AppHeader user={user} />
+    <main className="workspace-page" data-layout={layout}>
+      <TraceStepper stage={stage} state={state} reviews={summary.reviews} links={links} policyBlocked={policyBlocked} />
+      <div className={`hybrid-shell ${layout}`}><div className="hybrid-content">{children}</div>
+        {layout === "review"
+          ? <ExpenseSummary data={summary} state={state} stage={stage} policyBlocked={policyBlocked} />
+          : <div className="status-cards status-row"><AiStatusCard card={state.ai} /><PayPalStatusCard card={state.paypal} /></div>}
+      </div>
+    </main></>;
 }

@@ -12,7 +12,8 @@ import { proposalPresentation, proposalMoney } from "../../../../proposal/presen
 import { ProposalReview } from "../../../receipts/proposal-review";
 import { Journey } from "../../../journey";
 import { Workspace, type ShellState, type SummaryData } from "../../../workspace";
-import { STAGES, STATUS_LABELS, aiCard, claimStage, claimantLabel, knownReviews, currentNote, paypalCard, suggestionKind } from "../../../shell-copy";
+import { TraceKicker } from "../../../trace";
+import { STATUS_LABELS, aiCard, claimStage, claimantLabel, knownReviews, currentNote, paypalCard, suggestionKind } from "../../../shell-copy";
 import { quoteEvidence } from "../../../receipts/quote-evidence";
 import { ReceiptEvidence } from "../../../receipts/receipt-evidence";
 import { AiRecommendation } from "../../../receipts/ai-recommendation";
@@ -58,10 +59,10 @@ export default async function ReceiptPage({ params, searchParams }: { params: Pr
   const summary: SummaryData = { claimant: claimantLabel(user, claim.claimantId), program: claim.program.charAt(0).toUpperCase() + claim.program.slice(1), amount: total,
     status: confirmation ? claim.status === "DRAFT" ? "Confirmed by claimant" : STATUS_LABELS[claim.status]! : running ? "AI preparing" : "Your review", statusCode: confirmation ? claim.status : "DRAFT", reviews,
     details: [["Program", claim.program], ["Expense date", claim.incurredOn], ["Categories", confirmation ? "Checked by claimant" : "Not yet checked"]], note: currentNote(claim.status) };
-  return <Workspace user={user} stage={stage} summary={summary} state={shellState} links={confirmation ? { 3: `/claims/${id}#funding-review`, 4: `/claims/${id}#approvals` } : {}}>
-    <p className="kicker">Stage {stage} / {STAGES[stage - 1]} / AI suggestion, human decision</p>
+  return <Workspace user={user} stage={stage} summary={summary} state={shellState} layout="single" links={confirmation ? { 3: `/claims/${id}#funding-review`, 4: `/claims/${id}#approvals` } : {}}>
+    <TraceKicker stage={stage} state={shellState} reviews={reviews} suffix=" / AI suggestion, human decision" />
 <div className="title-row"><h1>{confirmation ? "Categories checked." : "Check each receipt category."}</h1></div><p>{claim.vendor} · ${money(lines.reduce((sum, line) => sum + line.amountCents, 0n))} · {claim.incurredOn}</p><p className="claim-reference">Claim {claim.id}</p>
-    <Journey stage={stage} title={confirmation ? claim.status === "DRAFT" ? "Categories saved. Review the funding next." : "Categories saved. Check the claim's current status." : running ? "The AI review is in progress." : suggestion?.status === "READY" ? "Check the suggestions, then confirm every category." : "Prepare suggestions, or review the categories yourself."}
+    <Journey title={confirmation ? claim.status === "DRAFT" ? "Categories saved. Review the funding next." : "Categories saved. Check the claim's current status." : running ? "The AI review is in progress." : suggestion?.status === "READY" ? "Check the suggestions, then confirm every category." : "Prepare suggestions, or review the categories yourself."}
       detail={confirmation ? claim.status === "DRAFT" ? user.role === "CLAIMANT" ? "Open the allocation, check which fund pays each item, then freeze the terms for two human approvers. Confirmation alone did not reserve funds or approve payment." : "The categories are confirmed. Review the allocation; only the claimant can freeze it for approval." : "This is the saved category review. Open the claim to see its current approval and payment state; do not treat this receipt page as a new request." : running ? "Wait for the result, then refresh preparation status below. Do not submit a second request." : suggestion?.status === "READY" ? "Compare each category and quote with the receipt. Correct anything wrong, check the confirmation box and confirm below. Funding comes next." : "Use Prepare expense proposal below for AI help. You can also choose all categories manually with a reason. You must confirm them before funding can be frozen."}
       href={confirmation ? `/claims/${id}` : "#category-review"} action={confirmation ? claim.status === "DRAFT" ? "Continue to funding" : "View current claim" : "Go to category review"} />
     {!confirmation && <AiRecommendation ready={evidence.grounded} running={running} audit={suggestion?.status === "READY" ? readReceiptAudit(suggestion) : null} configured={configuredReceiptAiName()} aiOff={aiOff} prepareHref={combined && editable && !aiOff ? "#prepare-proposal" : null}

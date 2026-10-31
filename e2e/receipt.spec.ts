@@ -88,15 +88,21 @@ test("GB-02: 375-pixel receipt quotes, explicit confirmation, allocation and edi
   await expect(page.locator(".ai-label").first()).toContainText("Claude Haiku 5.5 suggests:");
   await expect(page.locator("blockquote")).toHaveCount(3); await noOverflow(page);
   await expect(page.locator(".ai-recommendation")).toContainText("A person confirms each category."); await expect(page.locator(".category-choice .ai-tag")).toHaveCount(3);
-  // 44 px hit area for the confirmation checkbox, and a whole current-step label in the rail.
+  // 44 px hit area for the confirmation checkbox, and a whole current-step label in the trace.
   const checkbox = (await page.getByLabel(/I checked every category/).boundingBox())!; expect(checkbox.width).toBeGreaterThanOrEqual(44); expect(checkbox.height).toBeGreaterThanOrEqual(44);
-  // Every word of every stage label must fit its own column, so no word is split mid-word.
-  const rail = await page.locator(".stage-rail .stage-item").evaluateAll(items => items.map(el => {
-    const text = [...el.childNodes].find(node => node.nodeType === Node.TEXT_NODE)!; const words = text.textContent!.trim().split(/\s+/); let start = text.textContent!.indexOf(words[0]!);
-    const widest = Math.max(...words.map(word => { const range = document.createRange(); start = text.textContent!.indexOf(word, start); range.setStart(text, start); range.setEnd(text, start + word.length); start += word.length; return range.getBoundingClientRect().width; }));
-    return { label: text.textContent, column: Math.round(el.clientWidth), widest: Math.round(widest), whole: el.scrollWidth <= el.clientWidth };
+  // Every word of the current trace label must fit its own box, so no word is split mid-word: the compact line at this width, then every step name at 1440 px.
+  const measure = (selector: string) => page.locator(selector).evaluateAll(items => items.map(el => {
+    const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT); let widest = 0, label = "";
+    for (let node = walker.nextNode() as Text | null; node; node = walker.nextNode() as Text | null) {
+      const text = node.textContent!; label += text;
+      for (const match of text.matchAll(/\S+/g)) { const range = document.createRange(); range.setStart(node, match.index!); range.setEnd(node, match.index! + match[0].length); widest = Math.max(widest, range.getBoundingClientRect().width); }
+    }
+    return { label, column: Math.round(el.clientWidth), widest: Math.round(widest), whole: el.scrollWidth <= el.clientWidth };
   }));
-  expect(rail.filter(item => !item.whole || item.widest > item.column)).toEqual([]);
+  const compact = await measure(".trace-now"); expect(compact).toHaveLength(1); expect(compact.filter(item => !item.whole || item.widest > item.column)).toEqual([]);
+  const phone = page.viewportSize()!; await page.setViewportSize({ width: 1440, height: 900 });
+  const steps = await measure(".trace li .t"); expect(steps).toHaveLength(6); expect(steps.filter(item => !item.whole || item.widest > item.column)).toEqual([]);
+  await page.setViewportSize(phone);
   await page.getByRole("button", { name: "Confirm categories", exact: true }).click();
   expect(await page.getByLabel(/I checked every category/).evaluate((el: HTMLInputElement) => el.validity.valueMissing)).toBe(true);
   await page.getByLabel(/I checked every category/).check(); await page.getByRole("button", { name: "Confirm categories", exact: true }).click();

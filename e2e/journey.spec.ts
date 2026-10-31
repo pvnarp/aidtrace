@@ -38,6 +38,11 @@ async function login(page: Page, user: keyof typeof passwords) {
   await page.goto("/login"); await page.getByLabel("Username").fill(user); await page.getByLabel("Password").fill(passwords[user]); await page.getByRole("button", { name: "Sign in", exact: true }).click(); await page.waitForURL(url => url.pathname === "/");
 }
 async function fits(page: Page) { expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true); }
+// The trace stepper (Trust v2) replaces the old "Step n of 5" kicker: exactly one item carries aria-current=step and it names the current step.
+async function traceAt(page: Page, name: string) {
+  await expect(page.locator(`nav[aria-label="Expense trace"] [aria-current=step]`)).toHaveCount(1);
+  await expect(page.locator(`nav[aria-label="Expense trace"] [aria-current=step] .t`)).toHaveText(name);
+}
 async function compactJourney(page: Page) {
   for (const width of [390, 1440]) {
     await page.setViewportSize({ width, height: 900 });
@@ -90,25 +95,25 @@ test("IAC-350: architecture is authenticated, keyboard-operable and executes no 
 test("IAC-350: guidance follows one expense, role handoff and two approvals without payment", async ({ page }) => {
   await login(page, "maria"); await page.getByRole("link", { name: "Start a $6 practice expense", exact: true }).click();
   const journey = page.getByLabel("Expense journey", { exact: true });
-  await expect(journey).toContainText("Step 1 of 5"); await fits(page);
+  await traceAt(page, "Receipt"); await fits(page);
   const checkbox = page.getByLabel("This receipt is fictional sandbox data.");
   const checkboxBox = await checkbox.boundingBox();
   expect(checkboxBox!.width).toBeGreaterThanOrEqual(20); expect(checkboxBox!.height).toBeGreaterThanOrEqual(20);
   expect((await page.locator("label.confirm").boundingBox())!.height).toBeGreaterThanOrEqual(44);
   await page.getByLabel("This receipt is fictional sandbox data.").check(); await page.getByRole("button", { name: "Create receipt draft", exact: true }).click();
-  await expect(journey).toContainText("Step 2 of 5");
+  await traceAt(page, "AI review");
   for (const [line, category] of [["L1", "robot_kits_parts"], ["L2", "classroom_supplies"], ["L3", "participant_meals"]]) {
     await page.getByLabel(`Category for ${line}`, { exact: true }).selectOption(category!); await page.getByLabel(`Reason for manual choice ${line}`, { exact: true }).fill("Checked this fictional receipt directly");
   }
   await page.getByLabel(/I checked every category/).check(); await page.getByRole("button", { name: "Confirm categories", exact: true }).click();
-  await expect(journey).toContainText("Step 3 of 5"); await page.getByRole("link", { name: "Continue to funding", exact: true }).click();
+  await traceAt(page, "Fund split"); await page.getByRole("link", { name: "Continue to funding", exact: true }).click();
   const claim = page.url(); await expect(journey).toContainText("Check the split, then freeze these terms."); await fits(page);
   await compactJourney(page);
   await journey.getByText("Step details and roles", { exact: true }).click();
   await expect(journey.getByText(/Freezing holds the eligible funds/)).toBeVisible();
   await journey.getByText("Step details and roles", { exact: true }).click();
   await page.getByRole("button", { name: "Freeze allocation for approval", exact: true }).click();
-  await expect(journey).toContainText("Step 4 of 5"); await expect(journey).toContainText("Hand this claim to a different approver.");
+  await traceAt(page, "Approvals"); await expect(journey).toContainText("Hand this claim to a different approver.");
   await expect(page.getByRole("button", { name: "Approve these terms", exact: true })).toHaveCount(0);
   await page.getByRole("button", { name: "Sign out", exact: true }).click(); await login(page, "tara"); await page.goto(claim);
   await expect(journey).toContainText("0 of 2 approvals saved");
@@ -118,10 +123,10 @@ test("IAC-350: guidance follows one expense, role handoff and two approvals with
   await page.getByRole("button", { name: "Sign out", exact: true }).click(); await login(page, "ben"); await page.goto(claim);
   await expect(journey).toContainText("1 of 2 approvals saved");
   await page.getByRole("button", { name: "Approve these terms", exact: true }).click();
-  await expect(journey).toContainText("Step 5 of 5"); await expect(journey).toContainText("Approved is not paid"); await fits(page);
+  await traceAt(page, "PayPal sandbox payout"); await expect(journey).toContainText("Approved is not paid"); await fits(page);
   await compactJourney(page);
   await page.getByRole("link", { name: "Review receipt and confirmed categories", exact: true }).click();
-  await expect(journey).toContainText("Step 5 of 5"); await expect(journey).not.toContainText("freeze the terms for two human approvers");
+  await traceAt(page, "PayPal sandbox payout"); await expect(journey).not.toContainText("freeze the terms for two human approvers");
   await expect(journey.getByRole("link", { name: "Continue to funding", exact: true })).toHaveCount(0);
   await journey.getByRole("link", { name: "View current claim", exact: true }).click();
   await expect(page).toHaveURL(claim); await expect(journey).toContainText("Approved is not paid");

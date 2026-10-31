@@ -4,7 +4,8 @@ import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { AI_NOTE, FOOTER_PROMISE, PAYPAL_NOTE, PAYPAL_PAID_NOTE, STAGES, aiCard, claimStage, knownReviews, paypalCard, paypalParts, railLines, shellWording, suggestionKind, currentNote, type AiConfig, type AiInput, type PayPalInput } from "../src/app/shell-copy";
-import { AiStatusCard, PayPalStatusCard, StageRail } from "../src/app/workspace";
+import { AiStatusCard, PayPalStatusCard } from "../src/app/workspace";
+import { TraceStepper, traceSteps } from "../src/app/trace";
 
 // SHELL-01 to SHELL-10 (IAC-373 app shell adoption, docs/GATE_REPORT.md section 34). Pure functions and static file checks.
 // No database, no network, no clock. The browser checks are e2e/shell.spec.ts (SHELL-11).
@@ -145,12 +146,18 @@ describe("SHELL-06 PayPal blue appears only in PayPal-scoped stylesheet rules", 
     const actions = rules.filter(rule => blue.test(rule.body) && rule.selector.split(",").some(part => /(^|[\s>])button\b|button-link|journey-action|story-primary|\.secondary/.test(part)));
     expect(actions.map(rule => rule.selector)).toEqual([]);
   });
-  it("defines the locked tokens", () => {
-    for (const token of ["--ink:#142b3d", "--muted:#506579", "--line:#d6e1eb", "--soft:#f3f6fa", "--accent:#076d65", "--tint:#e9f5f2", "--warm:#fff3da", "--paypal:#003087", "--paypal-bg:#edf3fb", "--rail-current:#23495d", "--rail-border:#7296af", "--rail-text:#e8f0f6", "--rail-locked:#a3b8c9", "--rail-kicker:#b4c7d6", "--mark:#f9dba2", "--stop:#783329", "--stop-bg:#fff6f3", "--stop-line:#d4a29a"]) expect(css).toContain(token);
-  });
-  it("states the amendment 5 breakpoints and the three-column grid", () => {
-    expect(css).toContain("grid-template-columns:180px minmax(0,1fr) 232px"); expect(css).toContain("@media(max-width:1100px)");
-    expect(css).toMatch(/@media\(max-width:1100px\)[\s\S]*\.stage-rail \{ grid-template-columns:repeat\(2,minmax\(0,1fr\)\); \}/);
+  // The old "defines the locked tokens" test became TV-01 (tests/trust-v2-tokens.test.ts), which compares :root with docs/DESIGN_LANGUAGE.md.
+  it("states the 3fr and 2fr review grid and its single-column rule at 900 px and below", () => {
+    const flat = css.replace(/\/\*[\s\S]*?\*\//g, "").replace(/\s*([:,{};])\s*/g, "$1").replace(/\s+/g, " ");
+    const review = [...flat.matchAll(/\.hybrid-shell\.review\{([^{}]*)\}/g)].map(match => match[1]!);
+    expect(review.some(body => body.includes("grid-template-columns:minmax(0,3fr) minmax(0,2fr)"))).toBe(true);
+    const blocks = (query: string) => [...flat.matchAll(new RegExp(`@media ${query.replace(/[()]/g, "\\$&")}\\{`, "g"))].map(match => {
+      let depth = 0;
+      for (let i = match.index! + match[0].length - 1; i < flat.length; i++) { if (flat[i] === "{") depth++; if (flat[i] === "}" && --depth === 0) return flat.slice(match.index!, i); }
+      return flat.slice(match.index!);
+    });
+    const narrow = blocks("(max-width:900px)"); expect(narrow.length).toBeGreaterThanOrEqual(1);
+    expect(narrow.some(block => block.includes(".hybrid-shell.review{grid-template-columns:minmax(0,1fr);}"))).toBe(true);
   });
 });
 
@@ -169,13 +176,28 @@ describe("SHELL-07 rail lines carry tags, live state and the Locked prefix", () 
   it("shows the approvals the page loaded or sends the reader to the claim", () => {
     expect(lines(4, 1)[3]!.state).toBe("People: 1 of 2"); expect(lines(4, null)[3]!.state).toBe("People: see the claim");
   });
-  it("renders one current step, check marks for done stages and read-only links only where the page supplies them", () => {
+  it("renders six trace steps with one current step and links only where the page supplies them", () => {
     const state = { ai, paypal: paypalCard({ claimStatus: "DRAFT", approvals: 0, payout: null }), typedReceipt: true };
-    const html = renderToStaticMarkup(createElement(StageRail, { stage: 3, state, reviews: 0, links: { 1: "/r", 2: "/r" } }));
-    expect(html.match(/aria-current="step"/g)).toHaveLength(1);
-    expect(html.match(/<a class="stage-item"/g)).toHaveLength(2); expect(html.match(/aria-disabled="true"/g)).toHaveLength(2);
-    expect(html).toContain("Locked. People: 0 of 2"); expect(html).toContain(">AI</span>"); expect(html).toContain(">PayPal</span>");
-    expect(html.match(/<path d="M4.5 10.5/g)).toHaveLength(2);
+    const html = renderToStaticMarkup(createElement(TraceStepper, { stage: 3, state, reviews: 0, links: { 1: "/r", 2: "/r" } }));
+    expect(html).toContain('<nav aria-label="Expense trace"');
+    expect(html.match(/<li /g)).toHaveLength(6); expect(html.match(/aria-current="step"/g)).toHaveLength(1);
+    expect(html.match(/<a class="trace-body"/g)).toHaveLength(2);
+    expect(html.match(/Done: /g)).toHaveLength(3); expect(html.match(/Current step: /g)).toHaveLength(1); expect(html.match(/Not reached: /g)).toHaveLength(2);
+    expect(html).toContain("Locked. People: 0 of 2"); expect(html).toContain("Check, then freeze");
+    expect(html).toContain("Step 4 of 6, Fund split");
+    expect(html).not.toContain("Blocked: ");
+  });
+  it("marks Rule checks blocked only at stage 3 with the policy flag, and no other step", () => {
+    const state = { ai, paypal: paypalCard({ claimStatus: "DRAFT", approvals: 0, payout: null }), typedReceipt: true };
+    const input = (stage: 1 | 2 | 3 | 4 | 5, policyBlocked: boolean) => traceSteps({ stage, typedReceipt: true, ai, approvals: 0, paypal: state.paypal, policyBlocked });
+    const blocked = input(3, true);
+    expect(blocked.map(step => step.name)).toEqual(["Receipt", "AI review", "Rule checks", "Fund split", "Approvals", "PayPal sandbox payout"]);
+    expect(blocked.map(step => step.state)).toEqual(["done", "done", "blocked", "future", "future", "future"]);
+    expect(blocked[2]!.detail).toBe("Stopped by organization policy");
+    for (const stage of [1, 2, 4, 5] as const) expect(input(stage, true).some(step => step.state === "blocked")).toBe(false);
+    expect(input(3, false).map(step => step.state)).toEqual(["done", "done", "done", "current", "future", "future"]);
+    const html = renderToStaticMarkup(createElement(TraceStepper, { stage: 3, state, reviews: 0, policyBlocked: true }));
+    expect(html).toContain("Blocked: "); expect(html).not.toContain('aria-current="step"');
   });
   it("renders the AI card in teal markup with its boundary note and no role=status", () => {
     const html = renderToStaticMarkup(createElement(AiStatusCard, { card: ai }));
@@ -213,22 +235,29 @@ describe("SHELL-09 every screen has the shell header and footer", () => {
     expect(pages.length).toBeGreaterThanOrEqual(9);
     expect(pages.filter(path => { const text = readFileSync(path, "utf8"); return !/<AppHeader|<Workspace/.test(text); })).toEqual([]);
   });
-  it("keeps the rail and summary on the claim workspace pages only", () => {
+  it("keeps the trace and summary on the claim workspace pages only", () => {
     const workspace = pages.filter(path => /<Workspace/.test(readFileSync(path, "utf8"))).sort();
     expect(workspace).toEqual(["src/app/claims/[claimId]/page.tsx", "src/app/claims/[claimId]/receipt/page.tsx", "src/app/receipts/new/page.tsx"]);
   });
 });
 
-describe("SHELL-10 computed contrast of the locked and shell colors is at least 4.5:1", () => {
+describe("SHELL-10 computed contrast of the Trust v2 text colors is at least 4.5:1", () => {
+  // Literal pairs from docs/plans/TRUST_V2_PORT_SCOPE.md section 2.3. TV-03 (tests/trust-v2-tokens.test.ts) reads the same pairs from the stylesheet.
   const channel = (value: number) => { const c = value / 255; return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4; };
   const luminance = (hex: string) => { const n = parseInt(hex.slice(1), 16); return 0.2126 * channel((n >> 16) & 255) + 0.7152 * channel((n >> 8) & 255) + 0.0722 * channel(n & 255); };
   const ratio = (a: string, b: string) => { const [hi, lo] = [luminance(a), luminance(b)].sort((x, y) => y - x); return (hi! + 0.05) / (lo! + 0.05); };
   const pairs: [string, string, string][] = [
-    ["white on PayPal blue", "#ffffff", "#003087"], ["PayPal blue on PayPal tint", "#003087", "#edf3fb"], ["PayPal blue on white", "#003087", "#ffffff"], ["PayPal blue on soft", "#003087", "#f3f6fa"],
-    ["ink on PayPal tint", "#142b3d", "#edf3fb"], ["muted on PayPal tint", "#506579", "#edf3fb"], ["muted on tint", "#506579", "#e9f5f2"], ["muted on soft", "#506579", "#f3f6fa"], ["muted on white", "#506579", "#ffffff"],
-    ["accent on tint", "#076d65", "#e9f5f2"], ["accent on white", "#076d65", "#ffffff"], ["white on accent", "#ffffff", "#076d65"], ["ink on warm", "#142b3d", "#fff3da"],
-    ["rail text on rail", "#e8f0f6", "#142b3d"], ["rail locked on rail", "#a3b8c9", "#142b3d"], ["rail kicker on rail", "#b4c7d6", "#142b3d"], ["white on rail current", "#ffffff", "#23495d"],
-    ["rail text on rail current", "#e8f0f6", "#23495d"], ["stop on stop tint", "#783329", "#fff6f3"], ["ink on mark", "#142b3d", "#f9dba2"],
+    ["white on PayPal blue", "#ffffff", "#003087"], ["PayPal blue on PayPal tint", "#003087", "#edf3fb"], ["PayPal blue on white", "#003087", "#ffffff"], ["PayPal blue on bg", "#003087", "#f4f6fa"],
+    ["navy on white", "#0b1f3a", "#ffffff"], ["navy on bg", "#0b1f3a", "#f4f6fa"], ["navy on tint", "#0b1f3a", "#f0f5ff"], ["navy on mark", "#0b1f3a", "#f9dba2"], ["navy on warm", "#0b1f3a", "#fff3da"],
+    ["muted on white", "#5b6b80", "#ffffff"], ["muted on bg", "#5b6b80", "#f4f6fa"], ["muted on tint", "#5b6b80", "#f0f5ff"], ["muted on PayPal tint", "#5b6b80", "#edf3fb"], ["muted on block tint", "#5b6b80", "#fff6f3"],
+    ["cents on white", "#5f6e83", "#ffffff"], ["cents on bg", "#5f6e83", "#f4f6fa"],
+    ["accent ink on white", "#0850cc", "#ffffff"], ["accent ink on bg", "#0850cc", "#f4f6fa"], ["accent ink on tint", "#0850cc", "#f0f5ff"], ["accent ink on PayPal tint", "#0850cc", "#edf3fb"],
+    ["white on accent", "#ffffff", "#0a66ff"], ["white on accent ink", "#ffffff", "#0850cc"], ["accent on white", "#0a66ff", "#ffffff"],
+    ["ok on white", "#05603a", "#ffffff"], ["ok on bg", "#05603a", "#f4f6fa"], ["hold on white", "#8a4b08", "#ffffff"], ["hold on bg", "#8a4b08", "#f4f6fa"], ["hold on warm", "#8a4b08", "#fff3da"],
+    ["block on white", "#b42318", "#ffffff"], ["block on bg", "#b42318", "#f4f6fa"], ["block on block tint", "#b42318", "#fff6f3"],
   ];
   it.each(pairs)("%s", (_name, fg, bg) => expect(ratio(fg, bg)).toBeGreaterThanOrEqual(4.5));
+  it("shows why --accent is a fill and large-text color: below 4.5 on the page background, above 3", () => {
+    expect(ratio("#0a66ff", "#f4f6fa")).toBeLessThan(4.5); expect(ratio("#0a66ff", "#f4f6fa")).toBeGreaterThanOrEqual(3);
+  });
 });

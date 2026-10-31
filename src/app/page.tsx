@@ -38,7 +38,7 @@ export default async function Home() {
       cards.push({ id: claim.id, vendor: claim.vendor, program: claim.program, status: claim.status, amount: money(claim), line: approverReviewLine(split, false), href: `/claims/${claim.id}`, action: "Review this expense", kicker: "Expenses awaiting your approval" });
     }
     const continuing = drafts.filter(claim => !shown.has(`${claim.id}:${claim.version}`));
-    return <main className="claim-page home-page reference-page"><AppHeader user={user} />
+    return <><AppHeader user={user} /><main className="claim-page home-page reference-page">
       <div className="reference-screen">
         <h1 className="screen-heading">{approverHeading(cards.length)}</h1>
         <p className="reference-intro">{approverLede(cards.length)}</p>
@@ -47,11 +47,11 @@ export default async function Home() {
         <div className="reference-links"><Link className="button-link secondary" href="/analytics" prefetch={false}>View funding and cash</Link><Link className="button-link secondary" href="/architecture" prefetch={false}>Explore how it works</Link></div>
       </div>
       <footer>Fictional data for Lanternfield Community Alliance. Funds follow organization-approved rules. General Operating is flexible, not exempt from those rules.</footer>
-    </main>;
+    </main></>;
   }
 
   const cards: ExpenseCardData[] = drafts.map(claim => ({ id: claim.id, vendor: claim.vendor, program: claim.program, status: claim.status, amount: money(claim), line: nextStep("CLAIMANT", claim.status), href: `/claims/${claim.id}`, action: claimActionLabel(judge), kicker: "Continue your expense" }));
-  return <main className="claim-page home-page reference-page"><AppHeader user={user} />
+  return <><AppHeader user={user} /><main className="claim-page home-page reference-page">
     <div className="reference-screen">
       <h1 className="screen-heading">{claimantHeading(user.displayName)}</h1>
       <p className="reference-intro">{CLAIMANT_LEDE}</p>
@@ -70,5 +70,5 @@ export default async function Home() {
       {!judge && <p className="muted">C-104 is a separate, preclassified example. The practice receipt is your own draft.</p>}
     </div>
     <footer>Fictional data for Lanternfield Community Alliance. Funds follow organization-approved rules. General Operating is flexible, not exempt from those rules.</footer>
-  </main>;
+  </main></>;
 }

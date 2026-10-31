@@ -15,13 +15,12 @@ export default async function GivePage() {
   // Only the sandbox client ID reaches the browser, and only in KEYED. The secret is never read here.
   const clientId = mode === "KEYED" ? process.env.PAYPAL_CLIENT_ID?.trim() ?? "" : "";
   const nonce = (await headers()).get("x-nonce") ?? "";
-  return <main className="claim-page give-page">
-    <AppHeader />
+  return <><AppHeader /><main className="claim-page give-page">
     <p className="eyebrow">Give / Restricted funds</p>
     <h1>Give to a fund.</h1>
     <p className="intro">Choose a restricted fund and an amount. A gift is recorded in that fund&apos;s ledger only after PayPal reports the payment complete.</p>
     <p className="muted">Sandbox demonstration for a fictional organization. Only PayPal sandbox buyer accounts can pay, and no real money moves.</p>
     {mode === "KEYED" && funds.length > 0 && clientId ? <GiveClient funds={funds} clientId={clientId} nonce={nonce} /> : mode === "KEYED" ? <p role="status">No restricted fund can accept a donation right now. Nothing was created.</p> : <KeylessPanel funds={funds} />}
     <footer>AidTrace stores the order ID, fund, amount, status and your optional display name. It never stores your PayPal email, payer ID, address or card details.</footer>
-  </main>;
+  </main></>;
 }

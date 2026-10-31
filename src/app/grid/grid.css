@@ -1,0 +1,36 @@
+/* Shared data grid styles. Every class and custom property here starts with gx-. docs/plans/GRID_SURFACES_SCOPE.md section 2.3. */
+.gx-root {
+  --gx-ink: var(--navy, var(--ink, #0b1f3a));        --gx-muted: var(--muted, #5b6b80);
+  --gx-paper: var(--paper, #ffffff);                 --gx-soft: var(--bg, var(--soft, #f4f6fa));
+  --gx-line: var(--line, #e6eaf0);                   --gx-accent: var(--accent, #0a66ff);
+  --gx-tint: var(--tint, #f0f5ff);                   --gx-hold: var(--hold, #8a4b08);
+  --gx-stop: var(--block, var(--stop, #b42318));     --gx-ok: var(--ok, #05603a);
+}
+.gx-root { display: block; min-width: 0; max-width: 100%; margin: 20px 0; color: var(--gx-ink); }
+.gx-toolbar { display: flex; flex-wrap: wrap; align-items: end; gap: 12px; margin: 0 0 12px; }
+.gx-search { display: grid; gap: 4px; flex: 1 1 260px; min-width: 0; max-width: 420px; }
+.gx-search label { font-size: 13px; font-weight: 600; color: var(--gx-muted); }
+.gx-search input { width: 100%; min-height: 44px; border-color: var(--gx-line); border-radius: 8px; }
+.gx-toolbar button { min-height: 44px; }
+.gx-status-line { margin: 0 0 8px; font-size: 14px; color: var(--gx-muted); }
+.gx-frame { height: min(70vh, 640px); min-height: 360px; width: 100%; max-width: 100%; overflow: hidden; }
+.gx-cell-num { font-variant-numeric: tabular-nums; }
+.gx-row-verify { background: color-mix(in srgb, var(--gx-hold) 12%, white); box-shadow: inset 3px 0 0 var(--gx-hold); }
+.gx-row-attention { box-shadow: inset 3px 0 0 var(--gx-stop); }
+.gx-row-total { font-weight: 700; }
+.gx-status::before { content: ""; display: inline-block; width: 8px; height: 8px; margin-right: 8px; border-radius: 50%; background: var(--gx-muted); }
+.gx-dot-ok::before { background: var(--gx-ok); }
+.gx-dot-hold::before { background: var(--gx-hold); }
+.gx-dot-stop::before { background: var(--gx-stop); }
+.gx-dot-idle::before { background: var(--gx-muted); }
+.gx-phone-extras { margin: 16px 0; }
+.gx-phone-extras h3 { font-size: 16px; margin: 0 0 8px; }
+.gx-phone-extras details { border: 1px solid var(--gx-line); border-radius: 10px; padding: 8px 12px; margin: 0 0 8px; background: var(--gx-paper); }
+.gx-phone-extras summary { cursor: pointer; font-size: 14px; overflow-wrap: anywhere; min-height: 32px; }
+.gx-phone-extras dl { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr); gap: 4px 12px; margin: 8px 0 0; font-size: 14px; }
+.gx-phone-extras dt { color: var(--gx-muted); }
+.gx-phone-extras dd { margin: 0; overflow-wrap: anywhere; }
+@media (max-width: 639px) {
+  .gx-search { max-width: none; flex-basis: 100%; }
+  .gx-toolbar button { flex: 1 1 140px; }
+}
