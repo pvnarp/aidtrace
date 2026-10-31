@@ -11,27 +11,27 @@ No CDN or system font installation is needed. See docs/FONT_PROVENANCE.md.
 ## 1. Prepare Docker: keep execution in containers
 
 Use an existing Docker Engine or Docker Desktop with Compose v2, Linux ARM64 or AMD64,
-a POSIX shell and upstream network access for pinned images/packages/model weights.
+a POSIX shell and upstream network access for pinned images and packages.
 No native Node, pnpm, Python or Postgres is needed. The launcher uses the current Docker
 context, or an explicit AIDTRACE_DOCKER_CONTEXT. The owner's execution stays in OrbStack.
 Windows users need an existing WSL2 POSIX shell with Docker integration.
 
-Native ARM app/model execution and the exact AMD64 model under ARM emulation have evidence.
-Physical Docker Desktop, a fresh full AMD64 app installation, another machine/network and
-Safari remain unverified. See [access requirements](docs/ACCESS.md).
+Native ARM app execution has evidence. Physical Docker Desktop, a fresh full AMD64 app
+installation, another machine/network and Safari remain unverified. See [access requirements](docs/ACCESS.md).
 
-From this extracted folder, prepare dependencies and the shared local model once:
+AI suggestions come from the hosted Claude API and need your own Anthropic API key, read
+from the shell that starts a session. No key is required to review the app: without one,
+AI suggestions are off and the manual path works end to end.
+
+From this extracted folder, prepare dependencies once:
 
 ```sh
 sh scripts/aidtrace doctor
 sh scripts/aidtrace setup
-sh scripts/aidtrace ai-check download
-sh scripts/aidtrace ai-smoke
 ```
 
 Dependency setup uses a separate declaration with no environment file, database or port.
-The model has no public port or financial credentials. Its weights are 1,834,426,016 bytes,
-with a 4 GiB RAM/swap cap and two CPUs. Each session app permits 3 GiB/two CPUs; its database
+No model is downloaded. Each session app permits 3 GiB/two CPUs; its database
 permits 384 MiB/one CPU, plus a 128 MiB local relay. Allow additional engine/build/image/package storage. Run heavy
 builds and browser checks sequentially. These caps are not a total machine memory budget.
 
@@ -43,6 +43,13 @@ Choose a new lowercase session name, 3 to 24 characters, and an unused loopback 
 sh scripts/aidtrace judge-new review-one 3102
 sh scripts/aidtrace judge-up review-one
 ```
+
+To turn AI suggestions on, export your key in the same shell first (export ANTHROPIC_API_KEY
+with your own value, typed at your prompt, not saved in a file) and then run judge-up. The
+launcher passes the variable by name to the session app container only. It is never written to
+session.env or any file and is never printed. Without it the app says AI suggestions are off in
+this session and everything except suggestions still works. One process allows at most 60 Claude
+requests in total, then AI turns itself off until the app restarts.
 
 Open http://127.0.0.1:3102/login. Private generated passwords are in
 local/judge-sessions/review-one/session.env. Use SEED_PASSWORD_MARIA, SEED_PASSWORD_TARA
@@ -56,15 +63,16 @@ An unbound database containing later work is refused, never adopted or reset aut
 The comment is lifecycle metadata, not a financial journal or schema migration. The app does
 not read local/.env. Provider credentials are forced empty, its
 recipient is non-payable, and payment actions are disabled server-side. Internal application
-networks connect only the session database and existing model. A fixed loopback relay has
-no credentials and forwards only to this app, using the model download namespace's ingress network.
+networks connect the app to its session database, which has no outside route. The app also
+has outbound HTTPS to the Claude API on one session-local edge network, shared only with a fixed
+loopback relay. The relay has no credentials and forwards only to this app.
 The shared dependency volume is read-only; each session has its own database and compiled build volume.
 
 ## 3. Review Maria's receipt: finish at the unpaid handoff
 
 Sign in as maria. Choose Review Maria's $500 receipt. Create the default fictional receipt:
 USD 280 kits, USD 150 notebooks and USD 70 refreshments. Select Prepare expense proposal
-once. Check the local AI suggestions against highlighted saved receipt text, confirm each
+once. Check the Claude suggestions (or choose each category yourself when AI is off) against highlighted saved receipt text, confirm each
 category and choose View allocation. The fresh unchanged example computes Tallow Creek Robot Kit Initiative USD 200,
 Ashmere County Afterschool STEM Subgrant USD 230 and General Operating USD 70. The ordered first-eligible comparison uses USD 200
 General Operating. The USD 130 difference is specific to this fixture and ordering, not measured
@@ -101,8 +109,8 @@ Browser cookies share a loopback hostname across ports; use a separate browser p
 sign in again when switching between sessions. Do not reuse owner passwords.
 
 Optional checks: sh scripts/aidtrace check and sh scripts/aidtrace ui-check use isolated
-synthetic fixtures. They are not PayPal or actual-model evidence. Model stopping is explicit:
-sh scripts/aidtrace ai-check down. It leaves manual review available and preserves weights.
+synthetic fixtures. They use a scripted stand-in for the AI and are not PayPal or Claude API evidence.
+To switch AI off, restart the session from a shell without ANTHROPIC_API_KEY. Manual review stays available.
 
 ## 5. Review evidence and rights: no publication follows
 
@@ -119,6 +127,6 @@ non-payable session. Do not edit its guard settings to enable payment.
 The application MIT license is included. Dependency/model rights remain separate: review
 LICENSE, NOTICE, THIRD_PARTY_NOTICES.txt, DEPENDENCY_LICENSES.json, UPSTREAM_LICENSE_SOURCES.json,
 docs/LICENSING.md and docs/THIRD_PARTY_MODELS.md. The accounting model awaits accountant review.
-SOURCE_MANIFEST.json identifies the prepared source, excluding Git history, local secrets,
-backups and weights. Exact candidate, ownership, access and publication remain owner decisions.
+SOURCE_MANIFEST.json identifies the prepared source, excluding Git history, local secrets
+and backups. No AI model weights ship with it. Exact candidate, ownership, access and publication remain owner decisions.
 This source is unpublished. Nothing here authorizes hosting, recording, contact or submission.

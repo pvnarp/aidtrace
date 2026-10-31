@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import localFont from "next/font/local";
 import "./style.css";
+import { BRAND } from "./brand";
+import { AppFooter } from "./app-footer";
 
 const inter = localFont({
   src: "./fonts/InterVariable.woff2",
@@ -11,7 +13,7 @@ const inter = localFont({
   fallback: ["Arial", "sans-serif"],
 });
 
-export const metadata: Metadata = { title: "AidTrace", description: "Restricted-fund allocation for small nonprofits." };
+export const metadata: Metadata = { title: BRAND.name, description: "Restricted-fund allocation for small nonprofits." };
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
-  return <html lang="en" className={inter.variable}><body>{children}</body></html>;
+  return <html lang="en" className={inter.variable}><body>{children}<AppFooter /></body></html>;
 }

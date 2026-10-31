@@ -17,12 +17,12 @@ export const NOTE_FACT_SET = "donor-note-facts-v1" as const;
 export const TEMPLATE_LABEL = "Template, no AI used";
 export const DEFAULT_DONOR_NAME = "A donor";
 // Step 4 adds the AI selection on top of this seam: it may choose up to two optional facts and one of the fixed template IDs.
-// This step has one template and no AI, so the default selection is the required facts only.
-export const NOTE_TEMPLATE_IDS = ["default"] as const;
+// IAC-379 Option A (docs/ASSUMPTIONS.md section 47): "thanks-first" is the default for new notes. "default" stays renderable so stored notes still display.
+export const NOTE_TEMPLATE_IDS = ["default", "thanks-first"] as const;
 export const OPTIONAL_FACT_IDS = ["fund-policy", "claim-total", "method"] as const;
 export type OptionalFactId = (typeof OPTIONAL_FACT_IDS)[number];
 export interface NoteSelection { templateId: string; optional: readonly string[] }
-export const DEFAULT_SELECTION: NoteSelection = { templateId: "default", optional: [] };
+export const DEFAULT_SELECTION: NoteSelection = { templateId: "thanks-first", optional: [] };
 
 type Db = AppDatabase | LedgerTransaction;
 export type PayoutNoteStatus = s.GiftPayoutStatus;
@@ -66,6 +66,18 @@ export const PAYOUT_WORDING: Record<Exclude<PayoutNoteStatus, "NO_PAYMENT" | "PA
   UNKNOWN: "Approved. The PayPal payout outcome is being verified.",
   NEEDS_ATTENTION: "Approved. The payout needs attention.",
 };
+// IAC-379 Option A (docs/ASSUMPTIONS.md section 47): the "thanks-first" payout sentences. The approval sentence precedes them, so there is no
+// "Approved." prefix, and none names a provider because the note facts carry a status and a batch ID, not a provider. PAID is built by paidSentence.
+export const THANKS_FIRST_PAYOUT_WORDING: Record<Exclude<PayoutNoteStatus, "PAID">, string> = {
+  NO_PAYMENT: "No payment has been sent in this environment.",
+  PROCESSING: "The payout is processing.",
+  UNKNOWN: "The payout outcome is being verified.",
+  NEEDS_ATTENTION: "The payout needs attention.",
+};
+const paidSentence = (batchId: string | null) => {
+  if (!batchId || !SAFE_BATCH_ID.test(batchId)) throw new Error("A paid note needs a verified PayPal payout batch ID");
+  return `Paid. Payout batch ${batchId}.`;
+};
 
 // ---- Formatting: integer cents only, no floating point ----
 export function formatUsd(cents: bigint): string {
@@ -99,11 +111,42 @@ export function validateSelection(selection: NoteSelection): void {
     || selection.optional.some(id => !(OPTIONAL_FACT_IDS as readonly string[]).includes(id))) throw new Error("Optional facts must be at most two distinct known fact IDs");
 }
 
+// The Option A template (docs/ASSUMPTIONS.md section 47). It is the run 3 candidate "thanks-first" of scripts/support/donor-note-eval.ts
+// except for the payout sentence, and tests prove that equality. Optional facts are written in OPTIONAL_FACT_IDS order, as in that candidate.
+// The shares line of the page is built from the same current facts, never from this text.
+function renderThanksFirst(facts: NoteFacts, selection: NoteSelection): string {
+  const { gift, lines, approvals, payout } = facts;
+  const vendor = lines[0]!.vendor;
+  const applied = lines.length === 1 ? `${lines[0]!.description} from ${vendor}` : `${lines.length} receipt lines from ${vendor}: ${joinNames(lines.map(line => line.description))}`;
+  const optional: string[] = [];
+  for (const id of OPTIONAL_FACT_IDS.filter(known => selection.optional.includes(known))) {
+    if (id === "fund-policy") {
+      const policy = facts.optional["fund-policy"];
+      if (policy.summary) optional.push(sentence(`${policy.fundName} restriction: ${policy.summary}`));
+    } else if (id === "claim-total") {
+      const total = facts.optional["claim-total"]; const amount = formatUsd(BigInt(total.totalCents));
+      optional.push(sentence(total.split.length === 1 ? `The full receipt was ${amount}, all from ${total.split[0]!.fundName}`
+        : `The full receipt was ${amount}: ${total.split.map(row => `${row.fundName} ${formatUsd(BigInt(row.amountCents))}`).join(", ")}`));
+    } else optional.push("Gifts are applied to approved lines oldest first. This is a narrative, not a trace of a specific purchase.");
+  }
+  const dates = [...new Set(approvals.map(row => row.approvedOn))];
+  const approvedBy = dates.length === 1 ? `${joinNames(approvals.map(row => row.name))} on ${longDate(dates[0]!)}` : joinNames(approvals.map(row => `${row.name} on ${longDate(row.approvedOn)}`));
+  const payoutSentence = payout.status === "PAID" ? paidSentence(payout.batchId) : THANKS_FIRST_PAYOUT_WORDING[payout.status];
+  return [sentence(`Thank you, ${gift.donorName}`), sentence(`Your ${formatUsd(BigInt(gift.amountCents))} gift was applied to ${applied}`), ...optional, sentence(`Approved by ${approvedBy}`), payoutSentence].join(" ");
+}
+
+// "$25.00 of the $280.00 line", or per line "{description}: $x of the $y line" joined by "; " (integer cents only).
+export function formatShares(shares: readonly { description: string; appliedCents: bigint; lineCents: bigint }[]): string {
+  const part = (row: { appliedCents: bigint; lineCents: bigint }) => `${formatUsd(row.appliedCents)} of the ${formatUsd(row.lineCents)} line`;
+  return shares.length === 1 ? part(shares[0]!) : shares.map(row => `${row.description}: ${part(row)}`).join("; ");
+}
+
 // Pure and deterministic: the same facts and selection always give the same text. The server writes every number and name.
 // The label "Template, no AI used" is shown beside a TEMPLATE note and is not part of this text or its hash.
 export function renderTemplateNote(facts: NoteFacts, selection: NoteSelection = DEFAULT_SELECTION): string {
   validateSelection(selection);
   if (facts.version !== NOTE_FACT_SET || facts.lines.length === 0 || facts.approvals.length === 0) throw new Error("Complete donor note facts are required");
+  if (selection.templateId === "thanks-first") return renderThanksFirst(facts, selection);
   const { gift, lines, approvals, payout } = facts;
   const vendor = lines[0]!.vendor;
   const share = (line: NoteFacts["lines"][number]) => `${formatUsd(BigInt(line.appliedCents))} of the ${formatUsd(BigInt(line.lineAmountCents))} line`;
@@ -194,6 +237,8 @@ export interface StoredGiftNote {
 }
 export interface GiftNoteEntry {
   captureId: string; fundName: string; giftCents: bigint; draftText: string; draftDigest: string; payoutStatus: PayoutNoteStatus;
+  // From the same current facts as the draft, for the meta line: the applied share of each line and the gift capture date (YYYY-MM-DD).
+  shares: { description: string; appliedCents: bigint; lineCents: bigint }[]; capturedOn: string;
   // A stored note whose digest equals the current digest exists, so no new approval is offered.
   approvedCurrent: boolean; notes: StoredGiftNote[];
 }
@@ -219,7 +264,8 @@ export async function readGiftNotes(db: Db, organizationId: string, claimId: str
     const digest = factDigest(built.facts);
     const notes = (await storedNotes(db, captureId, claimId, claimVersion)).map(row => stored(row, { digest, payoutStatus: built.facts.payout.status }));
     entries.push({ captureId, fundName: built.facts.gift.fundName, giftCents: BigInt(built.facts.gift.amountCents), draftText: renderTemplateNote(built.facts), draftDigest: digest,
-      payoutStatus: built.facts.payout.status, approvedCurrent: notes.some(note => !note.stale), notes });
+      payoutStatus: built.facts.payout.status, shares: built.facts.lines.map(line => ({ description: line.description, appliedCents: BigInt(line.appliedCents), lineCents: BigInt(line.lineAmountCents) })),
+      capturedOn: built.facts.gift.capturedOn, approvedCurrent: notes.some(note => !note.stale), notes });
   }
   return entries;
 }

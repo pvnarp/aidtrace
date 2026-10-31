@@ -9,6 +9,7 @@ import { CLAIM_ID } from "../receipt/terms";
 import { receiptContext } from "../receipt/service";
 import { requireReceiptConfirmation } from "../receipt/guard";
 import { fixtureNotStarted } from "./fixture-state";
+import { readPolicyChecks } from "../policy/service";
 
 export async function loadClaimView(db: AppDatabase, claimId: string, actorId: string) {
   return db.transaction(async tx => {
@@ -41,6 +42,8 @@ export async function loadClaimView(db: AppDatabase, claimId: string, actorId: s
     const [retryAuthorization] = attempt ? await tx.select().from(s.retryAuthorizations).where(and(eq(s.retryAuthorizations.claimId, claimId), eq(s.retryAuthorizations.claimVersion, snapshot.claim.version), eq(s.retryAuthorizations.attemptNumber, attempt.attemptNumber + 1))).limit(1) : [];
     const donations = await tx.select().from(s.donationReceipts).where(eq(s.donationReceipts.organizationId, snapshot.organization.id));
     const rejections = await tx.select({ reason: s.claimRejections.reason, rejectedBy: s.users.displayName }).from(s.claimRejections).innerJoin(s.users, eq(s.users.id, s.claimRejections.rejectedBy)).where(and(eq(s.claimRejections.claimId, claimId), eq(s.claimRejections.claimVersion, snapshot.claim.version)));
-    return { ...snapshot, receiptReview, decision, edges, generalCents, comparison, approvals, attempt, retryAuthorization, donations, rejections, fixtureNotStarted: await fixtureNotStarted(tx, snapshot.organization.id), report: await reconcile(tx, snapshot.organization.id), feasible: Boolean(decision) || optimized?.status === "FUNDED" };
+    // IAC-405 step 1: read-only policy flags for approvers of this organization. Claimants get nothing. Nothing here feeds approval.
+    const policyChecks = decision && actor.role === "APPROVER" && actor.id !== snapshot.claim.claimantId ? { decisionHash: decision.decisionHash, run: await readPolicyChecks(tx, decision.decisionHash) } : null;
+    return { ...snapshot, receiptReview, policyChecks, decision, edges, generalCents, comparison, approvals, attempt, retryAuthorization, donations, rejections, fixtureNotStarted: await fixtureNotStarted(tx, snapshot.organization.id), report: await reconcile(tx, snapshot.organization.id), feasible: Boolean(decision) || optimized?.status === "FUNDED" };
   }, { isolationLevel: "repeatable read" });
 }

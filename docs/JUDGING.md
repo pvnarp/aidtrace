@@ -1,7 +1,7 @@
 # Demonstrate one nonprofit expense
 
 Follow README.md and ACCESS.md for a named, non-payable judging session. The same USD 500
-receipt carries actual local AI review, deterministic funding, human confirmation, freeze,
+receipt carries Claude AI review (when a key is configured), deterministic funding, human confirmation, freeze,
 two separate approvals and a read-only PayPal handoff. Its starting funds and caps are the
 unchanged fixture values. A fresh session computes USD 430 restricted / USD 70 General.
 The ordered first-eligible comparison uses USD 200 General; the difference is not measured
@@ -31,7 +31,7 @@ C-104 is a preserved preclassified test fixture, not the AI-reviewed judge claim
 
 The approver analytics dashboard reads local accounting facts, with bounded AI fact selection
 and a manual alternative. It does not query current PayPal cash. The Studio-free variant
-makes no AG Studio permission or sponsor-use claim. Review licensing/model notices separately.
+makes no AG Studio permission or sponsor-use claim. Review licensing and hosted AI notices separately.
 A later real sandbox run needs separate owner authorization and a separately configured
 workspace. Do not enable keys or a payable recipient inside this guarded judge session.
 

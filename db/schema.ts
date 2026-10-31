@@ -290,3 +290,58 @@ export const giftApplications = pgTable("gift_applications", {
   foreignKey({ columns: [t.claimId, t.claimVersion, t.lineId], foreignColumns: [claimLines.claimId, claimLines.claimVersion, claimLines.id] }),
   check("gift_application_positive", sql`${t.appliedCents} > 0`),
   check("gift_application_policy", sql`${t.policyVersion} = 'GIFT_ATTRIBUTION_V1'`)]);
+
+// IAC-405 step 1 (docs/plans/POLICY_CHECK_SCOPE.md sections 2, 4 and 5). Deterministic policy rule flags for approvers.
+// All three tables are append-only (migration 0015 guards): a run row is written once, every flag and the run end are later
+// result rows, and nothing is ever updated. None of them is part of the financial hash set, and nothing here moves money,
+// changes an approval or posts to the ledger. Only RULES runs are written in this release. The MODEL kind and its columns are
+// the seam for the later model check, which is not built.
+export const policyCheckKinds = ["RULES", "MODEL"] as const;
+export type PolicyCheckKind = (typeof policyCheckKinds)[number];
+export const policyRuleIds = ["P1", "P2", "P3", "P4", "P5", "P6", "P7"] as const;
+export type PolicyRuleId = (typeof policyRuleIds)[number];
+export const policyResultEntries = ["FLAG", "NOT_CHECKED", "RUN_END"] as const;
+export type PolicyResultEntry = (typeof policyResultEntries)[number];
+
+// Per-fund thresholds, versioned. Cents and day counts only. It has no mode column: a fund mode belongs to a later step.
+export const fundCheckSettings = pgTable("fund_check_settings", {
+  fundId: text("fund_id").notNull().references(() => funds.id), version: integer().notNull(),
+  approvedBy: text("approved_by").notNull().references(() => users.id), approvedAt: timestamp("approved_at", { withTimezone: true }).notNull().defaultNow(),
+  suppliesLimitCents: cents("supplies_limit_cents"), equipmentLimitCents: cents("equipment_limit_cents"), claimLimitCents: cents("claim_limit_cents"),
+  staleReceiptDays: integer("stale_receipt_days").notNull(), duplicateWindowDays: integer("duplicate_window_days").notNull(), splitWindowDays: integer("split_window_days").notNull(),
+}, t => [primaryKey({ columns: [t.fundId, t.version] }), check("check_settings_version_positive", sql`${t.version} > 0`),
+  check("check_settings_limits_positive", sql`${t.suppliesLimitCents} > 0 and ${t.equipmentLimitCents} > 0 and ${t.claimLimitCents} > 0`),
+  check("check_settings_days", sql`${t.staleReceiptDays} between 1 and 3650 and ${t.duplicateWindowDays} between 1 and 3650 and ${t.splitWindowDays} between 1 and 3650`)]);
+
+export const policyCheckRuns = pgTable("policy_check_runs", {
+  id: uuid().primaryKey().defaultRandom(), decisionHash: text("decision_hash").notNull().references(() => allocationDecisions.decisionHash),
+  claimId: text("claim_id").notNull(), claimVersion: integer("claim_version").notNull(), organizationId: text("organization_id").notNull().references(() => organizations.id),
+  kind: text().$type<PolicyCheckKind>().notNull(), startedBy: text("started_by").notNull().references(() => users.id),
+  startedAt: timestamp("started_at", { withTimezone: true }).notNull().defaultNow(),
+  // Fund id to the fund_check_settings version this run read. An empty object means no funding fund had thresholds.
+  settingsVersions: jsonb("settings_versions").$type<Record<string, number>>().notNull(), ruleSetVersion: text("rule_set_version").notNull(),
+  // SHA-256 of the canonical fact set the rules read, so the same claim can be explained later.
+  factsDigest: text("facts_digest").notNull(),
+  model: text(), effort: text(), promptVersion: text("prompt_version"), schemaVersion: text("schema_version"), clauseSetHash: text("clause_set_hash"), requestDigest: text("request_digest"),
+}, t => [foreignKey({ columns: [t.claimId, t.claimVersion], foreignColumns: [claims.id, claims.version] }),
+  unique("policy_run_per_decision_kind").on(t.decisionHash, t.kind),
+  check("policy_run_kind", sql`${t.kind} in ('RULES','MODEL')`),
+  check("policy_run_settings_object", sql`jsonb_typeof(${t.settingsVersions}) = 'object'`),
+  check("policy_run_facts_digest", sql`${t.factsDigest} ~ '^[a-f0-9]{64}$'`),
+  check("policy_run_model_columns", sql`(${t.kind} = 'RULES' and ${t.model} is null and ${t.effort} is null and ${t.promptVersion} is null and ${t.schemaVersion} is null and ${t.clauseSetHash} is null and ${t.requestDigest} is null) or (${t.kind} = 'MODEL' and ${t.model} is not null and ${t.effort} is not null and ${t.promptVersion} is not null and ${t.schemaVersion} is not null and ${t.clauseSetHash} is not null and ${t.requestDigest} is not null)`)]);
+
+export const policyCheckResults = pgTable("policy_check_results", {
+  runId: uuid("run_id").notNull().references(() => policyCheckRuns.id), sequence: integer().notNull(),
+  entry: text().$type<PolicyResultEntry>().notNull(), ruleId: text("rule_id").$type<PolicyRuleId>(), severity: text().$type<"HOLD" | "NOTE">(),
+  lineId: text("line_id"), fundId: text("fund_id").references(() => funds.id), settingsVersion: integer("settings_version"),
+  reasonCode: text("reason_code"), flagText: text("flag_text"), inputs: jsonb().$type<Record<string, unknown>>().notNull(), recordedAt: recordedAt(),
+}, t => [primaryKey({ columns: [t.runId, t.sequence] }),
+  foreignKey({ columns: [t.fundId, t.settingsVersion], foreignColumns: [fundCheckSettings.fundId, fundCheckSettings.version] }),
+  check("policy_result_sequence", sql`${t.sequence} > 0`),
+  check("policy_result_entry", sql`${t.entry} in ('FLAG','NOT_CHECKED','RUN_END')`),
+  check("policy_result_fund_version", sql`(${t.fundId} is null) = (${t.settingsVersion} is null)`),
+  check("policy_result_text_bounded", sql`${t.flagText} is null or char_length(${t.flagText}) between 1 and 600`),
+  check("policy_result_inputs", sql`jsonb_typeof(${t.inputs}) = 'object' and octet_length(${t.inputs}::text) <= 8000`),
+  check("policy_result_shape", sql`(${t.entry} = 'FLAG' and ${t.ruleId} in ('P1','P2','P3','P4','P5','P6','P7') and ${t.severity} in ('HOLD','NOTE') and ${t.flagText} is not null and ${t.reasonCode} is null)
+    or (${t.entry} = 'NOT_CHECKED' and ${t.ruleId} in ('P1','P2','P3','P5','P6') and ${t.severity} is null and ${t.reasonCode} = 'NO_THRESHOLDS' and ${t.flagText} is not null and ${t.fundId} is null and ${t.lineId} is null)
+    or (${t.entry} = 'RUN_END' and ${t.ruleId} is null and ${t.severity} is null and ${t.reasonCode} is null and ${t.flagText} is null and ${t.lineId} is null and ${t.fundId} is null)`)]);

@@ -17,5 +17,5 @@
     "paths": { "@/*": ["./src/*"] }
   },
   "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts", ".next/dev/types/**/*.ts"],
-  "exclude": ["node_modules", "archive", "local"]
+  "exclude": ["node_modules", "archive", "local", "tools/security-review/run.ts", "tools/security-review/node_modules"]
 }

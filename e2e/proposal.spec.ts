@@ -11,7 +11,6 @@ import { seedFixture } from "../db/fixture";
 import { createReceiptDraft, readReceiptView, suggestionHash } from "../src/receipt/service";
 import { readExpenseProposal, prepareExpenseProposal } from "../src/proposal/service";
 import { ReceiptAiError } from "../src/ai/receipt";
-const actual = process.env.PROPOSAL_ACTUAL_UI === "true";
 let admin: ReturnType<typeof postgres>; let connection: ReturnType<typeof connectDatabase>; let server: ChildProcess | undefined; let model: Server | undefined; let name: string;
 let passwords: Record<"maria" | "tara" | "ben", string>; let mode: "ready" | "unknown" | "alcohol" | "unavailable" = "ready"; let calls = 0; let gate: Promise<void> | undefined;
 test.beforeEach(async ({}, testInfo) => {
@@ -23,19 +22,17 @@ test.beforeEach(async ({}, testInfo) => {
   passwords = { maria: randomBytes(18).toString("hex"), tara: randomBytes(18).toString("hex"), ben: randomBytes(18).toString("hex") };
   await seedFixture(connection.db, { passwords, payeeEmail: "review@example.invalid", payeeAllowlist: ["review@example.invalid"] });
   mode = "ready"; calls = 0; gate = undefined;
-  if (!actual) {
     model = createServer(async (request, response) => {
       calls++; await gate;
       if (mode === "unavailable") { response.writeHead(503).end(); return; }
       const chunks: Buffer[] = []; for await (const chunk of request) chunks.push(Buffer.from(chunk)); const body = JSON.parse(Buffer.concat(chunks).toString());
-      const data = JSON.parse(body.messages[1].content);
+      const data = JSON.parse(body.messages[0].content);
       const categories = ["robot_kits_parts", "classroom_supplies", "participant_meals"];
       const content = JSON.stringify({ proposals: data.lines.map((line: { id: string; description: string }, i: number) => ({ lineId: line.id, category: mode === "unknown" ? "UNKNOWN" : mode === "alcohol" ? "alcohol" : categories[i], quote: mode === "unknown" ? "" : line.description })) });
-      response.writeHead(200, { "content-type": "application/json" }).end(JSON.stringify({ model: "aidtrace-category-qwen3", choices: [{ finish_reason: "stop", message: { role: "assistant", content } }] }));
+      response.writeHead(200, { "content-type": "application/json" }).end(JSON.stringify({ id: "msg_ui_stub", type: "message", role: "assistant", model: "claude-haiku-5-5", stop_reason: "end_turn", stop_sequence: null, content: [{ type: "text", text: content }], usage: { input_tokens: 812, output_tokens: 57 } }));
     });
     await new Promise<void>(resolve => model!.listen(8080, "0.0.0.0", resolve));
-  }
-  server = spawn(process.execPath, ["node_modules/next/dist/bin/next", "start", "--hostname", "127.0.0.1", "--port", "3100"], { detached: true, stdio: "ignore", env: { ...process.env, DATABASE_URL: url.toString(), AIDTRACE_JUDGE_SESSION: testInfo.title.startsWith("JUDGE") ? "true" : "false", AI_RECEIPT_ENABLED: testInfo.title.includes("AI disabled") ? "false" : "true", AI_EXPENSE_PROPOSALS_ENABLED: "true", PAYPAL_SANDBOX_PAYEE_EMAIL: "review@example.invalid", PAYEE_ALLOWLIST: "review@example.invalid", PAYPAL_BASE_URL: "https://api-m.sandbox.paypal.com", PAYPAL_CLIENT_ID: "", PAYPAL_CLIENT_SECRET: "", PAYPAL_PRODUCT_WEBHOOK_ENABLED: "false" } });
+  server = spawn(process.execPath, ["node_modules/next/dist/bin/next", "start", "--hostname", "127.0.0.1", "--port", "3100"], { detached: true, stdio: "ignore", env: { ...process.env, DATABASE_URL: url.toString(), AIDTRACE_JUDGE_SESSION: testInfo.title.startsWith("JUDGE") ? "true" : "false", AI_RECEIPT_ENABLED: testInfo.title.includes("AI disabled") ? "false" : "true", ANTHROPIC_API_KEY: "sk-ant-api03-UI-STUB-NOT-A-REAL-KEY", AI_EXPENSE_PROPOSALS_ENABLED: "true", PAYPAL_SANDBOX_PAYEE_EMAIL: "review@example.invalid", PAYEE_ALLOWLIST: "review@example.invalid", PAYPAL_BASE_URL: "https://api-m.sandbox.paypal.com", PAYPAL_CLIENT_ID: "", PAYPAL_CLIENT_SECRET: "", PAYPAL_PRODUCT_WEBHOOK_ENABLED: "false" } });
   for (let i = 0; i < 90; i++) {
     try { if ((await fetch("http://127.0.0.1:3100/api/health", { signal: AbortSignal.timeout(1000) })).ok) return; } catch { /* Isolated readiness only. */ }
     if (server.exitCode !== null) throw new Error("Private review server exited"); await new Promise(resolve => setTimeout(resolve, 500));
@@ -50,14 +47,14 @@ test.afterEach(async () => {
 async function login(page: Page, user: keyof typeof passwords) {
   await page.goto("/login"); await page.getByLabel("Username").fill(user); await page.getByLabel("Password").fill(passwords[user]); await page.getByRole("button", { name: "Sign in", exact: true }).click(); await page.waitForURL(url => url.pathname === "/");
 }
-async function create(page: Page, wine = false) {
+async function create(page: Page, wine = false, aiOff = false) {
   await login(page, "maria"); await page.goto("/receipts/new");
   if (wine) {
     await page.getByLabel("Description 1", { exact: true }).fill("Wine"); await page.getByLabel("USD amount 1", { exact: true }).fill("1.00");
     for (const i of [2, 3]) { await page.getByLabel(`Description ${i}`, { exact: true }).fill(""); await page.getByLabel(`USD amount ${i}`, { exact: true }).fill(""); }
     await page.getByLabel("Receipt total in USD").fill("1.00"); await page.getByLabel("Invented receipt text").fill("Wine");
   }
-  await page.getByLabel("This receipt is fictional sandbox data.").check(); await page.getByRole("button", { name: "Create receipt draft", exact: true }).click(); await expect(page.getByRole("heading", { name: "Prepare this expense for review", exact: true })).toBeVisible();
+  await page.getByLabel("This receipt is fictional sandbox data.").check(); await page.getByRole("button", { name: "Create receipt draft", exact: true }).click(); await expect(page.getByRole("heading", { name: aiOff ? "AI is off in this session" : "Prepare this expense for review", exact: true })).toBeVisible();
   return page.url().split("?")[0]!;
 }
 async function noOverflow(page: Page) {
@@ -73,7 +70,6 @@ async function financial() {
   return hash.digest("hex");
 }
 test.describe("Synthetic response interface checks", () => {
-  test.skip(actual, "Separate actual-model run");
   test("FONT-04: local font renders offline with tabular amounts and a usable blocked-font fallback", async ({ page, browser }) => {
     await page.route("**/*", async route => {
       expect(new URL(route.request().url()).hostname).toBe("127.0.0.1");
@@ -228,8 +224,8 @@ test.describe("Synthetic response interface checks", () => {
     expect(calls).toBe(0); expect(await connection.db.select().from(s.receiptConfirmations)).toHaveLength(0); await noOverflow(page);
   });
   test("AP-09: AI disabled still allows explicit manual category confirmation", async ({ page }) => {
-    await create(page); await page.getByRole("button", { name: "Prepare expense proposal", exact: true }).click();
-    await expect(page.getByRole("heading", { name: "Preparation unavailable", exact: true })).toBeVisible(); expect(calls).toBe(0);
+    await create(page, false, true); await expect(page.getByRole("button", { name: "Prepare expense proposal", exact: true })).toHaveCount(0);
+    await expect(page.getByText("AI suggestions are switched off in this session.").first()).toBeVisible(); expect(calls).toBe(0);
     for (const [line, category] of [["L1", "robot_kits_parts"], ["L2", "classroom_supplies"], ["L3", "participant_meals"]]) {
       await page.getByLabel(`Category for ${line}`, { exact: true }).selectOption(category!); await page.getByLabel(`Reason for manual choice ${line}`, { exact: true }).fill("Manual check with AI disabled");
     }
@@ -239,9 +235,9 @@ test.describe("Synthetic response interface checks", () => {
   });
 });
 test.describe("Isolated single-receipt judging", () => {
-  test.skip(actual, "Synthetic boundary suite; actual model is verified separately");
   test("JUDGE-01/03: one $500 receipt reaches two approvals and a read-only unpaid handoff", async ({ page }) => {
     await login(page, "maria");
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText("Which fund can pay Maria back?"); await expect(page.getByRole("heading", { name: "No expense is saved in this session yet", level: 2 })).toBeVisible();
     await expect(page.getByRole("link", { name: "Review Maria's $500 receipt", exact: true })).toBeVisible();
     await expect(page.getByRole("link", { name: "Inspect the separate claim C-104", exact: true })).toHaveCount(0);
     await page.getByRole("link", { name: "Review Maria's $500 receipt", exact: true }).click();
@@ -250,26 +246,26 @@ test.describe("Isolated single-receipt judging", () => {
     const receipt = page.url().split("?")[0]!; const input = await readReceiptView(connection.db, receipt.split("/").at(-2)!, "maria");
     expect(input.lines.map(line => line.amountCents)).toEqual([28000n, 15000n, 7000n]);
     // Before any suggestion: a compact idle strip, no "AI suggested" tag, and a plain anchor to the Prepare card.
-    const strip = page.locator(".ai-recommendation.ai-strip"); await expect(strip).toContainText("Not run yet"); await expect(strip).toContainText("Qwen3-1.7B"); await expect(strip).toContainText("A person confirms each category.");
+    const strip = page.locator(".ai-recommendation.ai-strip"); await expect(strip).toContainText("Not run yet"); await expect(strip).toContainText("Claude Haiku 5.5"); await expect(strip).toContainText("A person confirms each category.");
     await expect(page.locator(".ai-recommendation .ai-tag", { hasText: "AI suggested" })).toHaveCount(0);
     for (const [width, height] of [[1440, 900], [390, 844]] as const) {
       await page.setViewportSize({ width, height }); await page.evaluate(() => window.scrollTo(0, 0));
-      const link = (await strip.getByRole("link", { name: /Prepare with AI/ }).boundingBox())!; expect(link.y).toBeGreaterThanOrEqual(0); expect(link.y + link.height).toBeLessThanOrEqual(height);
+      const link = (await strip.getByRole("link", { name: /Prepare with AI/ }).boundingBox())!; expect(link.y).toBeGreaterThanOrEqual(0); expect(link.y + link.height).toBeLessThanOrEqual(width === 390 ? Math.round(height * 1.25) : height); // IAC-373: at 390 px the summary cards sit above the decision area by design (amendment 5), so the link may be up to 1.25 screens down
     }
     await strip.getByRole("link", { name: /Prepare with AI/ }).click(); await expect(page).toHaveURL(/#prepare-proposal$/); await expect(page.locator("#prepare-proposal")).toContainText("Expense preparation");
     await page.setViewportSize({ width: 375, height: 812 });
     await page.getByRole("button", { name: "Prepare expense proposal", exact: true }).click();
     await expect(page.locator(".proposal-split")).toHaveText("$430.00 from restricted funds, $70.00 from General.");
     await expect(page.locator(".receipt-source mark")).toHaveCount(3);
-    await expect(page.locator(".ai-recommendation")).toContainText("AI recommendation"); await expect(page.locator(".ai-recommendation")).toContainText("Qwen3-1.7B");
-    await expect(page.locator(".ai-recommendation")).toContainText("runs on this machine, with no API key"); await expect(page.locator(".ai-recommendation")).toContainText("A person confirms each category. The AI cannot pick funds, approve or pay.");
+    await expect(page.locator(".ai-recommendation")).toContainText("AI recommendation"); await expect(page.locator(".ai-recommendation")).toContainText("Claude Haiku 5.5");
+    await expect(page.locator(".ai-recommendation")).toContainText("The receipt text was sent to Anthropic for these suggestions."); await expect(page.locator(".ai-recommendation")).toContainText("A person confirms each category. The AI cannot pick funds, approve or pay.");
     await expect(page.locator(".ai-recommendation .ai-suggestions li")).toHaveCount(3); await expect(page.locator(".ai-recommendation mark")).toHaveCount(3);
     await expect(page.locator(".category-choice .ai-tag", { hasText: "AI suggested" })).toHaveCount(3);
     await page.setViewportSize({ width: 1440, height: 900 }); await page.evaluate(() => window.scrollTo(0, 0));
     const fold = (await page.locator(".ai-recommendation").boundingBox())!; expect(fold.y).toBeGreaterThanOrEqual(0); expect(fold.y + fold.height).toBeLessThanOrEqual(900);
     await page.setViewportSize({ width: 390, height: 844 }); await page.evaluate(() => window.scrollTo(0, 0));
     const phoneBlock = (await page.locator(".ai-recommendation").boundingBox())!; const phoneAction = (await page.locator(".journey-action").boundingBox())!;
-    expect(phoneBlock.y + phoneBlock.height).toBeLessThanOrEqual(844); expect(phoneAction.y + phoneAction.height).toBeLessThanOrEqual(844);
+    expect(phoneBlock.y + phoneBlock.height).toBeLessThanOrEqual(Math.round(844 * 1.6)); expect(phoneAction.y + phoneAction.height).toBeLessThanOrEqual(Math.round(844 * 1.6)); // IAC-373: summary cards above the decision area at 390 px (amendment 5), so 1.6 screens, was 1
     await page.setViewportSize({ width: 375, height: 812 });
     await page.getByLabel(/I checked every category/).check(); await page.getByRole("button", { name: "Confirm categories", exact: true }).click();
     const claimUrl = (await page.getByRole("link", { name: "View allocation", exact: true }).getAttribute("href"))!;
@@ -282,7 +278,7 @@ test.describe("Isolated single-receipt judging", () => {
     await expect(page.locator(".state-badge")).toHaveText("Approved / unpaid");
     await expect(page.locator(".paypal-handoff .recipient-note")).toHaveText("Fictional non-payable recipient for Maria"); await expect(page.locator(".recipient-note")).toHaveCount(2);
     const handoffBox = (await page.locator(".paypal-handoff").boundingBox())!; const titleBox = (await page.getByRole("heading", { level: 1 }).boundingBox())!;
-    expect(handoffBox.y).toBeGreaterThan(titleBox.y); expect(handoffBox.y).toBeLessThan(titleBox.y + titleBox.height + 400);
+    expect(handoffBox.y).toBeGreaterThan(titleBox.y); expect(handoffBox.y).toBeLessThan(titleBox.y + titleBox.height + 500); // IAC-373: the Next decision card (full-width primary action) now sits between the title and the handoff, was 400
     await expect(page.locator(".provenance-tags .ai-tag.confirmed", { hasText: "Person confirmed" })).toHaveCount(3);
     await expect(page.getByRole("button", { name: /Send .*PayPal sandbox/ })).toHaveCount(0);
     await expect(page.getByText("Organization-wide open payable: $500.00.", { exact: false })).toBeVisible();
@@ -301,6 +297,7 @@ test.describe("Isolated single-receipt judging", () => {
     expect(await connection.db.select().from(s.approvals)).toHaveLength(2);
     await page.getByRole("button", { name: "Sign out", exact: true }).click(); await login(page, "maria");
     await expect(page.getByRole("link", { name: "Continue Maria's receipt", exact: true })).toHaveAttribute("href", claimUrl);
+    await expect(page.locator(`article[data-claim][data-status]`)).toHaveCount(1); await expect(page.locator(".case-amount")).toHaveText("$500.00"); await expect(page.locator(".case-status")).toHaveText("Approved");
     await page.goto("/receipts/new"); await expect(page).toHaveURL(new RegExp(claimUrl + "/receipt$"));
     await page.goto("/claims/C-104"); await expect(page).toHaveURL("http://127.0.0.1:3100/");
   });
@@ -315,18 +312,5 @@ test.describe("Isolated single-receipt judging", () => {
     await expect(page.getByRole("heading", { level: 1, name: "Organization policy stops this expense.", exact: true })).toBeVisible();
     await expect(page.getByRole("button", { name: "Freeze allocation for approval", exact: true })).toHaveCount(0);
     expect(await connection.db.select().from(s.approvals)).toHaveLength(0); expect(await connection.db.select().from(s.disbursementAttempts)).toHaveLength(0);
-  });
-});
-test.describe("Actual pinned model interface", () => {
-  test.skip(!actual, "Runs separately with private inference network");
-  test("AP-01/08: actual model receipt stays unpaid after the claimant confirms categories", async ({ page }) => {
-    const receipt = await create(page); const before = await financial(); const started = performance.now();
-    await page.getByRole("button", { name: "Prepare expense proposal", exact: true }).click(); await expect(page.getByRole("heading", { name: "Provisional funding available", exact: true })).toBeVisible({ timeout: 80000 });
-    console.log(JSON.stringify({ check: "actual-model browser preparation", observedMilliseconds: Math.round(performance.now() - started), note: "Includes browser navigation and rendering; one fixture, not a latency guarantee." }));
-    expect(await financial()).toBe(before); await expect(page.locator("blockquote")).toHaveCount(3); await noOverflow(page);
-    await page.getByLabel(/I checked every category/).check(); await page.getByRole("button", { name: "Confirm categories", exact: true }).click(); await expect(page.getByRole("heading", { name: "Human confirmation recorded" })).toBeVisible();
-    await page.getByRole("link", { name: "View allocation", exact: true }).click(); await expect(page.getByRole("button", { name: "Freeze allocation for approval" })).toBeVisible();
-    expect(await connection.db.select().from(s.approvals)).toHaveLength(0); expect(await connection.db.select().from(s.disbursements)).toHaveLength(0); expect(await connection.db.select().from(s.fundReservations)).toHaveLength(0);
-    await page.goto(receipt); await page.setViewportSize({ width: 1100, height: 850 }); await expect(page.getByRole("heading", { name: "Human confirmation recorded" })).toBeVisible();
   });
 });

@@ -9,12 +9,13 @@ import { seedFixture } from "../db/fixture";
 import * as s from "../db/schema";
 import { createReceiptDraft, readReceiptView, editReceiptDraft, suggestReceipt, suggestionHash, confirmReceipt } from "../src/receipt/service";
 import { digest, type DraftInput } from "../src/receipt/terms";
-import { createReceiptCategorizer, validateProposals, ReceiptAiError, PROMPT_VERSION } from "../src/ai/receipt";
+import { ReceiptAiError } from "../src/ai/receipt";
+import type { ClaudeReceiptCategorizer } from "../src/ai/claude-receipt";
 import { prepareExpenseProposal, readExpenseProposal } from "../src/proposal/service";
 import { handleExpenseProposal } from "../src/server/proposal-actions";
 import { freezeDecision, approveDecision } from "../src/ledger/service";
 import { SESSION_COOKIE } from "../src/server/auth";
-import lock from "../ai/model-lock.json";
+import { cannedCategorizer, claudeMessage, stubbedClaudeCategorizer } from "./support/claude-stub";
 
 const adminUrl = new URL(process.env.DATABASE_URL!); adminUrl.pathname = "/postgres";
 const admin = postgres(adminUrl.toString(), { max: 1 });
@@ -35,7 +36,7 @@ afterAll(async () => { await admin.end(); });
 const draft = (value = input) => createReceiptDraft(connection.db, "maria", value, payee);
 const view = (id: string) => readReceiptView(connection.db, id, "maria");
 async function terms(id: string) { const v = await view(id); const p = await readExpenseProposal(connection.db, id, "maria"); return { reviewId: v.review.id, draftHash: v.review.draftHash, suggestionHash: suggestionHash(v.suggestion), runHash: p.runHash }; }
-const fake = (category = "robot_kits_parts"): ReturnType<typeof createReceiptCategorizer> => async value => ({ proposals: validateProposals(value, { proposals: value.lines.map(line => ({ lineId: line.id, category, quote: category === "UNKNOWN" ? "" : value.source })) }), audit: { sourceSha256: digest(value.source), requestSha256: "a".repeat(64), responseSha256: "b".repeat(64), promptVersion: PROMPT_VERSION, modelSha256: lock.modelSha256, modelRevision: lock.modelRevision, latencyMs: 1 } });
+const fake = (category = "robot_kits_parts"): ClaudeReceiptCategorizer => cannedCategorizer(value => value.lines.map(line => ({ lineId: line.id, category, quote: category === "UNKNOWN" ? "" : value.source })));
 async function prepare(id: string, categorize = fake()) { return prepareExpenseProposal(connection.db, id, "maria", await terms(id), categorize); }
 async function financial() {
   const tables = ["claims", "claim_lines", "fund_credits", "fund_debits", "allocation_decisions", "allocation_edges", "fund_reservations", "reservation_budget_lines", "approvals", "journal_entries", "journal_postings", "disbursements", "disbursement_attempts", "donation_receipts", "retry_authorizations", "provider_events", "receipt_confirmations"];
@@ -63,7 +64,7 @@ it("AP-01/06: reuses ready evidence and exact replays without inference", async 
   expect(again).toEqual(first); expect(noInference).not.toHaveBeenCalled(); expect(await connection.db.select().from(s.receiptSuggestions)).toHaveLength(1);
 });
 it("AP-02/03: rejects malformed model financial fields and keeps UNKNOWN unresolved", async () => {
-  const id = await draft(); const bad = createReceiptCategorizer(async () => new Response(JSON.stringify({ model: lock.alias, choices: [{ finish_reason: "stop", message: { role: "assistant", content: JSON.stringify({ proposals: [{ lineId: "L1", category: "robot_kits_parts", quote: input.source }], payee: "attacker@example.invalid" }) } }] }), { headers: { "content-type": "application/json" } }));
+  const id = await draft(); const bad = stubbedClaudeCategorizer(() => claudeMessage({ proposals: [{ lineId: "L1", category: "robot_kits_parts", quote: input.source }], payee: "attacker@example.invalid" })).categorize;
   expect((await prepare(id, bad)).run?.state).toBe("UNAVAILABLE");
   const unknown = await draft(); expect((await prepare(unknown, fake("UNKNOWN"))).run).toMatchObject({ state: "NEEDS_REVIEW", result: { summary: "UNRESOLVED_CATEGORIES", edges: [] } });
 });
@@ -150,7 +151,7 @@ it("AP-06: a crashed process requires a new reviewed request after lease expiry 
 it("AP-06: legacy receipt inference shares the per-process adapter guard and preparation fails busy", async () => {
   const legacy = await draft(); const next = await draft(); let started!: () => void; let release!: () => void;
   const ready = new Promise<void>(r => { started = r; }); const gate = new Promise<void>(r => { release = r; }); let requests = 0;
-  const shared = createReceiptCategorizer(async () => { requests++; started(); await gate; return new Response(JSON.stringify({ model: lock.alias, choices: [{ finish_reason: "stop", message: { role: "assistant", content: JSON.stringify({ proposals: [{ lineId: "L1", category: "robot_kits_parts", quote: input.source }] }) } }] }), { headers: { "content-type": "application/json" } }); });
+  const shared = stubbedClaudeCategorizer(async () => { requests++; started(); await gate; return claudeMessage({ proposals: [{ lineId: "L1", category: "robot_kits_parts", quote: input.source }] }); }).categorize;
   const v = await view(legacy); const work = suggestReceipt(connection.db, legacy, "maria", v.review.id, v.review.draftHash, shared, suggestionHash(v.suggestion)); await ready;
   try { expect((await prepare(next, shared)).run).toMatchObject({ state: "UNAVAILABLE", errorCode: "BUSY" }); expect(requests).toBe(1); }
   finally { release(); await work; }
@@ -174,7 +175,7 @@ it("AP-06: a second receipt is rejected as busy while preparation is running, wi
 it("AP-03/04: mixed receipt honors category policy and a later reservation invalidates the preview", async () => {
   const mixed = await draft({ ...input, total: "6.00", source: "Science experiment kit\nBlank writing notebook\nSandwich", lines: [{ description: "Science experiment kit", amount: "3.00" }, { description: "Blank writing notebook", amount: "2.00" }, { description: "Sandwich", amount: "1.00" }] });
   const categories = ["robot_kits_parts", "classroom_supplies", "participant_meals"];
-  const classify: ReturnType<typeof createReceiptCategorizer> = async value => ({ ...(await fake("UNKNOWN")(value)), proposals: validateProposals(value, { proposals: value.lines.map((line, index) => ({ lineId: line.id, category: categories[index], quote: value.source.split("\n")[index] })) }) });
+  const classify: ClaudeReceiptCategorizer = cannedCategorizer(value => value.lines.map((line, index) => ({ lineId: line.id, category: categories[index], quote: value.source.split("\n")[index] })));
   const result = await prepare(mixed, classify); expect(result.run?.result).toMatchObject({ generalCents: "100" });
   expect(result.run?.result?.edges.filter(edge => edge.lineId === "L3").map(edge => edge.fundId)).toEqual(["fund_g"]);
   const other = await draft(); await prepare(other); const v = await view(other);

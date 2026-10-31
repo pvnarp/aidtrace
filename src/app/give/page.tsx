@@ -1,5 +1,5 @@
 import { headers } from "next/headers";
-import Link from "next/link";
+import { AppHeader } from "../app-header";
 import { getDatabase } from "../../server/db";
 import { donationMode } from "../../server/donation-mode";
 import { eligibleDonationFunds } from "../../server/donation-funds";
@@ -16,7 +16,7 @@ export default async function GivePage() {
   const clientId = mode === "KEYED" ? process.env.PAYPAL_CLIENT_ID?.trim() ?? "" : "";
   const nonce = (await headers()).get("x-nonce") ?? "";
   return <main className="claim-page give-page">
-    <header className="page-header"><Link href="/" prefetch={false}>AidTrace<span className="brand-caption">AI + PayPal / Sandbox</span></Link></header>
+    <AppHeader />
     <p className="eyebrow">Give / Restricted funds</p>
     <h1>Give to a fund.</h1>
     <p className="intro">Choose a restricted fund and an amount. A gift is recorded in that fund&apos;s ledger only after PayPal reports the payment complete.</p>

@@ -39,11 +39,13 @@ services:
       PAYPAL_SANDBOX_PAYEE_EMAIL: judge-demo@example.invalid
       PAYEE_ALLOWLIST: judge-demo@example.invalid
       MAX_DEMO_PAYOUT_CENTS: "50000"
+      # Name only: Compose copies the value from the launching shell. It is never written to session.env or any file.
+      ANTHROPIC_API_KEY:
     volumes:
       - .:/workspace
       - dependencies:/workspace/node_modules:ro
       - session_build:/workspace/.next
-    networks: [database, inference]
+    networks: [database, edge]
     command: [pnpm, start]
     healthcheck:
       test: [CMD, node, -e, "fetch('http://127.0.0.1:3000/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
@@ -57,7 +59,7 @@ services:
     command: [node, /relay.mjs]
     volumes: [./scripts/session-relay.mjs:/relay.mjs:ro]
     ports: ["127.0.0.1:${AIDTRACE_SESSION_PORT}:3000"]
-    networks: [database, ingress]
+    networks: [database, edge]
     mem_limit: 128m
     cpus: 0.5
     pids_limit: 128
@@ -79,9 +81,6 @@ volumes:
 networks:
   database:
     internal: true
-  inference:
-    external: true
-    name: ${AIDTRACE_AI_PROJECT:-aidtrace-judge-ai}_inference
-  ingress:
-    external: true
-    name: ${AIDTRACE_AI_PROJECT:-aidtrace-judge-ai}_default
+  # Outbound HTTPS to the hosted Claude API for the app, and the published loopback port for the relay.
+  # Postgres stays on the internal database network only.
+  edge: {}

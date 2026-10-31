@@ -25,6 +25,8 @@ async function post(body: Record<string, string>): Promise<{ ok: boolean; data: 
   return { ok: response.ok, data };
 }
 const errorText = (data: Record<string, unknown>) => typeof data.error === "string" ? data.error : "Something went wrong. Nothing was recorded. Please try again.";
+// After the donor approves in PayPal, a capture answer without a server error string (a proxy 502 page, an empty 500) must stay unknown: never "Nothing was recorded".
+const captureText = (data: Record<string, unknown>) => typeof data.error === "string" ? data.error : UNCERTAIN;
 
 export function GiveClient({ funds, clientId, nonce }: { funds: readonly GiveFund[]; clientId: string; nonce: string }) {
   const [fundId, setFundId] = useState(funds[0]?.id ?? "");
@@ -89,9 +91,9 @@ export function GiveClient({ funds, clientId, nonce }: { funds: readonly GiveFun
         let result;
         try { result = await post({ action: "capture", id: rowId, orderId: data.orderID }); }
         catch { setNotice(UNCERTAIN); return; } // the capture may have happened: never imply it did not
-        if (!result.ok) { setNotice(errorText(result.data)); return; }
+        if (!result.ok) { setNotice(captureText(result.data)); return; }
         const view = result.data as Partial<DonationView>;
-        setNotice(view.message ?? errorText(result.data));
+        setNotice(view.message ?? captureText(result.data));
         if (view.messageKey === "DECLINED" && view.restart) return actions.restart();
         if (view.messageKey === "COMPLETED") setDone(view.captureTail ? `Capture ID ending in ${view.captureTail}.` : "");
       },

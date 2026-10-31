@@ -5,14 +5,14 @@
 Follow the root README. Use an existing POSIX shell, Docker Compose v2 and Linux ARM64 or
 AMD64 containers. Owner execution stays in OrbStack. The judge launcher accepts another
 existing context without changing the global context. No native toolchain installation.
-Native ARM application/model and AMD64 model emulation have evidence. Physical Docker
+Native ARM application execution has evidence. Physical Docker
 Desktop, full fresh AMD64 application setup and independent-machine access remain unverified.
-Setup needs upstream downloads, storage and time. App/model caps do not establish a minimum
+Setup needs upstream downloads, storage and time. App caps do not establish a minimum
 machine budget. Do not change pins or install native packages to conceal a failed setup.
 
 ## 2. Generate private access: one named session
 
-Run doctor, setup, ai-check download and ai-smoke once, then judge-new review-one 3102 and
+Run doctor and setup once, then judge-new review-one 3102 and
 judge-up review-one. Open http://127.0.0.1:3102/login. The exact private login file, relative
 to this extracted folder, is local/judge-sessions/review-one/session.env. Its three generated
 passwords correspond to maria (claimant), tara and ben (independent approvers).
@@ -64,14 +64,14 @@ and the whole expense before freeze. C-104 remains in tests but is not this judg
   Do not prune or change global Docker pools. Preserve failed-session configuration.
 - Login failure: use the generated role value from that exact session file. Across ports,
   loopback cookies can replace one another; use separate browser profiles or sign in again.
-- Missing model: preserve the error, refresh request status and use manual categories with
-  reasons. This fallback does not demonstrate actual AI. No repeated automatic inference.
+- AI off or a failed request: no Claude key in the launching shell, the 60 request limit or an API error. Use manual categories with
+  reasons. This fallback does not demonstrate AI. To turn AI on, restart with ANTHROPIC_API_KEY exported. No automatic retry.
 - Changed configuration: startup refuses it. Preserve the file for review; create a separate
   session rather than reusing owner credentials or resetting financial records.
-- Old source: judge-up rebuilds only that named app. Keep model/DB pins and volumes intact.
+- Old source: judge-up rebuilds only that named app. Keep DB pins and volumes intact.
 
-Stop session apps when unused to conserve RAM. ai-check down stops the shared judge model,
-preserving weights and manual review. Never use prune, down --volumes or owner secrets.
+Stop session apps when unused to conserve RAM (judge-stop NAME); the key is not stored anywhere,
+so restart with it exported if you want AI again. Never use prune, down --volumes or owner secrets.
 
 ## 5. Keep proof scoped: later independent review
 

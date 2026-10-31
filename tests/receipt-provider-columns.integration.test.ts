@@ -10,10 +10,9 @@ import { migrate } from "drizzle-orm/postgres-js/migrator";
 import { connectDatabase } from "../src/server/db";
 import { seedFixture } from "../db/fixture";
 import * as s from "../db/schema";
-import lock from "../ai/model-lock.json" with { type: "json" };
+import { RETIRED_MODEL_REVISION, RETIRED_MODEL_SHA256 } from "./support/claude-stub";
 import { createReceiptDraft, readReceiptView, suggestReceipt, suggestionHash } from "../src/receipt/service";
 import type { DraftInput } from "../src/receipt/terms";
-import { createReceiptCategorizer } from "../src/ai/receipt";
 import { createClaudeReceiptCategorizer, type ClaudeMessagesClient } from "../src/ai/claude-receipt";
 import { readReceiptAudit } from "../src/ai/audit";
 
@@ -53,7 +52,6 @@ const draft = () => createReceiptDraft(connection.db, "maria", input, payee);
 const view = (id: string) => readReceiptView(connection.db, id, "maria");
 const suggest = async (id: string, categorize: Parameters<typeof suggestReceipt>[5]) => { const v = await view(id); return suggestReceipt(connection.db, id, "maria", v.review.id, v.review.draftHash, categorize, suggestionHash(v.suggestion)); };
 const proposalText = JSON.stringify({ proposals: [{ lineId: "L1", category: "robot_kits_parts", quote: "Science experiment kit" }] });
-const localCategorizer = () => createReceiptCategorizer(async () => new Response(JSON.stringify({ model: "aidtrace-category-qwen3", choices: [{ finish_reason: "stop", message: { role: "assistant", content: proposalText } }] }), { status: 200, headers: { "content-type": "application/json" } }));
 const claudeCategorizer = (model: "claude-haiku-5-5" | "claude-sonnet-5-5") => {
   const response = { id: "msg_stub", type: "message", role: "assistant", model, stop_reason: "end_turn", stop_sequence: null, content: [{ type: "text", text: proposalText }], usage: { input_tokens: 812, output_tokens: 57 } } as unknown as Anthropic.Message;
   return createClaudeReceiptCategorizer({ env: { ANTHROPIC_API_KEY: KEY, AIDTRACE_CLAUDE_MODEL: model }, client: { messages: { create: vi.fn(async () => response) } } as unknown as ClaudeMessagesClient });
@@ -63,7 +61,7 @@ const claudeCategorizer = (model: "claude-haiku-5-5" | "claude-sonnet-5-5") => {
 const LEGACY_ID = "11111111-1111-4111-8111-111111111111";
 const LEGACY_HASH = "b5e66c776415473de43347fcd9e04d447d36fbab15a0eae588c8b3e9d748944d";
 const proposals = [{ lineId: "L1", category: "science_kits", quote: "Science experiment kit", start: 0, end: 22 }];
-const localAudit = { sourceSha256: "a".repeat(64), requestSha256: "b".repeat(64), responseSha256: "c".repeat(64), modelSha256: lock.modelSha256, modelRevision: lock.modelRevision, promptVersion: "receipt-category-v1" };
+const localAudit = { sourceSha256: "a".repeat(64), requestSha256: "b".repeat(64), responseSha256: "c".repeat(64), modelSha256: RETIRED_MODEL_SHA256, modelRevision: RETIRED_MODEL_REVISION, promptVersion: "receipt-category-v1" };
 const claudeAudit = (model = "claude-haiku-5-5") => ({ provider: "claude", model, responseModel: model, effort: "low", promptVersion: "receipt-category-claude-v1", schemaVersion: "receipt-proposals-v1",
   sourceSha256: "a".repeat(64), requestSha256: "b".repeat(64), responseSha256: "c".repeat(64), latencyMs: 1200, inputTokens: 812, outputTokens: 57 });
 const errorChain = (error: unknown) => { const chain: { message?: string; constraint?: string }[] = []; let current = error;
@@ -78,15 +76,21 @@ describe("provider and model columns", () => {
     process.env.APP_ORIGIN = "http://127.0.0.1:3100";
   }, 30000);
 
-  it("PRV-03 a local result stores provider local and the pinned weights revision as the model, and the row reads back as local", async () => {
-    const id = await draft(); expect(await suggest(id, localCategorizer())).toBe(true);
-    const row = (await view(id)).suggestion!;
-    expect(row).toMatchObject({ status: "READY", provider: "local", model: lock.modelRevision });
+  it("PRV-03 a local result can no longer be written: the retired shape is refused, and a row an older database holds still reads back as local", async () => {
+    const id = await draft();
+    const retired = async () => ({ proposals: [{ lineId: "L1", category: "robot_kits_parts", quote: "Science experiment kit", start: 0, end: 22 }],
+      audit: { ...localAudit, promptVersion: "receipt-category-v2", latencyMs: 1 } });
+    expect(await suggest(id, retired as never)).toBe(false);
+    expect((await view(id)).suggestion).toMatchObject({ status: "FAILED", errorCode: "VALIDATION", provider: null, model: null, audit: null });
+    // Inserted directly, as an older database holds it. The check constraint still accepts it, so history stays readable.
+    const other = await draft(); const v = await view(other);
+    await connection.db.insert(s.receiptSuggestions).values({ id: LEGACY_ID, reviewId: v.review.id, attempt: 1, status: "READY", proposals, audit: localAudit, provider: "local", model: RETIRED_MODEL_REVISION });
+    const row = (await view(other)).suggestion!;
+    expect(row).toMatchObject({ status: "READY", provider: "local", model: RETIRED_MODEL_REVISION });
     expect(row.model).toMatch(/^[a-f0-9]{40}$/); expect(row.audit).not.toHaveProperty("provider");
     expect(row.model).toBe(row.audit!.modelRevision);
-    expect(readReceiptAudit(row)).toMatchObject({ provider: "local", modelRevision: lock.modelRevision });
+    expect(readReceiptAudit(row)).toMatchObject({ provider: "local", modelRevision: RETIRED_MODEL_REVISION });
   });
-
   it("PRV-04 a stubbed Claude result stores provider claude and the audit's model, for both allowed models", async () => {
     for (const model of ["claude-haiku-5-5", "claude-sonnet-5-5"] as const) {
       const id = await draft(); expect(await suggest(id, claudeCategorizer(model))).toBe(true);
@@ -113,33 +117,33 @@ describe("provider and model columns", () => {
     const insert = (values: Record<string, unknown>) => connection.db.insert(s.receiptSuggestions).values({ reviewId, attempt: ++attempt, ...values } as never);
     const good = { status: "READY", proposals };
     // Positive controls first, so every refusal below is attributable to its own change.
-    await insert({ ...good, audit: localAudit, provider: "local", model: lock.modelRevision });
+    await insert({ ...good, audit: localAudit, provider: "local", model: RETIRED_MODEL_REVISION });
     await insert({ ...good, audit: claudeAudit("claude-haiku-5-5"), provider: "claude", model: "claude-haiku-5-5" });
     await insert({ ...good, audit: claudeAudit("claude-sonnet-5-5"), provider: "claude", model: "claude-sonnet-5-5" });
-    const upper = lock.modelRevision.toUpperCase(); const other = "f".repeat(40);
+    const upper = RETIRED_MODEL_REVISION.toUpperCase(); const other = "f".repeat(40);
     const { modelRevision: _removed, ...noRevision } = localAudit;
     const cases: Record<string, Record<string, unknown>> = {
       "READY with a null provider": { ...good, audit: localAudit, provider: null, model: null },
-      "READY with a null provider and a model": { ...good, audit: localAudit, provider: null, model: lock.modelRevision },
+      "READY with a null provider and a model": { ...good, audit: localAudit, provider: null, model: RETIRED_MODEL_REVISION },
       "READY claude audit with null provider": { ...good, audit: claudeAudit(), provider: null, model: null },
-      "RUNNING with a provider": { status: "RUNNING", provider: "local", model: lock.modelRevision },
+      "RUNNING with a provider": { status: "RUNNING", provider: "local", model: RETIRED_MODEL_REVISION },
       "FAILED with a provider": { status: "FAILED", errorCode: "UNAVAILABLE", provider: "claude", model: "claude-haiku-5-5" },
       "FAILED with a model only": { status: "FAILED", errorCode: "UNAVAILABLE", provider: null, model: "claude-haiku-5-5" },
       "provider without a model (local)": { ...good, audit: localAudit, provider: "local", model: null },
       "provider without a model (claude)": { ...good, audit: claudeAudit(), provider: "claude", model: null },
-      "local audit carrying a provider key": { ...good, audit: { ...localAudit, provider: "local" }, provider: "local", model: lock.modelRevision },
+      "local audit carrying a provider key": { ...good, audit: { ...localAudit, provider: "local" }, provider: "local", model: RETIRED_MODEL_REVISION },
       "local model that is not 40 hex": { ...good, audit: { ...localAudit, modelRevision: "r" }, provider: "local", model: "r" },
       "local model in upper-case hex": { ...good, audit: { ...localAudit, modelRevision: upper }, provider: "local", model: upper },
       "local model 39 characters": { ...good, audit: { ...localAudit, modelRevision: other.slice(1) }, provider: "local", model: other.slice(1) },
       "local model different from audit.modelRevision": { ...good, audit: localAudit, provider: "local", model: other },
       "local audit with no modelRevision": { ...good, audit: noRevision, provider: "local", model: other },
-      "local provider on a claude audit": { ...good, audit: claudeAudit(), provider: "local", model: lock.modelRevision },
+      "local provider on a claude audit": { ...good, audit: claudeAudit(), provider: "local", model: RETIRED_MODEL_REVISION },
       "claude model outside the two names": { ...good, audit: claudeAudit("claude-opus-5-5"), provider: "claude", model: "claude-opus-5-5" },
       "claude model different from audit.model": { ...good, audit: claudeAudit("claude-sonnet-5-5"), provider: "claude", model: "claude-haiku-5-5" },
       "claude provider on a local audit": { ...good, audit: localAudit, provider: "claude", model: "claude-haiku-5-5" },
       "claude audit tagged for another provider": { ...good, audit: { ...claudeAudit(), provider: "other" }, provider: "claude", model: "claude-haiku-5-5" },
       "unknown provider": { ...good, audit: claudeAudit(), provider: "openai", model: "claude-haiku-5-5" },
-      "empty provider": { ...good, audit: localAudit, provider: "", model: lock.modelRevision },
+      "empty provider": { ...good, audit: localAudit, provider: "", model: RETIRED_MODEL_REVISION },
     };
     for (const [label, values] of Object.entries(cases)) {
       const chain = await failure(insert(values));
@@ -149,7 +153,7 @@ describe("provider and model columns", () => {
   });
 
   it("PRV-07 after completion neither provider nor model can be updated, and the row cannot be deleted", async () => {
-    const id = await draft(); expect(await suggest(id, localCategorizer())).toBe(true);
+    const id = await draft(); expect(await suggest(id, claudeCategorizer("claude-haiku-5-5"))).toBe(true);
     const failed = await draft(); expect(await suggest(failed, async () => { throw new Error("stubbed outage"); })).toBe(false);
     const rows = await connection.db.select().from(s.receiptSuggestions); expect(rows).toHaveLength(2);
     for (const row of rows) {
@@ -166,9 +170,9 @@ describe("provider and model columns", () => {
 
   it("PRV-08 the suggestion hash digests no column: the pinned legacy hash holds for a row that carries provider and model", async () => {
     const id = await draft(); const v = await view(id);
-    await connection.db.insert(s.receiptSuggestions).values({ id: LEGACY_ID, reviewId: v.review.id, attempt: 1, status: "READY", proposals, audit: localAudit, provider: "local", model: lock.modelRevision });
+    await connection.db.insert(s.receiptSuggestions).values({ id: LEGACY_ID, reviewId: v.review.id, attempt: 1, status: "READY", proposals, audit: localAudit, provider: "local", model: RETIRED_MODEL_REVISION });
     const row = (await view(id)).suggestion!;
-    expect(row).toMatchObject({ provider: "local", model: lock.modelRevision });
+    expect(row).toMatchObject({ provider: "local", model: RETIRED_MODEL_REVISION });
     expect(suggestionHash(row)).toBe(LEGACY_HASH);
     expect(suggestionHash({ ...row, provider: "claude", model: "claude-haiku-5-5" })).toBe(LEGACY_HASH);
   });
@@ -205,7 +209,7 @@ describe("migration 0011 backfill", () => {
     expect(await columnNames()).toEqual(expect.arrayContaining(["provider", "model"]));
     const after = await connection.client`select id, status, provider, model, audit::text as audit_text from receipt_suggestions order by id`;
     const byId = Object.fromEntries(after.map(row => [row.id, row]));
-    expect(byId[ids.local]).toMatchObject({ status: "READY", provider: "local", model: lock.modelRevision });
+    expect(byId[ids.local]).toMatchObject({ status: "READY", provider: "local", model: RETIRED_MODEL_REVISION });
     expect(byId[ids.claude]).toMatchObject({ status: "READY", provider: "claude", model: "claude-haiku-5-5" });
     expect(byId[ids.sonnet]).toMatchObject({ status: "READY", provider: "claude", model: "claude-sonnet-5-5" });
     expect(byId[ids.failed]).toMatchObject({ status: "FAILED", provider: null, model: null });
@@ -214,7 +218,7 @@ describe("migration 0011 backfill", () => {
     expect(after.map(row => row.audit_text)).toEqual(before.map(row => row.audit_text));
     expect(hashes(await stored())).toEqual(hashes(before));
     // Through the application read path: the legacy row still has the pinned hash and reads back as local.
-    const legacy = (await view(localClaim)).suggestion!; expect(suggestionHash(legacy)).toBe(LEGACY_HASH); expect(readReceiptAudit(legacy)).toMatchObject({ provider: "local", modelRevision: lock.modelRevision });
+    const legacy = (await view(localClaim)).suggestion!; expect(suggestionHash(legacy)).toBe(LEGACY_HASH); expect(readReceiptAudit(legacy)).toMatchObject({ provider: "local", modelRevision: RETIRED_MODEL_REVISION });
     expect(readReceiptAudit((await view(claudeClaim)).suggestion!)).toMatchObject({ provider: "claude", model: "claude-haiku-5-5" });
     // The trigger is enabled again and still freezes completed rows; the check is in force.
     expect(await triggerState()).toBe("O");

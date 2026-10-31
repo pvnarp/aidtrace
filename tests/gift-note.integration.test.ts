@@ -1,4 +1,6 @@
 import { createHash, randomBytes } from "node:crypto";
+import { createElement } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { eq, sql } from "drizzle-orm";
 import postgres from "postgres";
@@ -9,7 +11,8 @@ import * as s from "../db/schema";
 import { ensureFixtureOpening } from "../src/ledger/opening";
 import { sendClaimPayout, refreshClaimPayout } from "../src/ledger/payout";
 import { readGiftAttribution } from "../src/donation/attribution-reader";
-import { buildNoteFacts, factDigest, readGiftNoteById, readGiftNotes } from "../src/donation/note";
+import { buildNoteFacts, DEFAULT_SELECTION, factDigest, readGiftNoteById, readGiftNotes, renderTemplateNote } from "../src/donation/note";
+import { GiftNotes } from "../src/app/claims/[claimId]/gift-notes";
 import { approveGiftNote } from "../src/donation/note-approval";
 import { handleClaimAction } from "../src/server/claim-actions";
 import { handleNoteDownload } from "../src/server/gift-note-download";
@@ -23,6 +26,8 @@ interface Fixture { db: AppDatabase; client: ReturnType<typeof connectDatabase>[
 const adminUrl = new URL(process.env.DATABASE_URL ?? "postgres://aidtrace@db:5432/aidtrace"); adminUrl.pathname = "/postgres";
 const admin = postgres(adminUrl.toString(), { max: 1 });
 const open: Fixture[] = [];
+// Each test creates, migrates and seeds its own database, which timed out under load at the 5 s default (and the 10 s afterAll) in two recent full runs.
+vi.setConfig({ testTimeout: 30_000, hookTimeout: 60_000 });
 beforeAll(() => { process.env.APP_ORIGIN = ORIGIN; });
 afterAll(async () => { for (const fixture of open) await fixture.close().catch(() => undefined); await admin.end(); });
 
@@ -80,9 +85,9 @@ describe("DON-11 facts and deterministic text from a real recognized claim", () 
     expect(built.facts.optional.method).toEqual({ policy: "GIFT_ATTRIBUTION_V1" });
     const entries = await readGiftNotes(db, ORG, "C-104", 1);
     expect(entries).toHaveLength(1);
-    expect(entries[0]!.draftText).toMatch(/\$25\.00 of the \$280\.00 line\. Approved by (Tara and Ben|Ben and Tara) on [A-Z][a-z]+ \d{1,2}, \d{4}\. No payment has been sent in this environment\.$/);
-    expect(entries[0]!.draftText).toContain("Thank you, A donor. Your gift of $25.00 to Tallow Creek Robot Kit Initiative on October 22, 2026 was applied to Robot kit and parts from Brightbench Supply Co.: $25.00 of the $280.00 line.");
-    expect(entries[0]).toMatchObject({ captureId, giftCents: 2500n, approvedCurrent: false, notes: [] });
+    expect(entries[0]!.draftText).toMatch(/ Approved by (Tara and Ben|Ben and Tara) on [A-Z][a-z]+ \d{1,2}, \d{4}\. No payment has been sent in this environment\.$/);
+    expect(entries[0]!.draftText).toContain("Thank you, A donor. Your $25.00 gift was applied to Robot kit and parts from Brightbench Supply Co. Approved by");
+    expect(entries[0]).toMatchObject({ captureId, giftCents: 2500n, approvedCurrent: false, notes: [], capturedOn: "2026-10-22", shares: [{ description: "Robot kit and parts", appliedCents: 2500n, lineCents: 28000n }] });
   });
   it("splits a USD 200 fund_a gift across the lines its allocation edges cover, summing exactly to the gift", async () => {
     const { db } = await fresh(); const { captureId } = await giftedClaim(db, "fund_a", 20000n);
@@ -92,7 +97,8 @@ describe("DON-11 facts and deterministic text from a real recognized claim", () 
     expect(built.facts.lines.map(line => [line.lineId, line.appliedCents])).toEqual([["L1", "8000"], ["L2", "12000"]]);
     expect(built.applications.map(row => [row.lineId, row.appliedCents])).toEqual([["L1", 8000n], ["L2", 12000n]]);
     const text = (await readGiftNotes(db, ORG, "C-104", 1))[0]!.draftText;
-    expect(text).toContain("was applied to 2 receipt lines from Brightbench Supply Co.: Robot kit and parts, $80.00 of the $280.00 line; Engineering notebooks, $120.00 of the $150.00 line.");
+    expect(text).toContain("Your $200.00 gift was applied to 2 receipt lines from Brightbench Supply Co.: Robot kit and parts and Engineering notebooks.");
+    expect((await readGiftNotes(db, ORG, "C-104", 1))[0]!.shares).toEqual([{ description: "Robot kit and parts", appliedCents: 8000n, lineCents: 28000n }, { description: "Engineering notebooks", appliedCents: 12000n, lineCents: 15000n }]);
   });
   it("renders hostile line text verbatim as data and strips control characters", async () => {
     const { db } = await fresh();
@@ -130,7 +136,7 @@ describe("DON-11 approval by a non-claimant, immutability and idempotency", () =
     const result = await approveGiftNote(db, "ben", { captureId, claimId: "C-104", claimVersion: 1, factDigest: digest });
     expect(result.status).toBe("APPROVED");
     const [note] = await db.select().from(s.giftNotes);
-    expect(note).toMatchObject({ captureId, claimId: "C-104", claimVersion: 1, decisionHash: built.decisionHash, factSetVersion: "donor-note-facts-v1", factDigest: digest, templateId: "default", optionalFactIds: [], mode: "TEMPLATE", modelMetadata: null, approverId: "ben", payoutStatus: "NO_PAYMENT", policyVersion: "GIFT_ATTRIBUTION_V1" });
+    expect(note).toMatchObject({ captureId, claimId: "C-104", claimVersion: 1, decisionHash: built.decisionHash, factSetVersion: "donor-note-facts-v1", factDigest: digest, templateId: "thanks-first", optionalFactIds: [], mode: "TEMPLATE", modelMetadata: null, approverId: "ben", payoutStatus: "NO_PAYMENT", policyVersion: "GIFT_ATTRIBUTION_V1" });
     expect(note!.textHash).toBe(createHash("sha256").update(note!.renderedText, "utf8").digest("hex"));
     const applications = await db.select().from(s.giftApplications);
     const attribution = (await readGiftAttribution(db, ORG)).applications;
@@ -242,14 +248,14 @@ describe("DON-11 payout wording follows the stored attempt and makes an approved
     const notes = await db.select().from(s.giftNotes).where(eq(s.giftNotes.captureId, captureId));
     expect(notes).toHaveLength(2);
     const second = notes.find(row => row.id !== first!.id)!;
-    expect(second.payoutStatus).toBe("PROCESSING"); expect(second.renderedText).toContain("Approved. PayPal payout is processing."); expect(second.renderedText).not.toMatch(/Paid\.|BATCH_NOTE_1/);
+    expect(second.payoutStatus).toBe("PROCESSING"); expect(second.renderedText).toMatch(/Approved by (Tara and Ben|Ben and Tara) on/); expect(second.renderedText.endsWith(" The payout is processing.")).toBe(true); expect(second.renderedText).not.toContain("PayPal"); expect(second.renderedText).not.toMatch(/Paid\.|BATCH_NOTE_1/);
     expect((await db.select().from(s.giftApplications)).length).toBe(2);
     await refreshClaimPayout(db, "C-104", "tara", provider);
     const paid = await facts(db, captureId);
     expect(paid.facts.payout).toEqual({ status: "PAID", batchId: "BATCH_NOTE_1" });
     expect((await approve(db, captureId, "ben")).status).toBe("APPROVED");
     const third = (await db.select().from(s.giftNotes).where(eq(s.giftNotes.captureId, captureId))).find(row => ![first!.id, second.id].includes(row.id))!;
-    expect(third.renderedText).toContain("Paid. PayPal payout batch BATCH_NOTE_1."); expect(third.payoutStatus).toBe("PAID");
+    expect(third.renderedText.endsWith(" Paid. Payout batch BATCH_NOTE_1.")).toBe(true); expect(third.payoutStatus).toBe("PAID");
     expect((await readGiftNoteById(db, second.id))!.note.stale).toBe(true); expect((await readGiftNoteById(db, third.id))!.note.stale).toBe(false);
   });
   it("a payout item that is not SUCCESS never reads as Paid", async () => {
@@ -325,3 +331,45 @@ function transport2() {
     item: vi.fn<PayoutTransport["item"]>(async () => { throw new Error("not used"); }) } satisfies PayoutTransport;
   return { provider };
 }
+
+// DON-13 (IAC-379 Option A, docs/ASSUMPTIONS.md section 47): new approvals store "thanks-first", stored "default" notes are never rewritten.
+describe("DON-13 Option A notes in a real database", () => {
+  it("a newly approved note stores template_id thanks-first with the Option A text, and the page shows its meta line and audit line", async () => {
+    const { db } = await fresh(); const { captureId } = await giftedClaim(db, "fund_b", 2500n);
+    const built = await facts(db, captureId);
+    expect((await approve(db, captureId)).status).toBe("APPROVED");
+    const [note] = await db.select().from(s.giftNotes);
+    expect(note!.templateId).toBe("thanks-first"); expect(note!.optionalFactIds).toEqual([]);
+    expect(note!.renderedText).toBe(renderTemplateNote(built.facts, DEFAULT_SELECTION));
+    expect(note!.renderedText).toMatch(/^Thank you, A donor\. Your \$25\.00 gift was applied to Robot kit and parts from Brightbench Supply Co\. Approved by (Tara and Ben|Ben and Tara) on [A-Z][a-z]+ \d{1,2}, \d{4}\. No payment has been sent in this environment\.$/);
+    expect(note!.renderedText).not.toContain("PayPal");
+    const markup = renderToStaticMarkup(createElement(GiftNotes, { claimId: "C-104", entries: await readGiftNotes(db, ORG, "C-104", 1), canApprove: true })).replace(/<[^>]+>/g, "");
+    expect(markup).toContain("$25.00 of the $280.00 line. Gift recorded October 22, 2026. Template, no AI used.");
+    expect(markup).toMatch(/Note approved by Ben at .+ UTC\. Payout status at approval: No payment sent in this environment\./);
+    expect(markup).not.toContain("Out of date");
+  });
+  it("a stored default note still displays and downloads byte-identically, and a later approval of the same facts does not replace it", async () => {
+    const { db } = await fresh(); const { captureId } = await giftedClaim(db, "fund_b", 2500n);
+    const built = await facts(db, captureId); const digest = factDigest(built.facts);
+    const legacy = await approveGiftNote(db, "ben", { captureId, claimId: "C-104", claimVersion: 1, factDigest: digest, selection: { templateId: "default", optional: [] } });
+    expect(legacy.status).toBe("APPROVED");
+    const [note] = await db.select().from(s.giftNotes);
+    expect(note!.templateId).toBe("default");
+    expect(note!.renderedText).toMatch(/^Thank you, A donor\. Your gift of \$25\.00 to Tallow Creek Robot Kit Initiative on October 22, 2026 was applied to Robot kit and parts from Brightbench Supply Co\.: \$25\.00 of the \$280\.00 line\. Approved by .+\. No payment has been sent in this environment\.$/);
+    expect(await approveGiftNote(db, "tara", { captureId, claimId: "C-104", claimVersion: 1, factDigest: digest })).toEqual({ status: "ALREADY_APPROVED", noteId: note!.id });
+    const entry = (await readGiftNotes(db, ORG, "C-104", 1))[0]!;
+    expect(entry.notes).toHaveLength(1); expect(entry.notes[0]).toMatchObject({ id: note!.id, templateId: "default", renderedText: note!.renderedText, stale: false });
+    expect(entry.draftText).not.toBe(note!.renderedText);
+    const response = await handleNoteDownload(new Request(`${ORIGIN}/api/claims/C-104/notes/${note!.id}`, { headers: { cookie: await cookieFor(db, "ben") } }), "C-104", note!.id, { db });
+    expect(response.status).toBe(200); expect(await response.text()).toBe(`${note!.renderedText}\n\nTemplate, no AI used\n`);
+    expect((await db.select().from(s.giftNotes).where(eq(s.giftNotes.id, note!.id)))[0]!.renderedText).toBe(note!.renderedText);
+  });
+  it("a thanks-first selection with optional facts is stored with the note", async () => {
+    const { db } = await fresh(); const { captureId } = await giftedClaim(db, "fund_b", 2500n);
+    const digest = factDigest((await facts(db, captureId)).facts);
+    expect((await approveGiftNote(db, "ben", { captureId, claimId: "C-104", claimVersion: 1, factDigest: digest, selection: { templateId: "thanks-first", optional: ["method"] } })).status).toBe("APPROVED");
+    const [note] = await db.select().from(s.giftNotes);
+    expect(note).toMatchObject({ templateId: "thanks-first", optionalFactIds: ["method"] });
+    expect(note!.renderedText).toContain("Gifts are applied to approved lines oldest first. This is a narrative, not a trace of a specific purchase.");
+  });
+});

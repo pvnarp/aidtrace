@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 import Anthropic from "@anthropic-ai/sdk";
 import { afterEach, expect, it, vi } from "vitest";
-import { CATEGORIES, localReceiptCategorizer, type ReceiptInput } from "../src/ai/receipt";
+import { CATEGORIES, type ReceiptInput } from "../src/ai/receipt";
 import { CLAUDE_EFFORT, CLAUDE_MAX_TOKENS, CLAUDE_PROMPT_VERSION, CLAUDE_SCHEMA_VERSION, DEFAULT_CLAUDE_MODEL, ReceiptAiConfigError, claudeCategoryRequest, createClaudeReceiptCategorizer, resolveClaudeModel, type ClaudeMessagesClient } from "../src/ai/claude-receipt";
 import { configuredReceiptAiName, resolveReceiptAiProvider, selectReceiptCategorizer } from "../src/ai/provider";
 
@@ -135,14 +135,14 @@ it("CAI-10 maps SDK timeouts, HTTP 408 and the local deadline to TIMEOUT, and th
   caller.abort(); await third;
 });
 
-it("CAI-11 fails closed to UNAVAILABLE with no key, calls neither Claude nor the local model, and names the provider", async () => {
+it("CAI-11 fails closed to UNAVAILABLE with no key, calls no Claude client, and names the provider", async () => {
   for (const vars of [{}, { ANTHROPIC_API_KEY: "" }, { ANTHROPIC_API_KEY: "   " }]) {
-    const { client, create } = stub(); const local = vi.fn();
+    const { client, create } = stub();
     await expect(run(client, input, vars)).rejects.toMatchObject({ code: "UNAVAILABLE" });
-    const selected = selectReceiptCategorizer({ ...vars, AIDTRACE_RECEIPT_AI_PROVIDER: "claude" }, { client, local: local as never });
+    const selected = selectReceiptCategorizer({ ...vars, AIDTRACE_RECEIPT_AI_PROVIDER: "claude" }, { client });
     expect(selected.provider).toBe("claude");
     await expect(selected.categorize(input)).rejects.toMatchObject({ code: "UNAVAILABLE" });
-    expect(create).not.toHaveBeenCalled(); expect(local).not.toHaveBeenCalled();
+    expect(create).not.toHaveBeenCalled();
   }
   vi.stubEnv("AIDTRACE_RECEIPT_AI_PROVIDER", "claude"); vi.stubEnv("ANTHROPIC_API_KEY", "");
   const fetcher = vi.fn<typeof fetch>(); vi.stubGlobal("fetch", fetcher);
@@ -165,22 +165,19 @@ it("CAI-12 accepts only the two model IDs, defaults to Haiku 5.5, and refuses an
   for (const bad of ["sk-ant-secret-looking-value", "claude-opus-5-5", "claude-haiku-4-5"]) {
     expect(() => resolveClaudeModel({ AIDTRACE_CLAUDE_MODEL: bad })).toThrow(/must be exactly one of: claude-haiku-5-5, claude-sonnet-5-5$/);
   }
-  // The model variable matters only when Claude is selected, so a stray value cannot break the local default.
-  expect(selectReceiptCategorizer({ AIDTRACE_CLAUDE_MODEL: "claude-opus-5-5" }).provider).toBe("local");
+  // Claude is the only provider, so the model variable always matters: a stray value refuses instead of selecting.
+  expect(() => selectReceiptCategorizer({ AIDTRACE_CLAUDE_MODEL: "claude-opus-5-5" })).toThrow(ReceiptAiConfigError);
 });
 
-it("CAI-13 defaults to the local provider with the unchanged local categorizer, and refuses unknown provider values", () => {
-  expect(resolveReceiptAiProvider({})).toBe("local");
-  const selected = selectReceiptCategorizer({});
-  expect(selected.provider).toBe("local");
-  expect(selected.categorize).toBe(localReceiptCategorizer);
-  expect(selectReceiptCategorizer({ AIDTRACE_RECEIPT_AI_PROVIDER: "local", ANTHROPIC_API_KEY: KEY }).categorize).toBe(localReceiptCategorizer);
+it("CAI-13 selects Claude by default and accepts only the value claude: an unknown or retired provider value refuses, never selects", () => {
+  expect(resolveReceiptAiProvider({})).toBe("claude");
+  expect(selectReceiptCategorizer({}, { client: stub().client })).toMatchObject({ provider: "claude", model: "claude-haiku-5-5" });
   expect(selectReceiptCategorizer({ AIDTRACE_RECEIPT_AI_PROVIDER: "claude", ANTHROPIC_API_KEY: KEY }, { client: stub().client })).toMatchObject({ provider: "claude", model: "claude-haiku-5-5" });
   expect(selectReceiptCategorizer({ AIDTRACE_RECEIPT_AI_PROVIDER: "claude", AIDTRACE_CLAUDE_MODEL: "claude-sonnet-5-5" }, { client: stub().client })).toMatchObject({ provider: "claude", model: "claude-sonnet-5-5" });
-  for (const bad of ["", "Claude", "LOCAL", "openai", " local", "local,claude"]) {
+  for (const bad of ["", "Claude", "LOCAL", "local", "openai", " claude", "local,claude"]) {
     expect(() => selectReceiptCategorizer({ AIDTRACE_RECEIPT_AI_PROVIDER: bad })).toThrow(ReceiptAiConfigError);
   }
-  expect(() => resolveReceiptAiProvider({ AIDTRACE_RECEIPT_AI_PROVIDER: "sk-ant-secret-looking-value" })).toThrow(/must be exactly one of: local, claude$/);
+  expect(() => resolveReceiptAiProvider({ AIDTRACE_RECEIPT_AI_PROVIDER: "sk-ant-secret-looking-value" })).toThrow(/must be exactly: claude$/);
 });
 
 it("CAI-14 an injected receipt instruction yields only a grounded categorization and no other effect", async () => {
@@ -304,13 +301,13 @@ it("CAI-22 accepts the requested model or its dated snapshot, and refuses every 
     await expect(run(stub(() => Promise.resolve(message({ model: served }))).client)).rejects.toMatchObject({ code: "SHAPE" });
 });
 
-it("CAI-36 names the configured provider for the idle receipt strip, and nothing when AI is off or misconfigured", () => {
-  const on = { AI_RECEIPT_ENABLED: "true" };
-  expect(configuredReceiptAiName(on)).toEqual({ provider: "local", name: "Qwen3-1.7B" });
-  expect(configuredReceiptAiName({ ...on, AIDTRACE_RECEIPT_AI_PROVIDER: "claude" })).toEqual({ provider: "claude", name: "Claude Haiku 5.5" });
-  expect(configuredReceiptAiName({ ...on, AIDTRACE_RECEIPT_AI_PROVIDER: "claude", AIDTRACE_CLAUDE_MODEL: "claude-sonnet-5-5" })).toEqual({ provider: "claude", name: "Claude Sonnet 5.5" });
-  for (const env of [{}, { AI_RECEIPT_ENABLED: "false", AIDTRACE_RECEIPT_AI_PROVIDER: "claude" }, { ...on, AIDTRACE_RECEIPT_AI_PROVIDER: "" },
-    { ...on, AIDTRACE_RECEIPT_AI_PROVIDER: "sk-ant-secret-looking-value" }, { ...on, AIDTRACE_RECEIPT_AI_PROVIDER: "claude", AIDTRACE_CLAUDE_MODEL: "claude-opus-5-5" }]) {
+it("CAI-36 names the configured model for the idle receipt strip, and nothing when AI is off, misconfigured or has no key", () => {
+  const on = { AI_RECEIPT_ENABLED: "true", ANTHROPIC_API_KEY: KEY };
+  expect(configuredReceiptAiName(on)).toEqual({ name: "Claude Haiku 5.5", shellName: "Claude Haiku" });
+  expect(configuredReceiptAiName({ ...on, AIDTRACE_RECEIPT_AI_PROVIDER: "claude" })).toEqual({ name: "Claude Haiku 5.5", shellName: "Claude Haiku" });
+  expect(configuredReceiptAiName({ ...on, AIDTRACE_CLAUDE_MODEL: "claude-sonnet-5-5" })).toEqual({ name: "Claude Sonnet 5.5", shellName: "Claude Sonnet 5.5" });
+  for (const env of [{}, { ...on, AI_RECEIPT_ENABLED: "false" }, { AI_RECEIPT_ENABLED: "true" }, { ...on, ANTHROPIC_API_KEY: "  " }, { ...on, AIDTRACE_RECEIPT_AI_PROVIDER: "" }, { ...on, AIDTRACE_RECEIPT_AI_PROVIDER: "local" },
+    { ...on, AIDTRACE_RECEIPT_AI_PROVIDER: "sk-ant-secret-looking-value" }, { ...on, AIDTRACE_CLAUDE_MODEL: "claude-opus-5-5" }]) {
     expect(configuredReceiptAiName(env)).toBeNull();
   }
 });

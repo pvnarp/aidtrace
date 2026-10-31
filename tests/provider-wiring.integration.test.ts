@@ -9,9 +9,9 @@ import { seedFixture } from "../db/fixture";
 import * as s from "../db/schema";
 import { createReceiptDraft, readReceiptView, suggestReceipt, confirmReceipt, suggestionHash } from "../src/receipt/service";
 import { digest, type DraftInput } from "../src/receipt/terms";
-import { createReceiptCategorizer, validateProposals, PROMPT_VERSION } from "../src/ai/receipt";
 import { createClaudeReceiptCategorizer, CLAUDE_PROMPT_VERSION, CLAUDE_SCHEMA_VERSION, type ClaudeMessagesClient } from "../src/ai/claude-receipt";
-import { readReceiptAudit } from "../src/ai/audit";
+import { readReceiptAudit, receiptAuditLabel } from "../src/ai/audit";
+import { RETIRED_MODEL_REVISION, RETIRED_MODEL_SHA256 } from "./support/claude-stub";
 import { handleReceiptAction } from "../src/server/receipt-actions";
 import { handleExpenseProposal } from "../src/server/proposal-actions";
 import { readExpenseProposal } from "../src/proposal/service";
@@ -48,7 +48,7 @@ async function request(fields: Record<string, string>, id: string, path = `/api/
 }
 const suggestFields = async (id: string) => { const v = await view(id); return { action: "suggest", reviewId: v.review.id, draftHash: v.review.draftHash, suggestionHash: suggestionHash(v.suggestion) }; };
 
-it("CAI-30 a Claude result is stored under Claude provenance with the categorizer's own audit, never under Qwen provenance", async () => {
+it("CAI-30 a Claude result is stored under Claude provenance with the categorizer's own audit, never under the retired local provenance", async () => {
   const id = await draft(); const { create, client } = claudeClient();
   const categorize = createClaudeReceiptCategorizer({ env: { ANTHROPIC_API_KEY: KEY }, client });
   expect(await suggest(id, categorize)).toBe(true); expect(create).toHaveBeenCalledTimes(1);
@@ -74,27 +74,25 @@ it("CAI-31 an invalid Claude audit is refused and stores nothing as READY", asyn
   }
 });
 
-it("CAI-32 a legacy local row and a new local row have the same stored shape, and the legacy row reads back as local with an unchanged hash", async () => {
+it("CAI-32 a retired local row still reads back, labelled as an earlier model with an unchanged hash, and new code can no longer write one", async () => {
   const id = await draft(); const first = await view(id);
-  // A READY row as every database holds it today: six audit fields, no provider key. Inserted
-  // directly with fixed values so its hash is pinned (shasum -a 256 over the jsonb read-back text).
+  // A READY row as older databases hold it: six audit fields, no provider key. Inserted directly with fixed values so its hash
+  // is pinned (shasum -a 256 over the jsonb read-back text). Nothing in the app writes this shape any more.
   const legacy = { sourceSha256: "a".repeat(64), requestSha256: "b".repeat(64), responseSha256: "c".repeat(64),
-    modelSha256: "061b54daade076b5d3362dac252678d17da8c68f07560be70818cace6590cb1a", modelRevision: "90862c4b9d2787eaed51d12237eafdfe7c5f6077", promptVersion: "receipt-category-v1" };
+    modelSha256: RETIRED_MODEL_SHA256, modelRevision: RETIRED_MODEL_REVISION, promptVersion: "receipt-category-v1" };
   await connection.db.insert(s.receiptSuggestions).values({ id: "11111111-1111-4111-8111-111111111111", reviewId: first.review.id, attempt: 1, status: "READY", provider: "local", model: legacy.modelRevision,
     proposals: [{ lineId: "L1", category: "science_kits", quote: "Science experiment kit", start: 0, end: 22 }], audit: legacy });
   const row = (await view(id)).suggestion!;
   expect(suggestionHash(row)).toBe("b5e66c776415473de43347fcd9e04d447d36fbab15a0eae588c8b3e9d748944d");
   expect(readReceiptAudit(row)).toMatchObject({ provider: "local", modelRevision: legacy.modelRevision });
+  expect(receiptAuditLabel(row)).toEqual({ short: "Earlier AI", model: "Earlier AI model, since retired" });
   expect(row.audit).not.toHaveProperty("provider");
-  // A new local result is written with exactly the same keys and lock values.
-  const other = await draft(); const v = await view(other);
-  const body = JSON.stringify({ model: "aidtrace-category-qwen3", choices: [{ finish_reason: "stop", message: { role: "assistant", content: JSON.stringify({ proposals: [{ lineId: "L1", category: "robot_kits_parts", quote: "Science experiment kit" }] }) } }] });
-  const local = createReceiptCategorizer(async () => new Response(body, { status: 200, headers: { "content-type": "application/json" } }));
-  expect(await suggestReceipt(connection.db, other, "maria", v.review.id, v.review.draftHash, local, suggestionHash(v.suggestion))).toBe(true);
-  const stored = (await view(other)).suggestion!.audit!;
-  expect(Object.keys(stored).sort()).toEqual(Object.keys(legacy).sort());
-  expect(stored).toMatchObject({ modelSha256: legacy.modelSha256, modelRevision: legacy.modelRevision, promptVersion: PROMPT_VERSION, sourceSha256: digest(input.source) });
-  expect(readReceiptAudit((await view(other)).suggestion!)).toMatchObject({ provider: "local" });
+  // A categorizer result in the retired shape (no provider key) is refused at the write boundary and stores no READY row.
+  const other = await draft();
+  const retired = async (value: { source: string }) => ({ proposals: [{ lineId: "L1", category: "robot_kits_parts", quote: "Science experiment kit", start: 0, end: 22 }],
+    audit: { sourceSha256: digest(value.source), requestSha256: "a".repeat(64), responseSha256: "b".repeat(64), promptVersion: "receipt-category-v2", modelSha256: legacy.modelSha256, modelRevision: legacy.modelRevision, latencyMs: 1 } });
+  expect(await suggest(other, retired as never)).toBe(false);
+  expect((await view(other)).suggestion).toMatchObject({ status: "FAILED", errorCode: "VALIDATION", audit: null, proposals: null });
 });
 
 it("CAI-33 the receipt action selects Claude from the environment, stores the Claude audit, and refuses an invalid selection with no model call", async () => {

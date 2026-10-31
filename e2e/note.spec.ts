@@ -54,7 +54,8 @@ const fits = async (page: Page) => expect(await page.evaluate(() => document.doc
 test("IAC-379 step 3b: a non-claimant approves the template donor note, it downloads as plain text, and no external request is made", async ({ page }) => {
   const external: string[] = [];
   page.on("request", request => { if (!/^(http:\/\/127\.0\.0\.1:3100\/|data:|blob:)/.test(request.url())) external.push(request.url()); });
-  const draft = "Thank you, A donor. Your gift of $25.00 to Tallow Creek Robot Kit Initiative on October 22, 2026 was applied to Robot kit and parts from Brightbench Supply Co.: $25.00 of the $280.00 line.";
+  const draft = "Thank you, A donor. Your $25.00 gift was applied to Robot kit and parts from Brightbench Supply Co. Approved by";
+  const meta = "$25.00 of the $280.00 line. Gift recorded October 22, 2026. Template, no AI used.";
 
   // The claimant sees the draft and the label, and no approve button.
   await login(page, "maria"); await page.goto("/claims/C-104");
@@ -62,7 +63,10 @@ test("IAC-379 step 3b: a non-claimant approves the template donor note, it downl
   await expect(section.getByRole("heading", { name: "Donor impact notes", level: 2 })).toBeVisible();
   await expect(section.getByTestId("gift-note-draft")).toContainText(draft);
   await expect(section.getByTestId("gift-note-draft")).toContainText("No payment has been sent in this environment.");
-  await expect(section.getByTestId("gift-note-label")).toHaveText("Template, no AI used");
+  await expect(section.getByTestId("gift-note-meta")).toHaveText(meta);
+  await expect(section.getByTestId("gift-note-intro")).toHaveText("Built from verified records. Approved by someone other than the claimant. Nothing is emailed.");
+  await expect(section.getByTestId("gift-note-policy")).toHaveText("Gifts are applied to approved receipt lines, oldest gift first. It is a narrative, not an accounting method.");
+  await expect(section.getByTestId("gift-note-draft")).not.toContainText("PayPal");
   await expect(section.getByRole("button", { name: "Approve this note" })).toHaveCount(0);
   await expect(section).toContainText("An approver who is not the claimant approves this note.");
 
@@ -77,7 +81,8 @@ test("IAC-379 step 3b: a non-claimant approves the template donor note, it downl
   const approved = page.locator("#donor-notes").getByTestId("gift-note-approved");
   await expect(approved).toHaveCount(1);
   await expect(approved).toContainText(draft);
-  await expect(approved).toContainText("Approved by Ben");
+  await expect(approved.getByTestId("gift-note-meta")).toHaveText(meta);
+  await expect(approved.getByTestId("gift-note-audit")).toContainText("Note approved by Ben at");
   await expect(approved).toContainText("Payout status at approval: No payment sent in this environment");
   await expect(approved).not.toContainText("Out of date");
   await expect(page.locator("#donor-notes").getByRole("button", { name: "Approve this note" })).toHaveCount(0);
@@ -92,7 +97,7 @@ test("IAC-379 step 3b: a non-claimant approves the template donor note, it downl
 
   // The claimant sees the approved note read-only.
   await login(page, "maria"); await page.goto("/claims/C-104");
-  await expect(page.locator("#donor-notes").getByTestId("gift-note-approved")).toContainText("Approved by Ben");
+  await expect(page.locator("#donor-notes").getByTestId("gift-note-approved")).toContainText("Note approved by Ben");
   await expect(page.locator("#donor-notes").getByRole("button", { name: "Approve this note" })).toHaveCount(0);
   expect(external).toEqual([]);
 });

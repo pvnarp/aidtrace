@@ -8,13 +8,13 @@ import { seedFixture } from "../db/fixture";
 import * as s from "../db/schema";
 import { createReceiptDraft, readReceiptView, editReceiptDraft, suggestReceipt, confirmReceipt, suggestionHash, configuredReceiptPayee } from "../src/receipt/service";
 import { digest, normalizeDraft, parseUsd, type DraftInput } from "../src/receipt/terms";
-import { createReceiptCategorizer, validateProposals, ReceiptAiError, PROMPT_VERSION } from "../src/ai/receipt";
+import { ReceiptAiError } from "../src/ai/receipt";
 import { freezeDecision, approveDecision } from "../src/ledger/service";
 import { loadClaimView } from "../src/server/claim-view";
 import { handleReceiptAction } from "../src/server/receipt-actions";
 import { handleClaimAction } from "../src/server/claim-actions";
 import { SESSION_COOKIE } from "../src/server/auth";
-import lock from "../ai/model-lock.json";
+import { cannedCategorizer, RETIRED_MODEL_REVISION, RETIRED_MODEL_SHA256 } from "./support/claude-stub";
 
 const adminUrl = new URL(process.env.DATABASE_URL!); adminUrl.pathname = "/postgres";
 const admin = postgres(adminUrl.toString(), { max: 1 });
@@ -47,7 +47,7 @@ async function view(id: string) { return readReceiptView(connection.db, id, "mar
 async function confirm(id: string, category = "robot_kits_parts", reason = "Checked synthetic source") {
   const v = await view(id); return confirmReceipt(connection.db, id, "maria", v.review.id, v.review.draftHash, v.suggestion?.id ?? null, suggestionHash(v.suggestion), [{ lineId: "L1", category, reason }]);
 }
-const stub: ReturnType<typeof createReceiptCategorizer> = async value => ({ proposals: validateProposals(value, { proposals: [{ lineId: "L1", category: "robot_kits_parts", quote: "Science experiment kit" }] }), audit: { sourceSha256: digest(value.source), requestSha256: "a".repeat(64), responseSha256: "b".repeat(64), promptVersion: PROMPT_VERSION, modelSha256: lock.modelSha256, modelRevision: lock.modelRevision, latencyMs: 1 } });
+const stub = cannedCategorizer(() => [{ lineId: "L1", category: "robot_kits_parts", quote: "Science experiment kit" }]);
 async function suggest(id: string, categorize = stub) { const v = await view(id); return suggestReceipt(connection.db, id, "maria", v.review.id, v.review.draftHash, categorize, suggestionHash(v.suggestion)); }
 async function request(actor: string | null, fields: Record<string, string>, id: string | null = null, origin = "http://127.0.0.1:3100") {
   let token = "";
@@ -120,8 +120,8 @@ it("GB-01: alcohol confirmation records the fact but cannot fund or reserve reim
 it("CAT-14: legacy ids are refused at confirmation, even beside a preserved legacy READY row, and the refusal stores nothing", async () => {
   const id = await draft(); const first = await view(id);
   // A READY row as an old database holds it: legacy category id and v1 audit, inserted directly (never written by new code).
-  const legacyAudit = { sourceSha256: digest(input.source), requestSha256: "b".repeat(64), responseSha256: "c".repeat(64), modelSha256: lock.modelSha256, modelRevision: lock.modelRevision, promptVersion: "receipt-category-v1" };
-  await connection.db.insert(s.receiptSuggestions).values({ id: "11111111-1111-4111-8111-111111111111", reviewId: first.review.id, attempt: 1, status: "READY", provider: "local", model: lock.modelRevision,
+  const legacyAudit = { sourceSha256: digest(input.source), requestSha256: "b".repeat(64), responseSha256: "c".repeat(64), modelSha256: RETIRED_MODEL_SHA256, modelRevision: RETIRED_MODEL_REVISION, promptVersion: "receipt-category-v1" };
+  await connection.db.insert(s.receiptSuggestions).values({ id: "11111111-1111-4111-8111-111111111111", reviewId: first.review.id, attempt: 1, status: "READY", provider: "local", model: RETIRED_MODEL_REVISION,
     proposals: [{ lineId: "L1", category: "science_kits", quote: "Science experiment kit", start: 0, end: 22 }], audit: legacyAudit });
   expect((await view(id)).suggestion!.proposals![0]!.category).toBe("science_kits");
   for (const legacy of ["science_kits", "notebooks", "hospitality"]) await expect(confirm(id, legacy, "Human choice")).rejects.toThrow("confirmed category");

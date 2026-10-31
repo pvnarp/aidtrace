@@ -1,67 +1,38 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
+import { ARCHITECTURE_NODES, type ArchitectureStage, type NodeId } from "./stages";
 
-const steps = [
-  { name: "1. Receipt", actor: "Maria", heading: "A person enters the expense.", text: "Maria paid $500: $280 of science kits, $150 of notebooks and $70 of refreshments. She enters the amounts and receipt text. Nothing is approved or paid.", path: ["browser", "app", "db"], input: "Receipt text and person-entered amounts", output: "An unpaid draft", boundary: "The browser cannot post a journal or pay a claim." },
-  { name: "2. AI suggestion", actor: "Local model", heading: "AI suggests categories. It cannot spend.", text: "The app asks the local model to suggest a category for each line and quote the receipt. The app validates the response. Maria must check and confirm every category; a matching quote alone does not prove a category is right.", path: ["app", "model", "app", "db"], input: "Saved receipt text", output: "Suggestions for human review", boundary: "The model has no PayPal tools, approval authority or ledger access." },
-  { name: "3. Funding rules", actor: "Policy engine", heading: "Approved rules decide what each fund may cover.", text: "Illustrative split: $200 kits from the Tallow Creek Robot Kit Initiative, $80 kits plus $150 notebooks from the Ashmere County Afterschool STEM Subgrant, and $70 refreshments from General Operating. Categories, program, date, balances and shared caps constrain the result. Maria reviews the split and freezes the terms. General Operating still follows organization-wide bans.", path: ["app", "db", "app"], input: "Human-confirmed categories and current fund rules", output: "A funding split, then frozen terms and reservations", boundary: "AI does not choose an exception. A rule failure stops the allocation." },
-  { name: "4. Two approvals", actor: "Tara + Ben", heading: "Two different people approve the same terms.", text: "Tara reviews the expense, categories, recipient and split. Ben reviews the same frozen decision. One approval is not enough. Changed financial terms invalidate old approvals. On the second approval, the app recognizes the obligation, not a payment.", path: ["browser", "app", "db"], input: "Frozen terms and each authenticated reviewer", output: "Two approvals and a reimbursement payable", boundary: "Maria cannot approve her own claim. AI cannot approve for anyone." },
-  { name: "5. PayPal", actor: "Authorized approver", heading: "The keyless review ends at an unpaid PayPal handoff.", text: "After two approvals, the judge session shows the $500 request structure with a masked fictional recipient. No request is submitted and no provider IDs are assigned. A separate payment-enabled session would require explicit Send, durable sender IDs and independent item verification. Pending or unknown would remain unpaid.", path: ["browser", "app", "db"], input: "Two human approvals of the frozen terms", output: "Read-only request structure and an unpaid obligation", boundary: "The keyless review has no Send authority. This illustration makes no provider request." },
-  { name: "6. Ledger", actor: "Ledger module", heading: "Verified success closes the payable once.", text: "Only a verified successful payout item permits settlement. The ledger records the payment and reported fee. Re-reading the same result must not post it twice. Book cash is an accounting figure, not a current PayPal balance.", path: ["app", "db"], input: "Independently fetched success and reported fee", output: "Settlement, fee and a read-only cash view", boundary: "Only the ledger module writes journals. No success is invented by an animation." },
-] as const;
-const nodes = [
-  { id: "browser", label: "Browser", description: "Maria, Tara or Ben" },
-  { id: "app", label: "AidTrace app", description: "Rules, approvals, adapter, ledger" },
-  { id: "model", label: "Local AI model", description: "Separate container" },
-  { id: "db", label: "Postgres", description: "Separate container" },
-  { id: "paypal", label: "PayPal Sandbox", description: "External service" },
-] as const;
-const nodeNames = Object.fromEntries(nodes.map(node => [node.id, node.label]));
-
-export function ArchitectureExplorer() {
+// IAC-403: the locked mock's stage picker with a polite live note. The component highlight from the earlier explorer is kept,
+// including the Claude node. Everything is an illustration of the selected explanation: no request is made and nothing is observed.
+// As before, choosing a stage or component moves focus to the explanation heading so keyboard and screen reader users land on it.
+export function ArchitectureExplorer({ stages }: { stages: ArchitectureStage[] }) {
   const [selected, select] = useState(0);
-  const [blocked, setBlocked] = useState(false);
+  const [selection, changedSelection] = useState(0);
   const heading = useRef<HTMLHeadingElement>(null);
   const requestedFocus = useRef(false);
-  const [selection, changedSelection] = useState(0);
-  function choose(index: number, blockedCase = blocked) {
-    requestedFocus.current = true;
-    select(index); setBlocked(blockedCase); changedSelection(value => value + 1);
-  }
+  function choose(index: number) { requestedFocus.current = true; select(index); changedSelection(value => value + 1); }
   useEffect(() => {
     if (!requestedFocus.current) return;
     requestedFocus.current = false;
     heading.current?.focus({ preventScroll: true });
-    heading.current?.closest(".explorer-detail")?.scrollIntoView({ block: "start", behavior: "instant" });
+    heading.current?.closest(".reference-note")?.scrollIntoView({ block: "start", behavior: "instant" });
   }, [selection]);
-  const step = steps[selected]!;
-  const stopped = blocked && selected >= 2;
-  const path: readonly string[] = stopped ? ["app", "db", "app"] : step.path;
-  const component = (id: typeof nodes[number]["id"], target: number) => {
-    const node = nodes.find(item => item.id === id)!;
-    return <button className={`architecture-node${path.includes(id) ? " active" : ""}`} aria-label={`Explore ${node.label}`} aria-pressed={path.includes(id)} onClick={() => choose(target)}><strong>{node.label}</strong><span>{node.description}</span></button>;
+  const stage = stages[selected]!;
+  const active = new Set<NodeId>(stage.nodes);
+  const component = (id: NodeId, target: number) => {
+    const node = ARCHITECTURE_NODES.find(item => item.id === id)!;
+    return <button className={`architecture-node${active.has(id) ? " active" : ""}${id === "paypal" ? " paypal" : ""}`} aria-label={`Explore ${node.label}`} aria-pressed={active.has(id)} onClick={() => choose(target)}><strong>{node.label}</strong><span>{node.description}</span></button>;
   };
   return <div className="architecture-explorer">
-    <div className="explorer-case" role="group" aria-label="Illustrative scenario"><button aria-pressed={!blocked} onClick={() => choose(0, false)}>Allowed expense: $500</button><button className="secondary" aria-pressed={blocked} onClick={() => choose(2, true)}>What if the receipt includes alcohol?</button></div>
-    <p className="explorer-disclaimer">Interactive explanation using fictional data. No model, provider or financial requests are executed. This is not live telemetry.</p>
-    <nav aria-label="Architecture steps" className="explorer-steps">{steps.map((item, index) => <button key={item.name} aria-pressed={selected === index} onClick={() => choose(index)}>{item.name}</button>)}</nav>
+    <div className="reference-links" role="group" aria-label="Architecture stages">{stages.map((item, index) => <button key={item.title} className="secondary" aria-pressed={index === selected} onClick={() => choose(index)}>{item.title}</button>)}</div>
+    <div className="reference-note" aria-live="polite" aria-atomic="true" data-testid="architecture-note"><h2 ref={heading} tabIndex={-1} className="explorer-heading">{stage.title}</h2><p className="reference-path">{stage.path}</p><p>{stage.text}</p></div>
     <div className="deployment-flow" role="group" aria-label="Illustrated deployment boundaries">
-      <div className="deployment-edge"><p className="eyebrow">User device</p>{component("browser", 0)}</div>
-      <div className="deployment-orbstack"><p className="eyebrow">Private Docker containers</p>{component("app", 2)}<p className="container-links" aria-hidden="true">↕</p><div className="deployment-services">{component("model", 1)}{component("db", 5)}</div></div>
-      <div className="deployment-edge"><p className="eyebrow">External service</p>{component("paypal", 4)}</div>
+      <div className="deployment-edge"><p className="eyebrow">User device</p>{component("browser", 2)}</div>
+      <div className="deployment-orbstack"><p className="eyebrow">Private Docker containers</p>{component("app", 1)}<p className="container-links" aria-hidden="true">↕</p><div className="deployment-services">{component("db", 1)}</div></div>
+      <div className="deployment-external"><p className="eyebrow">External API</p>{component("model", 0)}</div>
+      <div className="deployment-edge"><p className="eyebrow">External service</p>{component("paypal", 3)}</div>
     </div>
-    <p className="muted">Click a component or a step. Highlights illustrate the selected handoff; they do not indicate live traffic.</p>
-    <div className="explorer-detail" aria-live="polite" aria-atomic="true">
-      <p className="eyebrow">{stopped ? "Policy stop / No bypass" : `Step ${selected + 1} of 6 / ${step.actor}`}</p>
-      <h2 ref={heading} tabIndex={-1} className="explorer-heading">{stopped ? "The expense stops at the rules." : step.heading}</h2>
-      <p>{stopped ? "In this example, organization policy prohibits alcohol. General cannot cover it either. No allocation is frozen, no approval authorizes it, and nothing reaches PayPal. Choosing later stages here explains the stop; it does not bypass it." : step.text}</p>
-      <p className="route-caption">Illustrated handoff</p><ol className="handoff-path" aria-label="Illustrated request path">{path.map((id, index) => <li key={`${id}:${index}`}>{nodeNames[id]}{index < path.length - 1 && <span aria-hidden="true"> → </span>}</li>)}</ol>
-      <dl><dt>What goes in</dt><dd>{stopped ? "A confirmed prohibited item and organization policy" : step.input}</dd><dt>What comes out</dt><dd>{stopped ? "A blocked proposal requiring human correction, no funding authorization" : step.output}</dd></dl>
-      <p className="notice">{stopped ? "No human or AI approval in this flow can override the organization-wide ban." : step.boundary}</p>
-    </div>
-    <div className="explorer-navigation"><button className="secondary" disabled={selected === 0} onClick={() => choose(selected - 1)}>Previous step</button><span>{selected + 1} / 6</span><button disabled={selected === 5} onClick={() => choose(selected + 1)}>Next step</button></div>
-    <details className="architecture-boundaries"><summary>Where the components actually run</summary><p>Logical modules are not separate services. The rule engine, auth, approvals, PayPal adapter and ledger run inside the same Next.js app container. Postgres and the model are separate Docker containers. PayPal Sandbox is an external service.</p>
-      <p className="muted">Highlighted components belong to the selected illustration. The view does not observe traffic or confirm that a request occurred. It reads no claim or account data.</p>
-    </details>
+    <p className="muted">Click a stage or a component. Highlights illustrate the selected explanation; they do not indicate live traffic.</p>
+    <details className="architecture-boundaries"><summary>Deployment boundaries</summary><p>Rules, authentication, approvals, the PayPal adapter and the ledger are modules in one Next.js app container. Postgres is a separate Docker container. PayPal Sandbox and the Claude API are external services. This view calls none of them and reads no claim or account data.</p></details>
   </div>;
 }

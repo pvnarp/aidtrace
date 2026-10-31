@@ -3,8 +3,6 @@ set -eu
 root=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 cd "$root"
 export AIDTRACE_COMPOSE_PROJECT=${AIDTRACE_COMPOSE_PROJECT:-aidtrace-judge}
-export AIDTRACE_AI_PROJECT=${AIDTRACE_AI_PROJECT:-aidtrace-judge-ai}
-export AIDTRACE_AI_EVIDENCE="$root/local/ai-check"
 docker_cmd() {
   if [ -n "${AIDTRACE_DOCKER_CONTEXT:-}" ]; then
     docker --context "$AIDTRACE_DOCKER_CONTEXT" "$@"
@@ -14,8 +12,7 @@ docker_cmd() {
 }
 compose() { docker_cmd compose -p "$AIDTRACE_COMPOSE_PROJECT" "$@"; }
 bootstrap() { docker_cmd compose -p "$AIDTRACE_COMPOSE_PROJECT" -f compose.setup.yaml "$@"; }
-ai() { docker_cmd compose -p "$AIDTRACE_AI_PROJECT" -f compose.ai-check.yaml "$@"; }
-review() { docker_cmd compose -p "$AIDTRACE_COMPOSE_PROJECT" -f compose.yaml -f compose.receipt-ai.yaml -f compose.review.yaml "$@"; }
+review() { docker_cmd compose -p "$AIDTRACE_COMPOSE_PROJECT" -f compose.yaml -f compose.review.yaml "$@"; }
 case "${1:-}" in
   judge-new|judge-up|judge-stop|judge-status)
     operation=$1; session=${2:-}
@@ -40,17 +37,22 @@ case "${1:-}" in
         docker_cmd compose -p "aidtrace-session-$session" -f compose.session.yaml "$@"
       fi
     }
+    # The Claude key is read from the launching shell by name only (compose.session.yaml lists ANTHROPIC_API_KEY with no value).
+    # It is never written to session.env or any file and never printed. Only the final app start receives it:
+    # build, migrate, init and the production build run without it.
+    without_key() ( unset ANTHROPIC_API_KEY; "$@" )
     case "$operation" in
       judge-up)
-        session_compose build app
-        session_compose up -d --wait db
-        session_compose run --rm --no-deps app pnpm db:migrate
-        session_compose run --rm --no-deps app node --import tsx scripts/session-init.mjs
-        session_compose stop app
-        session_compose run --rm --no-deps app pnpm build
+        without_key session_compose build app
+        without_key session_compose up -d --wait db
+        without_key session_compose run --rm --no-deps app pnpm db:migrate
+        without_key session_compose run --rm --no-deps app node --import tsx scripts/session-init.mjs
+        without_key session_compose stop app
+        without_key session_compose run --rm --no-deps app pnpm build
         session_compose up -d --wait --no-deps app
-        session_compose up -d --wait --no-deps --force-recreate relay
+        without_key session_compose up -d --wait --no-deps --force-recreate relay
         printf 'Open http://127.0.0.1:%s/login. This session cannot pay.\n' "$AIDTRACE_SESSION_PORT"
+        if [ -n "${ANTHROPIC_API_KEY:-}" ]; then echo 'AI suggestions: on (a Claude key was passed to the app container by name).'; else echo 'AI suggestions: off (no ANTHROPIC_API_KEY in this shell). The manual path works.'; fi
         ;;
       judge-stop) session_compose stop ;;
       judge-status) session_compose ps ;;
@@ -82,30 +84,13 @@ case "${1:-}" in
     review run --rm --no-deps app pnpm build
     review up -d --wait --no-deps --force-recreate app
     ;;
-  down) compose stop; ai stop ;;
-  status) compose ps; ai ps ;;
+  down) compose stop ;;
+  status) compose ps ;;
   logs) compose logs --tail 60 app ;;
   check) compose run --rm app pnpm test; compose run --rm --no-deps app pnpm typecheck ;;
   build)
     if [ -n "$(compose ps -q --status running app)" ]; then echo 'Stop the judge app before building.' >&2; exit 2; fi
     compose run --rm --no-deps app pnpm build
-    ;;
-  receipt-ai-up)
-    (umask 077; mkdir -p local/ai-check)
-    ai run --rm --no-deps download
-    ai up -d model
-    docker_cmd compose -p "$AIDTRACE_COMPOSE_PROJECT" -f compose.yaml -f compose.receipt-ai.yaml up -d --wait app
-    ;;
-  receipt-ai-down) ai stop; compose up -d --wait --force-recreate app ;;
-  ai-smoke) ai up -d model; ai run --rm --no-deps smoke ;;
-  ai-check)
-    shift
-    case "${1:-}" in
-      download) ai run --rm --no-deps download ;;
-      evaluate) (umask 077; mkdir -p local/ai-check); ai up -d model; ai run --rm --no-deps evaluate ;;
-      down) ai stop ;;
-      *) echo 'Use ai-check download|evaluate|down' >&2; exit 2 ;;
-    esac
     ;;
   ui-check)
     compose up -d --wait db
@@ -115,5 +100,5 @@ case "${1:-}" in
     docker_cmd compose -p "$AIDTRACE_COMPOSE_PROJECT" -f compose.yaml -f compose.ui.yaml build ui
     docker_cmd compose -p "$AIDTRACE_COMPOSE_PROJECT" -f compose.yaml -f compose.ui.yaml run --rm --no-deps --use-aliases ui
     ;;
-  *) echo 'Use doctor|setup|configure|pnpm|up|review-up|down|status|logs|check|build|receipt-ai-up|receipt-ai-down|ai-smoke|ai-check|ui-check|judge-new NAME [PORT] [CHECKED_SUBNET]|judge-up NAME|judge-stop NAME|judge-status NAME' >&2; exit 2 ;;
+  *) echo 'Use doctor|setup|configure|pnpm|up|review-up|down|status|logs|check|build|ui-check|judge-new NAME [PORT] [CHECKED_SUBNET]|judge-up NAME|judge-stop NAME|judge-status NAME' >&2; exit 2 ;;
 esac

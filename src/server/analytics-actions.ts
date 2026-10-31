@@ -3,6 +3,7 @@ import { findSession, isSameOrigin, sessionToken } from './auth';
 import { loadAnalyticsSnapshot, AnalyticsAccessError } from '../analytics/snapshot';
 import { isQuestion, questionFacts } from '../analytics/model';
 import { createAnalyticsSelector, AnalyticsModelError, type AnalyticsSelector } from '../analytics/explain';
+import { AI_OFF_MESSAGES, claudeAiStatus } from '../ai/provider';
 const select = createAnalyticsSelector();
 export const analyticsHeaders = { 'Cache-Control': 'no-store, private', Vary: 'Cookie' };
 const json = (value: unknown, status = 200) => Response.json(value, { status, headers: analyticsHeaders });
@@ -25,6 +26,8 @@ export async function handleAnalytics(request: Request, deps: { db: AppDatabase;
     if (!body || typeof body !== 'object' || Array.isArray(body) || Object.keys(body).sort().join(',') !== 'question,snapshotDigest' || !isQuestion(body.question) || typeof body.snapshotDigest !== 'string' || !/^[a-f0-9]{64}$/.test(body.snapshotDigest)) return json({ error: 'Choose one of the listed snapshot questions' }, 400);
     if (body.snapshotDigest !== snapshot.digest) return json({ error: 'Snapshot changed. Reload the dashboard before requesting an explanation.' }, 409);
     if (!(deps.enabled ?? process.env.AI_ANALYTICS_ENABLED === 'true')) return json({ error: 'AI unavailable. Read the snapshot facts below.', code: 'UNAVAILABLE' }, 503);
+    // The default selector needs a Claude key and request budget. An injected selector (tests) is trusted to decide for itself.
+    if (!deps.selector) { const status = claudeAiStatus(process.env, 'AI_ANALYTICS_ENABLED'); if (!status.on) return json({ error: `${AI_OFF_MESSAGES[status.reason]} Read the snapshot facts below.`, code: 'UNAVAILABLE' }, 503); }
     const result = await (deps.selector ?? select)(snapshot, body.question, request.signal);
     // Revalidate at the request boundary, including any future selector implementation.
     const allowed = questionFacts(snapshot, body.question);

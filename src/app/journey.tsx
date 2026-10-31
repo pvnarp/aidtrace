@@ -1,15 +1,17 @@
 import Link from "next/link";
+import type { Stage } from "./shell-copy";
 
-export type JourneyStage = 1 | 2 | 3 | 4 | 5;
-const stages = ["Enter receipt", "Check categories", "Check funding", "Two approvals", "Payment"];
-
-/** Presentation only. The caller supplies authorized saved state, never query-string progress. */
+/**
+ * The action footer of the decision area: "Next decision" above one primary action.
+ * Presentation only. The caller supplies authorized saved state, never query-string progress.
+ * The footer sits directly under the page title because these pages hold live forms and
+ * evidence; the primary action must stay reachable without scrolling past them.
+ */
 export function Journey({ stage, title, detail, href, action, aside, emphasizeDetail = false }: {
-  stage: JourneyStage; title: string; detail: string; href?: string; action?: string; aside?: string; emphasizeDetail?: boolean;
+  stage: Stage; title: string; detail: string; href?: string; action?: string; aside?: string; emphasizeDetail?: boolean;
 }) {
-  return <aside className="journey" aria-label="Expense journey">
-    <ol aria-label="Expense stages">{stages.map((label, index) => <li key={label} aria-current={index + 1 === stage ? "step" : undefined} className={index + 1 === stage ? "current" : ""}><span>{index + 1}</span>{label}</li>)}</ol>
-    <div className="journey-next"><div><p className="eyebrow">Step {stage} of 5</p><h2>{title}</h2></div>
+  return <aside className="action-footer" aria-label="Expense journey">
+    <div className="footer-main"><div className="footer-copy"><p className="kicker">Next decision / Step {stage} of 5</p><h2>{title}</h2></div>
       {href && action && <a className="journey-action" href={href}>{action}<span aria-hidden="true"> →</span></a>}
     </div>
     {emphasizeDetail && <p className="journey-critical">{detail}</p>}

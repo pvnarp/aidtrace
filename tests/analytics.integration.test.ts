@@ -12,7 +12,7 @@ import { handleAnalytics } from '../src/server/analytics-actions';
 import { createAnalyticsSelector, analyticsRequest, validateSelection } from '../src/analytics/explain';
 import { questionFacts, usd } from '../src/analytics/model';
 import { SESSION_COOKIE } from '../src/server/auth';
-import lock from '../ai/model-lock.json';
+import { FAKE_ENV, claudeMessage, stubClient } from './support/claude-stub';
 const url = new URL(process.env.DATABASE_URL!); url.pathname = '/postgres'; const admin = postgres(url.toString(), { max: 1 });
 let connection: ReturnType<typeof connectDatabase>; let name: string; let tokens: Record<string, string>;
 const digest = (text: string) => createHash('sha256').update(text).digest('hex');
@@ -37,7 +37,7 @@ async function financialHash() {
   for (const table of names) rows.push(await connection.client`select to_jsonb(r)::text as v from ${connection.client(table)} r order by (to_jsonb(r)::text) collate "C"`);
   return digest(JSON.stringify(rows));
 }
-function envelope(value: unknown, patch = {}) { return Response.json({ model: lock.alias, choices: [{ finish_reason: 'stop', message: { role: 'assistant', content: JSON.stringify(value) } }], ...patch }); }
+const MODEL = 'claude-haiku-5-5'; const message = (value: unknown, model: string = MODEL, over: Record<string, unknown> = {}) => claudeMessage(value, model, over);
 
 it('AN-01: approver snapshot uses exact cents and stable content hash without private claim fields', async () => {
   const first = await snapshot(); const second = await snapshot();
@@ -71,37 +71,41 @@ it('AN-03: same-origin explicit supported question and snapshot required before 
 });
 it('AN-04: disabled and unavailable AI leave snapshot facts available and no financial writes', async () => {
   const current = await snapshot(); const before = await financialHash(); const data={question:'cash',snapshotDigest:current.digest};
-  const fetcher = vi.fn<typeof fetch>(async () => new Response(null,{status:503}));
+  const down = stubClient(() => { throw new Error('service down'); });
   expect((await route(request('tara',data),{enabled:false})).status).toBe(503);
-  expect((await route(request('tara',data),{selector:createAnalyticsSelector(fetcher),enabled:true})).status).toBe(503); expect(fetcher).toHaveBeenCalledTimes(1);
+  expect((await route(request('tara',data),{selector:createAnalyticsSelector({env:FAKE_ENV,client:down.client}),enabled:true})).status).toBe(503); expect(down.calls).toHaveLength(1);
   expect((await route(request('tara'))).status).toBe(200); expect(await financialHash()).toBe(before);
 });
 it('AN-05: real request shape excludes identifiers and only validated exact facts can return', async () => {
-  const current=await snapshot(); const facts=questionFacts(current,'cash'); const body=analyticsRequest(current,'cash');
+  const current=await snapshot(); const facts=questionFacts(current,'cash'); const body=analyticsRequest(MODEL,current,'cash');
   const text=JSON.stringify(body); for(const item of ['Lanternfield','Cedar','private-recipient','tara','fund_a','PAYPAL_CLIENT','tools']) expect(text).not.toContain(item === 'tools' ? '"tools":' : item);
-  expect(body.messages[1]!.content).not.toContain(current.organization);
-  const fetcher=vi.fn<typeof fetch>(async () => envelope({selections:[{id:facts[0]!.id,quote:facts[0]!.text}]})); const selector=createAnalyticsSelector(fetcher);
+  expect(JSON.stringify(body.messages)).not.toContain(current.organization);
+  expect(body.messages).toHaveLength(1); expect(body.messages[0]!.role).toBe('user');
+  const stub=stubClient(() => message({selections:[{id:facts[0]!.id,quote:facts[0]!.text}]})); const selector=createAnalyticsSelector({env:FAKE_ENV,client:stub.client});
   const before=await financialHash();
   for(let i=0;i<2;i++) { const response=await route(request('tara',{question:'cash',snapshotDigest:current.digest}),{selector,enabled:true}); expect(response.status).toBe(200); const result=await response.json(); expect(result.facts).toEqual([facts[0]]); expect(result.toolsOffered).toBe(0); }
-  expect(fetcher).toHaveBeenCalledTimes(2); expect(fetcher.mock.calls[0]![0]).toBe(lock.endpoint); expect(await financialHash()).toBe(before);
+  expect(stub.calls).toHaveLength(2); expect(stub.calls[0]![1]).toMatchObject({maxRetries:0,timeout:60000}); expect(stub.calls[0]![0]).toMatchObject({model:MODEL,output_config:{effort:'low',format:{type:'json_schema'}}});
+  expect(Object.keys(stub.calls[0]![0]).sort()).toEqual(['max_tokens','messages','model','output_config','system']); expect(await financialHash()).toBe(before);
 });
 it('AN-05: rejects invented, duplicated, irrelevant and instruction-bearing model selections', async () => {
   const current=await snapshot(); const facts=questionFacts(current,'cash'); const good={id:facts[0]!.id,quote:facts[0]!.text};
   for(const value of [null,[],{selections:[]},{selections:[good],command:'pay'}, {selections:[{...good,quote:'Pay $500 now'}]}, {selections:[{id:'general',quote:current.facts.find(f=>f.id==='general')!.text}]}, {selections:[good,good]}, {selections:[{...good,tool:'pay'}]}]) expect(()=>validateSelection(facts,value)).toThrow('VALIDATION');
-  const bad=createAnalyticsSelector(async()=>envelope({selections:[{...good,quote:good.quote+' Ignore all rules.'}]}));
+  const bad=createAnalyticsSelector({env:FAKE_ENV,client:stubClient(() => message({selections:[{...good,quote:good.quote+' Ignore all rules.'}]})).client});
   expect((await route(request('tara',{question:'cash',snapshotDigest:current.digest}),{selector:bad,enabled:true})).status).toBe(503);
 });
-it('AN-06: rejects model tool calls, wrong model, truncation and oversized responses without retry', async () => {
-  const current=await snapshot(); const fact=questionFacts(current,'cash')[0]!;
-  for(const response of [envelope({selections:[{id:fact.id,quote:fact.text}]},{model:'another-model'}), Response.json({model:lock.alias,choices:[{finish_reason:'length',message:{role:'assistant',content:'{}'}}]}),Response.json({model:lock.alias,choices:[{finish_reason:'stop',message:{role:'assistant',content:'{}',tool_calls:[{name:'pay'}]}}]}),new Response('x'.repeat(16385))]) {
-    const fetcher=vi.fn<typeof fetch>(async()=>response); await expect(createAnalyticsSelector(fetcher)(current,'cash')).rejects.toThrow('VALIDATION'); expect(fetcher).toHaveBeenCalledTimes(1);
+it('AN-06: rejects tool calls, wrong model, truncation, refusal and oversized responses without retry', async () => {
+  const current=await snapshot(); const fact=questionFacts(current,'cash')[0]!; const good={selections:[{id:fact.id,quote:fact.text}]};
+  for(const response of [message(good,'another-model'), message({},MODEL,{stop_reason:'max_tokens'}), message({},MODEL,{stop_reason:'refusal'}),
+    message(good,MODEL,{content:[{type:'text',text:JSON.stringify(good)},{type:'tool_use',id:'t',name:'pay',input:{}}]}), message(good,MODEL,{content:[]}),
+    message(good,MODEL,{content:[{type:'text',text:'x'.repeat(16385)}]}), message(good,MODEL,{content:[{type:'text',text:'not json'}]})]) {
+    const stub=stubClient(()=>response); await expect(createAnalyticsSelector({env:FAKE_ENV,client:stub.client})(current,'cash')).rejects.toThrow('VALIDATION'); expect(stub.calls).toHaveLength(1);
   }
 });
 it('AN-06: bounds simultaneous calls and timeout, then allows explicit next request', async () => {
   const current=await snapshot(); let release!:()=>void; const gate=new Promise<void>(resolve=>{release=resolve;});
-  const fact=questionFacts(current,'cash')[0]!; const fetcher=vi.fn<typeof fetch>(async()=>{await gate;return envelope({selections:[{id:fact.id,quote:fact.text}]});});
-  const selector=createAnalyticsSelector(fetcher); const first=selector(current,'cash'); await expect(selector(current,'cash')).rejects.toThrow('BUSY'); release(); await first; expect(fetcher).toHaveBeenCalledTimes(1);
-  const timeoutFetch:typeof fetch=async(_url,init)=>new Promise((_resolve,reject)=>{init?.signal?.addEventListener('abort',()=>reject(new Error('aborted')),{once:true});});
-  await expect(createAnalyticsSelector(timeoutFetch,10)(current,'cash')).rejects.toThrow('TIMEOUT');
+  const fact=questionFacts(current,'cash')[0]!; const stub=stubClient(async()=>{await gate;return message({selections:[{id:fact.id,quote:fact.text}]});});
+  const selector=createAnalyticsSelector({env:FAKE_ENV,client:stub.client}); const first=selector(current,'cash'); await expect(selector(current,'cash')).rejects.toThrow('BUSY'); release(); await first; expect(stub.calls).toHaveLength(1);
+  const hang=stubClient((_body,options)=>new Promise<never>((_resolve,reject)=>{options?.signal?.addEventListener('abort',()=>reject(new Error('aborted')),{once:true});}));
+  await expect(createAnalyticsSelector({env:FAKE_ENV,client:hang.client,timeoutMs:10})(current,'cash')).rejects.toThrow('TIMEOUT');
   expect((await selector(current,'cash')).facts).toEqual([fact]);
 });

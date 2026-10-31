@@ -34,6 +34,9 @@ const budgetRows = [
   { fundId: "fund_a", policyVersion: 1, budgetLine: "supplies", capCents: 30000n },
   { fundId: "fund_b", policyVersion: 1, budgetLine: "supplies", capCents: 20000n },
 ];
+// IAC-405 step 1 (docs/plans/POLICY_CHECK_SCOPE.md section 3): version 1 check thresholds for the fixture funds, written on a fresh database only.
+// An existing database is not asserted against these rows and gets no additive seed (docs/ASSUMPTIONS.md).
+const checkSettings = ["fund_a", "fund_b", "fund_g"].map(fundId => ({ fundId, version: 1, approvedBy: "tara", suppliesLimitCents: 25000n, equipmentLimitCents: 50000n, claimLimitCents: 100000n, staleReceiptDays: 60, duplicateWindowDays: 90, splitWindowDays: 3 }));
 const priority = { organizationId: organization.id, version: 1, approvedBy: "tara", costsPerCent: { fund_a: "2000", fund_b: "1001", fund_g: "1000000" } };
 const lines = [
   { claimId: "C-104", claimVersion: 1, id: "L1", description: "Robot kit and parts", category: "robot_kits_parts", budgetLine: "supplies", amountCents: 28000n },
@@ -85,6 +88,9 @@ export async function seedFixture(db: AppDatabase, config: SeedConfig) {
     await tx.insert(s.funds).values(fundRows);
     await tx.insert(s.fundPolicyVersions).values(policies);
     await tx.insert(s.fundBudgetLines).values(budgetRows);
+    // A database taken only through migration 0014 (tests build one to prove migration 0015 on retained data) has no settings table yet. Skip it there, never fail.
+    const [settingsTable] = await tx.execute<{ present: boolean }>(sql`select to_regclass('public.fund_check_settings') is not null as present`);
+    if (settingsTable?.present) await tx.insert(s.fundCheckSettings).values(checkSettings);
     await tx.insert(s.solverPriorityVersions).values(priority);
     await tx.insert(s.claims).values(claim);
     await tx.insert(s.claimLines).values(lines);

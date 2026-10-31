@@ -1,6 +1,11 @@
 # Scope the AG Grid ledger view: one read-only Community grid for the fund ledger and audit trail
 
-Status: proposed for owner adoption, October 29, 2026. Docs only. Nothing is installed, built or run.
+Status: proposed October 29, 2026. Decisions 1 to 7 were adopted October 31, 2026 under the overnight delegation
+(docs/decisions.md, "AG Grid ledger scope decisions 1 to 7 adopted under the overnight delegation: October 31 IAC-380"),
+and decision 4 was amended for the transitive `ag-charts-types` package and vendor help text (docs/decisions.md,
+"AG Grid guard amendment for the transitive types package and vendor help text: October 31 IAC-380"). Decision 8 is open.
+Step 1 (the `STUDIO_FREE_COMMUNITY_GRID` guard variant, the exact pins and the refreshed notices) is built on branch
+feat/iac380-grid-deps; its evidence is docs/GATE_REPORT.md section 42. The view, route and grid are not built.
 Owner decision October 29: yes to one AG Grid ledger view, Community edition. Binding inputs:
 AGENTS.md sections 1 to 4, the locked docs/DESIGN_LANGUAGE.md, and the parallel donation package.
 

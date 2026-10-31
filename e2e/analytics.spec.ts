@@ -27,10 +27,10 @@ test.beforeAll(async()=>{
   model=createServer(async(request,response)=>{
     modelCalls++;if(unavailable){response.writeHead(503).end();return;}
     const chunks:Buffer[]=[];for await(const chunk of request)chunks.push(Buffer.from(chunk));
-    const body=JSON.parse(Buffer.concat(chunks).toString());const input=JSON.parse(body.messages[1].content);const fact=input.facts[0];
-    response.writeHead(200,{'content-type':'application/json'}).end(JSON.stringify({model:'aidtrace-category-qwen3',choices:[{finish_reason:'stop',message:{role:'assistant',content:JSON.stringify({selections:[{id:fact.id,quote:fact.text}]})}}]}));
+    const body=JSON.parse(Buffer.concat(chunks).toString());const input=JSON.parse(body.messages[0].content);const fact=input.facts[0];
+    response.writeHead(200,{'content-type':'application/json'}).end(JSON.stringify({id:'msg_ui_stub',type:'message',role:'assistant',model:'claude-haiku-5-5',stop_reason:'end_turn',stop_sequence:null,content:[{type:'text',text:JSON.stringify({selections:[{id:fact.id,quote:fact.text}]})}],usage:{input_tokens:200,output_tokens:30}}));
   });await new Promise<void>(resolve=>model.listen(8080,'0.0.0.0',resolve));
-  server=spawn(process.execPath,['node_modules/next/dist/bin/next','start','--hostname','127.0.0.1','--port','3100'],{detached:true,stdio:'ignore',env:{...process.env,DATABASE_URL:url.toString(),AI_ANALYTICS_ENABLED:'true',PAYPAL_CLIENT_ID:'',PAYPAL_CLIENT_SECRET:'',PAYPAL_PRODUCT_WEBHOOK_ENABLED:'false'}});
+  server=spawn(process.execPath,['node_modules/next/dist/bin/next','start','--hostname','127.0.0.1','--port','3100'],{detached:true,stdio:'ignore',env:{...process.env,DATABASE_URL:url.toString(),AI_ANALYTICS_ENABLED:'true',ANTHROPIC_API_KEY:'sk-ant-api03-UI-STUB-NOT-A-REAL-KEY',PAYPAL_CLIENT_ID:'',PAYPAL_CLIENT_SECRET:'',PAYPAL_PRODUCT_WEBHOOK_ENABLED:'false'}});
   for(let i=0;i<90;i++){try{if((await fetch('http://127.0.0.1:3100/api/health',{signal:AbortSignal.timeout(1000)})).ok)return;}catch{}if(server.exitCode!==null)throw Error('Isolated server exited');await new Promise(resolve=>setTimeout(resolve,500));}throw Error('Server readiness timeout');
 });
 test.afterAll(async()=>{

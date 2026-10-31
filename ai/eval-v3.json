@@ -1,0 +1,487 @@
+{
+  "version": "receipt-eval-v3",
+  "synthetic": true,
+  "notes": "Precommitted before any inference (IAC-396 run 1). Labels are not changed after a run: a disputed label is reported, never edited. Organizations and vendors are invented. Every expected label is written from the category definitions in src/ai/categories.ts, and a line that is genuinely ambiguous under those definitions is expected UNKNOWN. A rejected, errored or missing answer never counts as a correct UNKNOWN. No claim of general receipt accuracy.",
+  "cases": [
+    {
+      "id": "amb_materials_bundle",
+      "slice": "ambiguous",
+      "source": "FICTIONAL RECEIPT\nCedar Hollow Trading\nMaterials bundle   $186.00\nTotal $186.00",
+      "lines": [{ "id": "L1", "description": "Materials bundle" }],
+      "expected": { "L1": "UNKNOWN" },
+      "rationale": "The line names no item, so neither a category nor an exact supporting quote is possible."
+    },
+    {
+      "id": "amb_misc_supplies",
+      "slice": "ambiguous",
+      "source": "FICTIONAL RECEIPT\nQuillstone Office & More\nMisc supplies   $64.25\nTax $4.82\nTotal $69.07",
+      "lines": [{ "id": "L1", "description": "Misc supplies" }],
+      "expected": { "L1": "UNKNOWN" },
+      "rationale": "Miscellaneous supplies could be any supply category."
+    },
+    {
+      "id": "amb_program_costs",
+      "slice": "ambiguous",
+      "source": "FICTIONAL RECEIPT\nBluebird Community Services\nProgram costs   $1,250.00\nTotal $1,250.00",
+      "lines": [{ "id": "L1", "description": "Program costs" }],
+      "expected": { "L1": "UNKNOWN" },
+      "rationale": "A vague phrase that is not a registration, enrollment or event fee and names no item."
+    },
+    {
+      "id": "amb_general_merchandise_large",
+      "slice": "ambiguous",
+      "source": "FICTIONAL RECEIPT\nOakridge Wholesale Depot\nGeneral merchandise   $4,860.00\nTotal $4,860.00",
+      "lines": [{ "id": "L1", "description": "General merchandise" }],
+      "expected": { "L1": "UNKNOWN" },
+      "rationale": "IAC-375 shape: one vague line carrying a large amount, with no item named."
+    },
+    {
+      "id": "amb_robot_book_bundle",
+      "slice": "ambiguous",
+      "source": "FICTIONAL RECEIPT\nSummit Learning Supply\nStarter bundle: robot kit with printed workbooks   $329.00\nTotal $329.00",
+      "lines": [{ "id": "L1", "description": "Starter bundle: robot kit with printed workbooks" }],
+      "expected": { "L1": "UNKNOWN" },
+      "rationale": "One line mixes robot_kits_parts and books, and a mixed bundle is UNKNOWN."
+    },
+    {
+      "id": "amb_delivery_surcharge",
+      "slice": "ambiguous",
+      "source": "FICTIONAL RECEIPT\nRedwater Freight\nDelivery surcharge   $42.00\nTotal $42.00",
+      "lines": [{ "id": "L1", "description": "Delivery surcharge" }],
+      "expected": { "L1": "UNKNOWN" },
+      "rationale": "A freight charge is not a vehicle rental or any other defined category."
+    },
+    {
+      "id": "amb_cleaning_juice_notebooks",
+      "slice": "ambiguous",
+      "source": "FICTIONAL RECEIPT\nSunbeam Variety Store\nSpray cleaner, juice boxes and composition notebooks   $58.40\nTotal $58.40",
+      "lines": [{ "id": "L1", "description": "Spray cleaner, juice boxes and composition notebooks" }],
+      "expected": { "L1": "UNKNOWN" },
+      "rationale": "One line mixes household goods, food and classroom supplies."
+    },
+    {
+      "id": "amb_youth_night_supplies",
+      "slice": "ambiguous",
+      "source": "FICTIONAL RECEIPT\nMarigold Party & Craft\nSupplies for the youth night   $93.10\nTotal $93.10",
+      "lines": [{ "id": "L1", "description": "Supplies for the youth night" }],
+      "expected": { "L1": "UNKNOWN" },
+      "rationale": "The kind of supplies is not stated."
+    },
+    {
+      "id": "amb_prize_basket",
+      "slice": "ambiguous",
+      "source": "FICTIONAL RECEIPT\nHoneycomb Gifts\nPrize basket for the raffle   $75.00\nTotal $75.00",
+      "lines": [{ "id": "L1", "description": "Prize basket for the raffle" }],
+      "expected": { "L1": "UNKNOWN" },
+      "rationale": "The basket contents are not named, so no defined category fits."
+    },
+    {
+      "id": "amb_service_charge",
+      "slice": "ambiguous",
+      "source": "FICTIONAL RECEIPT\nTrailhead Event Services\nService charge   $210.00\nTotal $210.00",
+      "lines": [{ "id": "L1", "description": "Service charge" }],
+      "expected": { "L1": "UNKNOWN" },
+      "rationale": "The service is not named and is not clearly a registration or event fee."
+    },
+    {
+      "id": "amb_pantry_restock_mix",
+      "slice": "ambiguous",
+      "source": "FICTIONAL RECEIPT\nBayview Cash & Carry\nPantry restock: canned soup, serving trays and bar soap   $137.55\nTotal $137.55",
+      "lines": [{ "id": "L1", "description": "Pantry restock: canned soup, serving trays and bar soap" }],
+      "expected": { "L1": "UNKNOWN" },
+      "rationale": "One line mixes food, kitchen supplies and hygiene supplies."
+    },
+    {
+      "id": "amb_equipment_vague",
+      "slice": "ambiguous",
+      "source": "FICTIONAL RECEIPT\nIronbridge Trading Co\nEquipment   $780.00\nTotal $780.00",
+      "lines": [{ "id": "L1", "description": "Equipment" }],
+      "expected": { "L1": "UNKNOWN" },
+      "rationale": "No equipment is named, so refrigeration equipment cannot be supported."
+    },
+    {
+      "id": "amb_catering_unspecified",
+      "slice": "ambiguous",
+      "source": "FICTIONAL RECEIPT\nSaffron Table Catering\nCatering platters for Saturday   $215.00\nDelivered to Fellowship Hall\nTotal $215.00",
+      "lines": [{ "id": "L1", "description": "Catering platters for Saturday" }],
+      "expected": { "L1": "UNKNOWN" },
+      "rationale": "Participant versus volunteer meals depends on who ate, and the receipt does not say."
+    },
+    {
+      "id": "amb_transportation_vague",
+      "slice": "ambiguous",
+      "source": "FICTIONAL RECEIPT\nPinecrest Mobility\nTransportation   $380.00\nTotal $380.00",
+      "lines": [{ "id": "L1", "description": "Transportation" }],
+      "expected": { "L1": "UNKNOWN" },
+      "rationale": "Could be a pass, a charter, a rental or mileage, and the receipt names none."
+    },
+    {
+      "id": "amb_gala_package",
+      "slice": "ambiguous",
+      "source": "FICTIONAL RECEIPT\nGrandview Banquet Hall\nGala package: dinner, wine pairing and auction entry   $640.00\nTotal $640.00",
+      "lines": [{ "id": "L1", "description": "Gala package: dinner, wine pairing and auction entry" }],
+      "expected": { "L1": "UNKNOWN" },
+      "rationale": "One line mixes a meal, alcohol and an event fee."
+    },
+    {
+      "id": "ml01_robot_notebooks",
+      "slice": "multi-line",
+      "source": "FICTIONAL RECEIPT\nNorthfield Hobby & Learn\nServo motors, pack of 4   $38.00\nSpiral notebooks, 12 count   $14.40\nSubtotal $52.40\nTax $3.67\nTotal $56.07",
+      "lines": [{ "id": "L1", "description": "Servo motors, pack of 4" }, { "id": "L2", "description": "Spiral notebooks, 12 count" }],
+      "expected": { "L1": "robot_kits_parts", "L2": "classroom_supplies" },
+      "rationale": "Motors are robot parts and notebooks are classroom supplies."
+    },
+    {
+      "id": "ml02_market_trays",
+      "slice": "multi-line",
+      "source": "FICTIONAL RECEIPT\nHarvest & Co Market\nCanned black beans for client food boxes, case of 48   $61.20\nLong grain rice for client food boxes, 25 lb bag   $29.99\nAluminum foil pans, 50 count   $18.75\nSubtotal $109.94\nTotal $109.94",
+      "lines": [{ "id": "L1", "description": "Canned black beans for client food boxes, case of 48" }, { "id": "L2", "description": "Long grain rice for client food boxes, 25 lb bag" }, { "id": "L3", "description": "Aluminum foil pans, 50 count" }],
+      "expected": { "L1": "food_for_distribution", "L2": "food_for_distribution", "L3": "kitchen_supplies" },
+      "rationale": "Groceries for client food boxes are food for distribution and foil pans are food-service disposables."
+    },
+    {
+      "id": "ml03_hardware_padlock",
+      "slice": "multi-line",
+      "source": "FICTIONAL RECEIPT\nEastside Hardware\nWindow insulation film kit   $21.99\nSilicone caulk, 4 tubes   $19.96\nPadlock, brass   $9.49\nTax $4.14\nTotal $55.58",
+      "lines": [{ "id": "L1", "description": "Window insulation film kit" }, { "id": "L2", "description": "Silicone caulk, 4 tubes" }, { "id": "L3", "description": "Padlock, brass" }],
+      "expected": { "L1": "weatherization_materials", "L2": "weatherization_materials", "L3": "UNKNOWN" },
+      "rationale": "Film and caulk are weatherization materials and a padlock fits no defined category."
+    },
+    {
+      "id": "ml04_pharmacy_prepaid",
+      "slice": "multi-line",
+      "source": "FICTIONAL RECEIPT\nCorner Pharmacy\nAdhesive bandages, 100 count   $7.49\nToothbrushes, family pack   $6.99\nPrepaid Visa card, $25 value   $29.95\nTotal $44.43",
+      "lines": [{ "id": "L1", "description": "Adhesive bandages, 100 count" }, { "id": "L2", "description": "Toothbrushes, family pack" }, { "id": "L3", "description": "Prepaid Visa card, $25 value" }],
+      "expected": { "L1": "hygiene_health_supplies", "L2": "hygiene_health_supplies", "L3": "gift_cards" },
+      "rationale": "Bandages and toothbrushes are hygiene supplies and a prepaid card is a gift card of any kind."
+    },
+    {
+      "id": "ml05_state_meet_transport",
+      "slice": "multi-line",
+      "source": "FICTIONAL RECEIPT\nRiverside Coach Lines\nCharter bus, state robotics meet, 2 days   $1,150.00\nMetro fare cards, 10 count   $45.00\nTotal $1,195.00",
+      "lines": [{ "id": "L1", "description": "Charter bus, state robotics meet, 2 days" }, { "id": "L2", "description": "Metro fare cards, 10 count" }],
+      "expected": { "L1": "group_transport", "L2": "transit_passes" },
+      "rationale": "A charter bus is group transport and fare cards are transit passes."
+    },
+    {
+      "id": "ml06_van_rental",
+      "slice": "multi-line",
+      "source": "FICTIONAL RECEIPT\nLakeshore Rentals\n15 passenger van rental, 2 days   $210.00\nFuel refill at return   $48.30\nSouvenir keychain   $4.99\nTotal $263.29",
+      "lines": [{ "id": "L1", "description": "15 passenger van rental, 2 days" }, { "id": "L2", "description": "Fuel refill at return" }, { "id": "L3", "description": "Souvenir keychain" }],
+      "expected": { "L1": "vehicle_rental", "L2": "vehicle_rental", "L3": "UNKNOWN" },
+      "rationale": "A rented van and its fuel are vehicle rental and a keychain is unrelated."
+    },
+    {
+      "id": "ml07_science_fair_shirts",
+      "slice": "multi-line",
+      "source": "FICTIONAL RECEIPT\nState Science Fair Office\nTeam registration fee   $120.00\nTeam T-shirts, 14   $168.00\nTotal $288.00",
+      "lines": [{ "id": "L1", "description": "Team registration fee" }, { "id": "L2", "description": "Team T-shirts, 14" }],
+      "expected": { "L1": "program_fees", "L2": "UNKNOWN" },
+      "rationale": "Registration is a program fee and T-shirts fit no defined category."
+    },
+    {
+      "id": "ml08_volunteer_build_day",
+      "slice": "multi-line",
+      "source": "FICTIONAL RECEIPT\nCorner Deli\nSandwich trays for the volunteer build crew   $96.00\nCookies for the volunteers   $14.50\nPaper plates and napkins   $12.25\nTotal $122.75",
+      "lines": [{ "id": "L1", "description": "Sandwich trays for the volunteer build crew" }, { "id": "L2", "description": "Cookies for the volunteers" }, { "id": "L3", "description": "Paper plates and napkins" }],
+      "expected": { "L1": "volunteer_meals", "L2": "volunteer_meals", "L3": "kitchen_supplies" },
+      "rationale": "Food eaten by volunteers is volunteer meals and plates and napkins are food-service disposables."
+    },
+    {
+      "id": "ml09_student_scrimmage",
+      "slice": "multi-line",
+      "source": "FICTIONAL RECEIPT\nSlice Station Pizza\nPizzas for the student teams at the scrimmage   $84.00\nLemonade for the student teams   $18.00\nPlastic cups, 100 count   $7.50\nTotal $109.50",
+      "lines": [{ "id": "L1", "description": "Pizzas for the student teams at the scrimmage" }, { "id": "L2", "description": "Lemonade for the student teams" }, { "id": "L3", "description": "Plastic cups, 100 count" }],
+      "expected": { "L1": "participant_meals", "L2": "participant_meals", "L3": "kitchen_supplies" },
+      "rationale": "Food and drink for the student teams are participant meals and cups are food-service disposables."
+    },
+    {
+      "id": "ml10_background_giftcard",
+      "slice": "multi-line",
+      "source": "FICTIONAL RECEIPT\nSafeScreen Services\nVolunteer background check, Dana R.   $29.00\nVolunteer background check, Marcus T.   $29.00\nGrocery gift card, $15   $15.00\nTotal $73.00",
+      "lines": [{ "id": "L1", "description": "Volunteer background check, Dana R." }, { "id": "L2", "description": "Volunteer background check, Marcus T." }, { "id": "L3", "description": "Grocery gift card, $15" }],
+      "expected": { "L1": "background_checks", "L2": "background_checks", "L3": "gift_cards" },
+      "rationale": "Two screening fees and one gift card."
+    },
+    {
+      "id": "ml11_bookshop_cardstock",
+      "slice": "multi-line",
+      "source": "FICTIONAL RECEIPT\nLantern Row Books\nPhonics workbooks, set of 6   $42.00\nHardcover world atlas   $24.95\nCardstock sheets, assorted colors   $11.40\nTotal $78.35",
+      "lines": [{ "id": "L1", "description": "Phonics workbooks, set of 6" }, { "id": "L2", "description": "Hardcover world atlas" }, { "id": "L3", "description": "Cardstock sheets, assorted colors" }],
+      "expected": { "L1": "books", "L2": "books", "L3": "classroom_supplies" },
+      "rationale": "Workbooks and an atlas are printed books and cardstock is a craft material."
+    },
+    {
+      "id": "ml12_cooler_install",
+      "slice": "multi-line",
+      "source": "FICTIONAL RECEIPT\nArctic Equipment Service\nChest freezer, 7 cubic feet   $389.00\nCompressor replacement, walk-in cooler   $540.00\nDelivery and installation   $85.00\nTotal $1,014.00",
+      "lines": [{ "id": "L1", "description": "Chest freezer, 7 cubic feet" }, { "id": "L2", "description": "Compressor replacement, walk-in cooler" }, { "id": "L3", "description": "Delivery and installation" }],
+      "expected": { "L1": "refrigeration_equipment", "L2": "refrigeration_equipment", "L3": "UNKNOWN" },
+      "rationale": "A freezer and a compressor are refrigeration equipment and a delivery charge names no item."
+    },
+    {
+      "id": "ml13_household_cleaner",
+      "slice": "multi-line",
+      "source": "FICTIONAL RECEIPT\nSafe Home Supply\nEmergency preparedness kit, family of four   $64.00\nAll-purpose cleaner and sponges   $12.30\nTotal $76.30",
+      "lines": [{ "id": "L1", "description": "Emergency preparedness kit, family of four" }, { "id": "L2", "description": "All-purpose cleaner and sponges" }],
+      "expected": { "L1": "household_kits", "L2": "household_kits" },
+      "rationale": "A prepackaged emergency kit and cleaning goods are household kits."
+    },
+    {
+      "id": "ml14_mileage_parking",
+      "slice": "multi-line",
+      "source": "FICTIONAL RECEIPT\nMileage Log, Eastside Food Bank\nPersonal car, 46 miles, delivery run to Eastside school   $30.82\nDowntown garage parking   $18.00\nTotal $48.82",
+      "lines": [{ "id": "L1", "description": "Personal car, 46 miles, delivery run to Eastside school" }, { "id": "L2", "description": "Downtown garage parking" }],
+      "expected": { "L1": "mileage", "L2": "UNKNOWN" },
+      "rationale": "Miles in a personal car are mileage and parking fits no defined category."
+    },
+    {
+      "id": "ml15_reception_cheese",
+      "slice": "multi-line",
+      "source": "FICTIONAL RECEIPT\nCorner Market\nCabernet wine, 2 bottles   $31.98\nCraft beer, 6 pack   $11.49\nCheese platter for the donor reception   $38.00\nTotal $81.47",
+      "lines": [{ "id": "L1", "description": "Cabernet wine, 2 bottles" }, { "id": "L2", "description": "Craft beer, 6 pack" }, { "id": "L3", "description": "Cheese platter for the donor reception" }],
+      "expected": { "L1": "alcohol", "L2": "alcohol", "L3": "UNKNOWN" },
+      "rationale": "Wine and beer are alcohol and donors are neither participants nor volunteers, so the meal category is unsupported."
+    },
+    {
+      "id": "ml16_giftcards_oranges",
+      "slice": "multi-line",
+      "source": "FICTIONAL RECEIPT\nQuick Mart\nGrocery store gift card for a client family   $50.00\nFuel gift card, $25   $25.00\nBag of oranges for the client food boxes   $6.99\nTotal $81.99",
+      "lines": [{ "id": "L1", "description": "Grocery store gift card for a client family" }, { "id": "L2", "description": "Fuel gift card, $25" }, { "id": "L3", "description": "Bag of oranges for the client food boxes" }],
+      "expected": { "L1": "gift_cards", "L2": "gift_cards", "L3": "food_for_distribution" },
+      "rationale": "Two gift cards and one grocery item for client food boxes."
+    },
+    {
+      "id": "ml17_league_sensor",
+      "slice": "multi-line",
+      "source": "FICTIONAL RECEIPT\nRegion 4 Robotics League\nTeam registration fee   $200.00\nTournament day entry fee   $75.00\nReplacement ultrasonic sensor   $19.95\nTotal $294.95",
+      "lines": [{ "id": "L1", "description": "Team registration fee" }, { "id": "L2", "description": "Tournament day entry fee" }, { "id": "L3", "description": "Replacement ultrasonic sensor" }],
+      "expected": { "L1": "program_fees", "L2": "program_fees", "L3": "robot_kits_parts" },
+      "rationale": "Registration and entry are program fees and a sensor is a robot part."
+    },
+    {
+      "id": "ml18_transit_shuttle",
+      "slice": "multi-line",
+      "source": "FICTIONAL RECEIPT\nMetro Transit Authority\n30-day bus pass, 3 riders   $270.00\nReloadable fare card   $5.00\nAirport shuttle van for the delegation   $160.00\nTotal $435.00",
+      "lines": [{ "id": "L1", "description": "30-day bus pass, 3 riders" }, { "id": "L2", "description": "Reloadable fare card" }, { "id": "L3", "description": "Airport shuttle van for the delegation" }],
+      "expected": { "L1": "transit_passes", "L2": "transit_passes", "L3": "group_transport" },
+      "rationale": "Passes and fare cards are transit passes and a shuttle van for a group is group transport."
+    },
+    {
+      "id": "ml19_restaurant_supply_tote",
+      "slice": "multi-line",
+      "source": "FICTIONAL RECEIPT\nMetro Restaurant Supply\nStainless steel stockpots, 2   $118.00\nServing spoons, dozen   $14.40\nReusable food containers with lids   $36.00\nStore tote bag   $5.00\nTotal $173.40",
+      "lines": [{ "id": "L1", "description": "Stainless steel stockpots, 2" }, { "id": "L2", "description": "Serving spoons, dozen" }, { "id": "L3", "description": "Reusable food containers with lids" }, { "id": "L4", "description": "Store tote bag" }],
+      "expected": { "L1": "kitchen_supplies", "L2": "kitchen_supplies", "L3": "kitchen_supplies", "L4": "UNKNOWN" },
+      "rationale": "Cookware, utensils and containers are kitchen supplies and a tote bag is unrelated."
+    },
+    {
+      "id": "ml20_outreach_six_lines",
+      "slice": "multi-line",
+      "source": "FICTIONAL RECEIPT\nCommunity Outreach Supply\nJasmine rice, 10 lb   $14.00\nBar soap, 12 pack   $9.60\nWeatherstripping roll, 17 ft   $8.25\nPicture books, set of 5   $27.50\nWashable crayons, 24 box   $3.99\nMiscellaneous charge   $11.00\nTotal $74.34",
+      "lines": [{ "id": "L1", "description": "Jasmine rice, 10 lb" }, { "id": "L2", "description": "Bar soap, 12 pack" }, { "id": "L3", "description": "Weatherstripping roll, 17 ft" }, { "id": "L4", "description": "Picture books, set of 5" }, { "id": "L5", "description": "Washable crayons, 24 box" }, { "id": "L6", "description": "Miscellaneous charge" }],
+      "expected": { "L1": "food_for_distribution", "L2": "hygiene_health_supplies", "L3": "weatherization_materials", "L4": "books", "L5": "classroom_supplies", "L6": "UNKNOWN" },
+      "rationale": "Five clearly categorized items and one unnamed miscellaneous charge."
+    },
+    {
+      "id": "ne01_es_libros",
+      "slice": "non-English",
+      "source": "FICTIONAL RECEIPT\nLibrería El Faro\nLibros de lectura para el club, 12 ejemplares   $96.00\nTotal $96.00",
+      "lines": [{ "id": "L1", "description": "Libros de lectura para el club, 12 ejemplares" }],
+      "expected": { "L1": "books" },
+      "rationale": "Spanish: reading books for the club."
+    },
+    {
+      "id": "ne02_es_ventanas",
+      "slice": "non-English",
+      "source": "FICTIONAL RECEIPT\nFerretería La Esquina\nPelícula aislante para ventanas y masilla selladora   $34.50\nTotal $34.50",
+      "lines": [{ "id": "L1", "description": "Película aislante para ventanas y masilla selladora" }],
+      "expected": { "L1": "weatherization_materials" },
+      "rationale": "Spanish: insulating window film and sealant caulk."
+    },
+    {
+      "id": "ne03_es_alimentos",
+      "slice": "non-English",
+      "source": "FICTIONAL RECEIPT\nSupermercado Buenavista\nFrijoles y arroz para las cajas de alimentos de las familias   $72.40\nTotal $72.40",
+      "lines": [{ "id": "L1", "description": "Frijoles y arroz para las cajas de alimentos de las familias" }],
+      "expected": { "L1": "food_for_distribution" },
+      "rationale": "Spanish: beans and rice for family food boxes."
+    },
+    {
+      "id": "ne04_es_pizza",
+      "slice": "non-English",
+      "source": "FICTIONAL RECEIPT\nPizzería Don Luis\nPizzas para los estudiantes del equipo de robótica   $64.00\nTotal $64.00",
+      "lines": [{ "id": "L1", "description": "Pizzas para los estudiantes del equipo de robótica" }],
+      "expected": { "L1": "participant_meals" },
+      "rationale": "Spanish: pizzas for the robotics team students."
+    },
+    {
+      "id": "ne05_es_vino",
+      "slice": "non-English",
+      "source": "FICTIONAL RECEIPT\nVinoteca El Roble\nBotellas de vino tinto, 6   $89.94\nTotal $89.94",
+      "lines": [{ "id": "L1", "description": "Botellas de vino tinto, 6" }],
+      "expected": { "L1": "alcohol" },
+      "rationale": "Spanish: bottles of red wine."
+    },
+    {
+      "id": "ne06_es_tarjeta",
+      "slice": "non-English",
+      "source": "FICTIONAL RECEIPT\nSupermercado Buenavista\nTarjeta de regalo de supermercado, $50   $50.00\nTotal $50.00",
+      "lines": [{ "id": "L1", "description": "Tarjeta de regalo de supermercado, $50" }],
+      "expected": { "L1": "gift_cards" },
+      "rationale": "Spanish: a supermarket gift card."
+    },
+    {
+      "id": "ne07_es_voluntarios_cuadernos",
+      "slice": "non-English",
+      "source": "FICTIONAL RECEIPT\nMercado Central\nAlmuerzo para los voluntarios del sábado   $58.00\nCuadernos de composición, 24   $21.60\nTotal $79.60",
+      "lines": [{ "id": "L1", "description": "Almuerzo para los voluntarios del sábado" }, { "id": "L2", "description": "Cuadernos de composición, 24" }],
+      "expected": { "L1": "volunteer_meals", "L2": "classroom_supplies" },
+      "rationale": "Spanish: lunch for the volunteers and composition notebooks."
+    },
+    {
+      "id": "ne08_fr_manuels",
+      "slice": "non-English",
+      "source": "FICTIONAL RECEIPT\nLibrairie du Coin\nManuels de mathématiques, niveau 3, 20 exemplaires   $240.00\nTotal $240.00",
+      "lines": [{ "id": "L1", "description": "Manuels de mathématiques, niveau 3, 20 exemplaires" }],
+      "expected": { "L1": "books" },
+      "rationale": "French: grade 3 math textbooks."
+    },
+    {
+      "id": "ne09_fr_camionnette",
+      "slice": "non-English",
+      "source": "FICTIONAL RECEIPT\nLocation Express\nLocation d'une camionnette pour deux jours   $180.00\nTotal $180.00",
+      "lines": [{ "id": "L1", "description": "Location d'une camionnette pour deux jours" }],
+      "expected": { "L1": "vehicle_rental" },
+      "rationale": "French: a van rented for two days."
+    },
+    {
+      "id": "ne10_vi_hygiene",
+      "slice": "non-English",
+      "source": "FICTIONAL RECEIPT\nTiệm Thuốc Bình An\nXà phòng và bàn chải đánh răng   $18.40\nTotal $18.40",
+      "lines": [{ "id": "L1", "description": "Xà phòng và bàn chải đánh răng" }],
+      "expected": { "L1": "hygiene_health_supplies" },
+      "rationale": "Vietnamese: soap and toothbrushes."
+    },
+    {
+      "id": "ctl01_giftcard_fairway",
+      "slice": "control",
+      "source": "FICTIONAL RECEIPT\nFairway Foods\nGift card for Fairway Foods, $100   $100.00",
+      "lines": [{ "id": "L1", "description": "Gift card for Fairway Foods, $100" }],
+      "expected": { "L1": "gift_cards" },
+      "rationale": "A store gift card."
+    },
+    {
+      "id": "ctl02_prepaid_visa",
+      "slice": "control",
+      "source": "FICTIONAL RECEIPT\nOne Stop Counter\nPrepaid Visa card, $50 value   $54.95",
+      "lines": [{ "id": "L1", "description": "Prepaid Visa card, $50 value" }],
+      "expected": { "L1": "gift_cards" },
+      "rationale": "A prepaid card of any kind is a gift card."
+    },
+    {
+      "id": "ctl03_digital_giftcard",
+      "slice": "control",
+      "source": "FICTIONAL RECEIPT\nOnline Order, Ridgeline Hardware\nDigital gift card, $75   $75.00",
+      "lines": [{ "id": "L1", "description": "Digital gift card, $75" }],
+      "expected": { "L1": "gift_cards" },
+      "rationale": "A digital gift card."
+    },
+    {
+      "id": "ctl04_pinot",
+      "slice": "control",
+      "source": "FICTIONAL RECEIPT\nHillcrest Wine & Spirits\nPinot noir, 3 bottles   $47.97",
+      "lines": [{ "id": "L1", "description": "Pinot noir, 3 bottles" }],
+      "expected": { "L1": "alcohol" },
+      "rationale": "Wine."
+    },
+    {
+      "id": "ctl05_beer",
+      "slice": "control",
+      "source": "FICTIONAL RECEIPT\nHillcrest Wine & Spirits\nCraft beer sampler, 12 pack   $21.99",
+      "lines": [{ "id": "L1", "description": "Craft beer sampler, 12 pack" }],
+      "expected": { "L1": "alcohol" },
+      "rationale": "Beer."
+    },
+    {
+      "id": "ctl06_bourbon",
+      "slice": "control",
+      "source": "FICTIONAL RECEIPT\nHillcrest Wine & Spirits\nBourbon whiskey, 750 ml   $32.00",
+      "lines": [{ "id": "L1", "description": "Bourbon whiskey, 750 ml" }],
+      "expected": { "L1": "alcohol" },
+      "rationale": "Spirits."
+    },
+    {
+      "id": "ctl07_rail_pass",
+      "slice": "control",
+      "source": "FICTIONAL RECEIPT\nRegional Rail Authority\nMonthly rail pass   $120.00",
+      "lines": [{ "id": "L1", "description": "Monthly rail pass" }],
+      "expected": { "L1": "transit_passes" },
+      "rationale": "A rail pass."
+    },
+    {
+      "id": "ctl08_mileage",
+      "slice": "control",
+      "source": "FICTIONAL RECEIPT\nMileage Log, Harbor Tutoring\nPersonal vehicle, 112 miles to the district office   $73.36",
+      "lines": [{ "id": "L1", "description": "Personal vehicle, 112 miles to the district office" }],
+      "expected": { "L1": "mileage" },
+      "rationale": "Miles driven in a personal vehicle."
+    },
+    {
+      "id": "ctl09_background_check",
+      "slice": "control",
+      "source": "FICTIONAL RECEIPT\nSafeScreen Services\nBackground check for a new tutor   $32.00",
+      "lines": [{ "id": "L1", "description": "Background check for a new tutor" }],
+      "expected": { "L1": "background_checks" },
+      "rationale": "A screening fee."
+    },
+    {
+      "id": "ctl10_science_fair_fee",
+      "slice": "control",
+      "source": "FICTIONAL RECEIPT\nRegional Science Fair\nRegional science fair registration fee   $85.00",
+      "lines": [{ "id": "L1", "description": "Regional science fair registration fee" }],
+      "expected": { "L1": "program_fees" },
+      "rationale": "A registration fee paid to a third party."
+    },
+    {
+      "id": "ctl11_freezer_repair",
+      "slice": "control",
+      "source": "FICTIONAL RECEIPT\nArctic Equipment Service\nWalk-in freezer compressor repair   $615.00",
+      "lines": [{ "id": "L1", "description": "Walk-in freezer compressor repair" }],
+      "expected": { "L1": "refrigeration_equipment" },
+      "rationale": "Compressor repair is covered by refrigeration equipment."
+    },
+    {
+      "id": "ctl12_charter_field_trip",
+      "slice": "control",
+      "source": "FICTIONAL RECEIPT\nRiverside Coach Lines\nCharter bus for the field trip, 40 students   $720.00",
+      "lines": [{ "id": "L1", "description": "Charter bus for the field trip, 40 students" }],
+      "expected": { "L1": "group_transport" },
+      "rationale": "A charter bus for a group."
+    },
+    {
+      "id": "ctl13_winter_kit",
+      "slice": "control",
+      "source": "FICTIONAL RECEIPT\nSafe Home Supply\nPrepackaged winter emergency kit for a family   $58.00",
+      "lines": [{ "id": "L1", "description": "Prepackaged winter emergency kit for a family" }],
+      "expected": { "L1": "household_kits" },
+      "rationale": "A prepackaged emergency kit."
+    },
+    {
+      "id": "ctl14_volunteer_lunch",
+      "slice": "control",
+      "source": "FICTIONAL RECEIPT\nGreenleaf Cafe\nLunch for the volunteers on build day   $142.00",
+      "lines": [{ "id": "L1", "description": "Lunch for the volunteers on build day" }],
+      "expected": { "L1": "volunteer_meals" },
+      "rationale": "A meal eaten by volunteers."
+    },
+    {
+      "id": "ctl15_bandages_ibuprofen",
+      "slice": "control",
+      "source": "FICTIONAL RECEIPT\nCorner Pharmacy\nAdhesive bandages and children's ibuprofen   $14.78",
+      "lines": [{ "id": "L1", "description": "Adhesive bandages and children's ibuprofen" }],
+      "expected": { "L1": "hygiene_health_supplies" },
+      "rationale": "Bandages and an over-the-counter item, not a prescription drug."
+    }
+  ]
+}

@@ -52,35 +52,35 @@ async function compactJourney(page: Page) {
 test("IAC-350: architecture is authenticated, keyboard-operable and executes no requests", async ({ page }) => {
   await page.goto("/architecture"); await expect(page).toHaveURL(/\/login$/);
   await login(page, "maria"); await page.getByRole("link", { name: "Explore how it works", exact: true }).click();
-  await expect(page.getByRole("heading", { level: 1 })).toHaveText("One $500 expense. Every decision explained.");
-  await expect(page.locator(".technical-explorer")).toHaveAttribute("open", "");
-  await expect(page.getByRole("button", {name:"Allowed expense: $500",exact:true})).toBeVisible();
-  await expect(page.locator(".explorer-detail")).toContainText("$280 of science kits, $150 of notebooks and $70 of refreshments");
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("See where each decision happens.");
+  // IAC-403: the locked mock's stage picker replaces the six-step explorer, the alcohol scenario and the Previous and Next buttons.
+  const stages = page.getByRole("group", { name: "Architecture stages", exact: true });
+  await expect(stages.getByRole("button")).toHaveText(["AI suggests", "Rules allocate", "People approve", "PayPal handoff"]);
+  await expect(stages.getByRole("button", { name: "AI suggests", exact: true })).toHaveAttribute("aria-pressed", "true");
+  const note = page.getByTestId("architecture-note"); await expect(note).toHaveAttribute("aria-live", "polite");
   const requests: string[] = []; page.on("request", request => requests.push(request.url()));
-  const explanation = page.locator(".explorer-heading");
+  const explanation = note.getByRole("heading", { level: 2 });
   await expect(explanation).not.toBeFocused();
-  await expect(page.getByText(/This is not live telemetry/)).toBeVisible();
-  await page.getByRole("button", { name: "Explore Local AI model", exact: true }).click();
-  await expect(page.getByRole("heading", { name: "AI suggests categories. It cannot spend." })).toBeVisible();
+  await expect(page.getByText(/This page is an illustration using fictional data, not live telemetry/)).toBeVisible();
+  await stages.getByRole("button", { name: "Rules allocate", exact: true }).click();
+  await expect(explanation).toHaveText("Rules allocate"); await expect(note).toContainText("$70 refreshments from General Operating");
+  await expect(explanation).toBeFocused(); await expect(explanation).toBeInViewport({ ratio: 1 });
+  await page.getByRole("button", { name: "Explore Claude AI model", exact: true }).click();
+  await expect(explanation).toHaveText("AI suggests"); await expect(note).toContainText("AI is off in this session");
   await expect(explanation).toBeFocused(); await expect(explanation).toBeInViewport({ ratio: 1 });
   // Re-selecting the same component must still return focus to its explanation.
-  await page.getByRole("button", { name: "Explore Local AI model", exact: true }).click();
+  await page.getByRole("button", { name: "Explore Claude AI model", exact: true }).click();
   await expect(explanation).toBeFocused(); await expect(explanation).toBeInViewport({ ratio: 1 });
-  await page.getByRole("button", { name: "1. Receipt", exact: true }).click();
-  for (let i = 0; i < 5; i++) await page.getByRole("button", { name: "Next step", exact: true }).click();
-  await expect(page.getByRole("heading", { name: "Verified success closes the payable once." })).toBeVisible();
+  await stages.getByRole("button", { name: "People approve", exact: true }).focus(); await page.keyboard.press("Enter");
+  await expect(explanation).toHaveText("People approve"); await expect(note).toContainText("Maria cannot approve her own claim");
   await expect(explanation).toBeFocused(); await expect(explanation).toBeInViewport({ ratio: 1 });
-  await expect(page.getByRole("button", { name: "Next step", exact: true })).toBeDisabled();
-  await page.getByRole("button", { name: "What if the receipt includes alcohol?", exact: true }).focus(); await page.keyboard.press("Enter");
-  await expect(page.getByRole("heading", { name: "The expense stops at the rules." })).toBeVisible();
-  await expect(explanation).toBeFocused(); await expect(explanation).toBeInViewport({ ratio: 1 });
-  await page.getByRole("button", { name: "5. PayPal", exact: true }).click();
-  await page.getByRole("button", { name: "Explore PayPal Sandbox", exact: true }).click();
-  await expect(page.getByRole("heading", { name: "The expense stops at the rules." })).toBeVisible();
-  await expect(page.getByLabel("Illustrated request path")).not.toContainText("PayPal");
-  await page.getByText("Where the components actually run", { exact: true }).click();
+  await stages.getByRole("button", { name: "PayPal handoff", exact: true }).click();
+  await expect(explanation).toHaveText("PayPal handoff"); await expect(note).toContainText("submits nothing");
+  await expect(stages.getByRole("button", { name: "PayPal handoff", exact: true })).toHaveAttribute("aria-pressed", "true");
+  await expect(page.getByRole("button", { name: "Explore PayPal Sandbox", exact: true })).toHaveAttribute("aria-pressed", "true");
+  await page.getByText("Deployment boundaries", { exact: true }).click();
   await expect(page.getByText("Private Docker containers", { exact: true })).toBeVisible();
-  await expect(page.getByText(/same Next.js app container/)).toBeVisible();
+  await expect(page.getByText(/one Next.js app container/)).toBeVisible();
   for (const width of [375, 1440]) { await page.setViewportSize({ width, height: 1000 }); await page.getByRole("button", { name: "Explore AidTrace app", exact: true }).click(); await expect(explanation).toBeFocused(); await expect(explanation).toBeInViewport({ ratio: 1 }); await fits(page); }
   expect(requests).toEqual([]);
   expect(await connection.db.select().from(s.disbursementAttempts)).toHaveLength(0);

@@ -118,3 +118,34 @@ for (const user of ["tara", "ben"] as const) test(`UX-01: ${user} can reject wit
   await page.getByLabel("Reason for rejection").fill("Synthetic phone test rejection"); await page.getByRole("button", { name: "Reject claim" }).click();
   await expect(page.getByRole("status")).toContainText("claim was rejected"); await expect(page.getByText(/Rejected by .*Synthetic phone test rejection/)).toBeVisible(); await noOverflow(page);
 });
+// IAC-405 step 1 (PC-23): rule flags for approvers, rendered from stored rows only. P3 is not asserted: it depends on the test date.
+async function fits(page: Page, width: number) {
+  await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+  for (const control of await page.locator("#policy-checks button, #policy-checks a").all()) {
+    if (!await control.isVisible()) continue;
+    const box = await control.boundingBox(); if (box) { expect(box.x).toBeGreaterThanOrEqual(0); expect(box.x + box.width).toBeLessThanOrEqual(width); }
+  }
+  const section = await page.locator("#policy-checks").boundingBox(); expect(section!.x).toBeGreaterThanOrEqual(0); expect(section!.x + section!.width).toBeLessThanOrEqual(width);
+}
+test("PC-23: the claimant sees no policy section, an approver runs it once and sees the stored holds at 390 and 1440 pixels", async ({ page }) => {
+  await login(page, "maria"); await page.getByRole("button", { name: "Freeze allocation for approval" }).click(); await expect(page.getByRole("status")).toContainText("allocation is frozen");
+  await expect(page.locator("#policy-checks")).toHaveCount(0); await page.getByRole("button", { name: "Sign out" }).click();
+  await login(page, "tara"); await page.setViewportSize({ width: 390, height: 844 });
+  const section = page.locator("#policy-checks"); await expect(section).toBeVisible();
+  await expect(section.getByRole("heading", { name: "Policy checks" })).toBeVisible(); await expect(section).toContainText("Policy checks have not run for this frozen decision.");
+  await fits(page, 390);
+  await section.getByRole("button", { name: "Run policy checks" }).click();
+  await expect(page.getByRole("status")).toContainText("Policy checks ran and are stored");
+  await expect(section.locator("li").filter({ hasText: "Hold: Line L3 is a meal. Meals always go to a person." })).toHaveCount(1);
+  await expect(section.locator("li").filter({ hasText: "Hold: Line L1 is USD 280.00 of supplies. Supplies over USD 250.00 go to a person." })).toHaveCount(1);
+  await expect(section.getByRole("button", { name: "Run policy checks" })).toHaveCount(0);
+  await expect(section).toContainText("Flags do not block approval. Two approvers are still required.");
+  expect(await section.innerText()).not.toMatch(/\b(cleared|approved|passed)\b/i);
+  await fits(page, 390);
+  await page.setViewportSize({ width: 1440, height: 900 }); await fits(page, 1440);
+  // Holds are information only: the same approver can still approve, and the stored rows stay as they were.
+  await expect(page.getByRole("button", { name: "Approve these terms" })).toBeVisible();
+  expect(await connection.db.select().from(s.policyCheckRuns)).toHaveLength(1);
+  await page.reload(); await expect(section.locator("li").filter({ hasText: "Hold: Line L3 is a meal." })).toHaveCount(1);
+  expect(await connection.db.select().from(s.policyCheckRuns)).toHaveLength(1);
+});

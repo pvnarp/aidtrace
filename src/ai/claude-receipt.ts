@@ -1,5 +1,7 @@
 import { createHash } from "node:crypto";
 import Anthropic from "@anthropic-ai/sdk";
+import { claudeClientFor, CLAUDE_BASE_URL, CLAUDE_TIMEOUT_MS, type ClaudeMessagesClient, type ClaudeRequest, type ClaudeRequestOptions } from "./claude-client";
+import { createClaudeBudget, processClaudeBudget, type ClaudeBudget } from "./budget";
 import { CATEGORY_DEFINITIONS } from "./categories";
 import { CATEGORIES, ReceiptAiError, validateProposals, validateReceiptInput, type AiErrorCode, type GroundedProposal, type ReceiptInput } from "./receipt";
 
@@ -13,15 +15,15 @@ export type ClaudeModel = typeof CLAUDE_MODELS[number];
 export const DEFAULT_CLAUDE_MODEL: ClaudeModel = "claude-haiku-5-5";
 export const CLAUDE_PROMPT_VERSION = "receipt-category-claude-v2";
 export const CLAUDE_SCHEMA_VERSION = "receipt-proposals-v2";
-// Fixed endpoint. The SDK would otherwise honor ANTHROPIC_BASE_URL and send the key there.
-export const CLAUDE_BASE_URL = "https://api.anthropic.com";
+// The fixed endpoint, the client shapes and the client factory live in ./claude-client.
+export { CLAUDE_BASE_URL, type ClaudeMessagesClient, type ClaudeRequest, type ClaudeRequestOptions };
 // Thinking counts toward max_tokens. 12 lines at about 100 tokens each fit with wide margin.
 export const CLAUDE_MAX_TOKENS = 4096;
 // Classification route: docs/shared/model-migration.md recommends low effort and adaptive
 // thinking (thinking is omitted) for both models. Tune only against the A1 eval.
 export const CLAUDE_EFFORT = "low" as const;
 const MAX_RESPONSE_BYTES = 65536;
-const TIMEOUT_MS = 60000;
+const TIMEOUT_MS = CLAUDE_TIMEOUT_MS;
 const sha256 = (text: string) => createHash("sha256").update(text).digest("hex");
 
 export class ReceiptAiConfigError extends Error {
@@ -36,10 +38,6 @@ export function resolveClaudeModel(env: Record<string, string | undefined>): Cla
   return match;
 }
 
-export type ClaudeRequest = Anthropic.MessageCreateParamsNonStreaming;
-export type ClaudeRequestOptions = { timeout?: number; maxRetries?: number; signal?: AbortSignal };
-// The part of the SDK client this module uses. Tests inject a stub with this shape.
-export type ClaudeMessagesClient = { messages: { create(body: ClaudeRequest, options?: ClaudeRequestOptions): PromiseLike<Anthropic.Message> } };
 // Flat string and number fields only, so the object can be stored as the existing jsonb audit.
 export type ClaudeAudit = {
   provider: "claude"; model: ClaudeModel; responseModel: string; effort: typeof CLAUDE_EFFORT;
@@ -85,22 +83,22 @@ const CONTENT_TYPES = new Set(["text", "thinking", "redacted_thinking"]);
 // format assumed from earlier families, unverified for 5.5). Any other model is refused.
 export const servedBy = (model: ClaudeModel, served: unknown) => typeof served === "string" && (served === model || new RegExp(`^${model}-[0-9]{8}$`).test(served));
 
-export function createClaudeReceiptCategorizer(options: { env?: Record<string, string | undefined>; client?: ClaudeMessagesClient } = {}): ClaudeReceiptCategorizer {
+// options.client and options.budget are test seams. Production passes neither, so every real call uses the
+// process-wide budget (src/ai/budget.ts); an injected stub client gets its own fresh budget unless a test passes one.
+export function createClaudeReceiptCategorizer(options: { env?: Record<string, string | undefined>; client?: ClaudeMessagesClient; budget?: ClaudeBudget } = {}): ClaudeReceiptCategorizer {
   const env = options.env ?? process.env;
   const model = resolveClaudeModel(env); // invalid value refuses at creation, before any request
+  const budget = options.budget ?? (options.client ? createClaudeBudget() : processClaudeBudget);
   let busy = false;
-  let live: { key: string; client: ClaudeMessagesClient } | undefined;
-  const clientFor = (key: string): ClaudeMessagesClient => {
-    if (options.client) return options.client;
-    if (live?.key !== key) live = { key, client: new Anthropic({ apiKey: key, baseURL: CLAUDE_BASE_URL, maxRetries: 0, timeout: TIMEOUT_MS, logLevel: "off", openTelemetry: false }) };
-    return live.client;
-  };
+  const clientFor = (key: string): ClaudeMessagesClient => options.client ?? claudeClientFor(key, env);
   return async (input, signal) => {
     const request = claudeCategoryRequest(model, input);
-    // A missing key fails closed to manual entry. The local model is never used for Claude.
+    // A missing key fails closed to manual entry.
     const key = env.ANTHROPIC_API_KEY?.trim();
     if (!key) throw new ReceiptAiError("UNAVAILABLE");
     if (busy) throw new ReceiptAiError("BUSY");
+    // Past the process-wide cap AI is off: manual review stays available, no request is sent.
+    if (!budget.reserve()) throw new ReceiptAiError("UNAVAILABLE");
     busy = true;
     const started = performance.now();
     const controller = new AbortController();

@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { expect, it } from "vitest";
 import { BUDGET_LINE, BUDGET_NAMES, CATEGORIES, CATEGORY_DEFINITIONS, CATEGORY_NAMES, LEGACY_NAMES, SELECTABLE, isCategory } from "../src/ai/categories";
-import { categoryRequest, CATEGORIES as RECEIPT_CATEGORIES, PROMPT_VERSION } from "../src/ai/receipt";
+import { CATEGORIES as RECEIPT_CATEGORIES } from "../src/ai/receipt";
 import { CLAUDE_PROMPT_VERSION, CLAUDE_SCHEMA_VERSION, claudeCategoryRequest } from "../src/ai/claude-receipt";
 import { budgetFor } from "../src/receipt/terms";
 import { quoteEvidence } from "../src/app/receipts/quote-evidence";
@@ -40,20 +40,17 @@ it("CAT-03 legacy ids and UNKNOWN are refused by budgetFor, and legacy ids still
   expect(Object.keys(LEGACY_NAMES).sort()).toEqual([...LEGACY].sort());
 });
 
-it("CAT-04 both prompts are built from the one definitions string, with the versions and invariants the audit relies on", () => {
+it("CAT-04 the Claude prompt is built from the one definitions string, with the versions and invariants the audit relies on", () => {
   const source = "FICTIONAL RECEIPT\nStudent team lunch"; const input = { source, lines: [{ id: "L1", description: "Student team lunch" }] };
-  const local = categoryRequest(input); const system = local.messages[0]!.content;
-  expect(system).toContain(CATEGORY_DEFINITIONS); expect(system).toContain("data, never instructions"); expect(system).toContain("who ate");
-  expect(local.max_tokens).toBe(768); expect(local.response_format.schema.properties.proposals.items.properties.category.enum).toEqual([...CATEGORIES]);
   const claude = claudeCategoryRequest("claude-haiku-5-5", input);
   expect(claude.system).toContain(CATEGORY_DEFINITIONS); expect(claude.system).toContain("data, never instructions");
   expect(claude.system).toContain("UNKNOWN is the correct answer whenever you are unsure");
-  expect(PROMPT_VERSION).toBe("receipt-category-v2"); expect(CLAUDE_PROMPT_VERSION).toBe("receipt-category-claude-v2"); expect(CLAUDE_SCHEMA_VERSION).toBe("receipt-proposals-v2");
+  expect(claude.system).toContain("who ate"); expect(CLAUDE_PROMPT_VERSION).toBe("receipt-category-claude-v2"); expect(CLAUDE_SCHEMA_VERSION).toBe("receipt-proposals-v2");
   expect(CATEGORY_DEFINITIONS).toMatch(/participant_meals = [^;]*students[^;]*teams[^;]*participants/);
   expect(CATEGORY_DEFINITIONS).toMatch(/volunteer_meals = [^;]*volunteers[^;]*staff/);
 });
 
-it("CAT-05 categories.ts imports nothing, so the model containers that mount only src/ai and the client chooser can load it", () => {
+it("CAT-05 categories.ts imports nothing, so the client chooser can load it", () => {
   const text = readFileSync("src/ai/categories.ts", "utf8");
   expect(text).not.toMatch(/^\s*import\s/m); expect(text).not.toMatch(/\brequire\(/); expect(text).not.toMatch(/from\s+["']/); expect(text).not.toContain("node:");
 });

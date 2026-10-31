@@ -17,7 +17,7 @@ simple reuse terms and continuity with the existing file. It permits commercial 
 to publish modifications. That permissiveness is the cost. MIT contains no express patent
 grant; Apache-2.0 provides one with additional redistribution/notice terms. If an explicit
 patent grant becomes the priority, reconsider Apache-2.0 before public release. Do not
-describe third-party code or model weights as relicensed under the application MIT terms.
+describe third-party code as relicensed under the application MIT terms.
 
 Primary terms: https://opensource.org/license/mit and
 https://www.apache.org/licenses/LICENSE-2.0 . Rules requiring a visible open-source license:
@@ -46,16 +46,16 @@ that they exhaust the native binaries' embedded third-party content.
 In particular sharp-libvips binary packages declare LGPL-3.0-or-later. The fetched
 sharp-libvips build repository LICENSE is Apache-2.0; that build-script license does not
 replace the binaries' LGPL terms. This source-only candidate distributes no installed
-packages, compiled application, browser binaries, container images or weights. Setup pulls
+packages, compiled application, browser binaries or container images. Setup pulls
 them from their original pinned sources. Before distributing any built image or binary,
 review that artifact's complete license/source/notice obligations separately. Do not treat
 this package inventory as approval to redistribute an image.
 
 ## 3. Preserve runtime terms: separate downloads
 
-Qwen weights are Apache-2.0 and the pinned llama.cpp runtime is MIT. Their exact official
-revision license texts are retained as supplemental notices; artifact pins are in
-docs/THIRD_PARTY_MODELS.md. Downloaded weights retain the model license in their volume.
+No model weights or model runtime are distributed or run: AI suggestions use the hosted Claude API
+under Anthropic's own terms (docs/THIRD_PARTY_MODELS.md). The earlier open-weight model and its
+runtime were retired. THIRD_PARTY_NOTICES.txt may still carry their historical license texts until it is regenerated.
 Node, PostgreSQL, pnpm, Chromium and operating-system image components retain their own
 terms. They are downloaded, not bundled here. No logo or screenshot permissions are implied.
 

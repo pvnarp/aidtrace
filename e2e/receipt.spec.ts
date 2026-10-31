@@ -35,13 +35,13 @@ test.beforeEach(async () => {
     if (unavailable) { response.writeHead(503).end(); return; }
     const chunks: Buffer[] = []; for await (const chunk of request) chunks.push(Buffer.from(chunk));
     const body = JSON.parse(Buffer.concat(chunks).toString());
-    const data = JSON.parse(body.messages[1].content);
+    const data = JSON.parse(body.messages[0].content); // Anthropic request: one user message, the system prompt is a separate field.
     const categories = ["robot_kits_parts", "classroom_supplies", "participant_meals"];
     const content = JSON.stringify({ proposals: data.lines.map((line: { id: string; description: string }, i: number) => ({ lineId: line.id, category: categories[i], quote: line.description })) });
-    response.writeHead(200, { "content-type": "application/json" }).end(JSON.stringify({ model: "aidtrace-category-qwen3", choices: [{ finish_reason: "stop", message: { role: "assistant", content } }] }));
+    response.writeHead(200, { "content-type": "application/json" }).end(JSON.stringify({ id: "msg_ui_stub", type: "message", role: "assistant", model: "claude-haiku-5-5", stop_reason: "end_turn", stop_sequence: null, content: [{ type: "text", text: content }], usage: { input_tokens: 812, output_tokens: 57 } }));
   });
   await new Promise<void>(resolve => model.listen(8080, "0.0.0.0", resolve));
-  server = spawn(process.execPath, ["node_modules/next/dist/bin/next", "start", "--hostname", "127.0.0.1", "--port", "3100"], { detached: true, stdio: "ignore", env: { ...process.env, DATABASE_URL: url.toString(), AI_RECEIPT_ENABLED: "true", AI_EXPENSE_PROPOSALS_ENABLED: "false", PAYPAL_SANDBOX_PAYEE_EMAIL: "phone-test@personal.example.com", PAYEE_ALLOWLIST: "phone-test@personal.example.com", PAYPAL_BASE_URL: "https://api-m.sandbox.paypal.com", PAYPAL_CLIENT_ID: "", PAYPAL_CLIENT_SECRET: "", PAYPAL_PRODUCT_WEBHOOK_ENABLED: "false" } });
+  server = spawn(process.execPath, ["node_modules/next/dist/bin/next", "start", "--hostname", "127.0.0.1", "--port", "3100"], { detached: true, stdio: "ignore", env: { ...process.env, DATABASE_URL: url.toString(), AI_RECEIPT_ENABLED: "true", ANTHROPIC_API_KEY: "sk-ant-api03-UI-STUB-NOT-A-REAL-KEY", AI_EXPENSE_PROPOSALS_ENABLED: "false", PAYPAL_SANDBOX_PAYEE_EMAIL: "phone-test@personal.example.com", PAYEE_ALLOWLIST: "phone-test@personal.example.com", PAYPAL_BASE_URL: "https://api-m.sandbox.paypal.com", PAYPAL_CLIENT_ID: "", PAYPAL_CLIENT_SECRET: "", PAYPAL_PRODUCT_WEBHOOK_ENABLED: "false" } });
   for (let attempt = 0; attempt < 90; attempt++) {
     try { if ((await fetch("http://127.0.0.1:3100/api/health", { signal: AbortSignal.timeout(1000) })).ok) return; } catch { /* Wait for the isolated server, never the main application. */ }
     if (server.exitCode !== null) throw new Error("Isolated UI server exited before readiness");
@@ -81,17 +81,17 @@ async function create(page: Page) {
 test("GB-02: 375-pixel receipt quotes, explicit confirmation, allocation and edits requiring new review", async ({ page }) => {
   await create(page); const receiptUrl = page.url().split("?")[0]!;
   // IAC-383: before any suggestion exists the page names no provider, and never derives one from the environment.
-  await expect(page.locator(".receipt-evidence .muted")).toContainText("No AI suggestion is saved yet"); await expect(page.locator(".receipt-evidence")).not.toContainText("Local Qwen3 model");
+  await expect(page.locator(".receipt-evidence .muted")).toContainText("No AI suggestion is saved yet"); await expect(page.locator(".receipt-evidence")).not.toContainText("Claude Haiku 5.5");
   await page.getByRole("button", { name: "Request AI suggestions" }).click();
   await expect(page.locator(".notice")).toContainText("AI suggestions are ready"); expect(modelCalls).toBe(1);
-  await expect(page.locator(".receipt-evidence .muted")).toContainText("Local Qwen3 model. Text in, category suggestions out. No PayPal tools or approval access.");
-  await expect(page.locator(".ai-label").first()).toContainText("Local AI suggests:");
+  await expect(page.locator(".receipt-evidence .muted")).toContainText("Claude Haiku 5.5. Text in, category suggestions out. No PayPal tools or approval access.");
+  await expect(page.locator(".ai-label").first()).toContainText("Claude Haiku 5.5 suggests:");
   await expect(page.locator("blockquote")).toHaveCount(3); await noOverflow(page);
   await expect(page.locator(".ai-recommendation")).toContainText("A person confirms each category."); await expect(page.locator(".category-choice .ai-tag")).toHaveCount(3);
   // 44 px hit area for the confirmation checkbox, and a whole current-step label in the rail.
   const checkbox = (await page.getByLabel(/I checked every category/).boundingBox())!; expect(checkbox.width).toBeGreaterThanOrEqual(44); expect(checkbox.height).toBeGreaterThanOrEqual(44);
   // Every word of every stage label must fit its own column, so no word is split mid-word.
-  const rail = await page.locator(".journey > ol li").evaluateAll(items => items.map(el => {
+  const rail = await page.locator(".stage-rail .stage-item").evaluateAll(items => items.map(el => {
     const text = [...el.childNodes].find(node => node.nodeType === Node.TEXT_NODE)!; const words = text.textContent!.trim().split(/\s+/); let start = text.textContent!.indexOf(words[0]!);
     const widest = Math.max(...words.map(word => { const range = document.createRange(); start = text.textContent!.indexOf(word, start); range.setStart(text, start); range.setEnd(text, start + word.length); start += word.length; return range.getBoundingClientRect().width; }));
     return { label: text.textContent, column: Math.round(el.clientWidth), widest: Math.round(widest), whole: el.scrollWidth <= el.clientWidth };
@@ -138,18 +138,18 @@ test("CAI-35: the receipt page names the provider and model from the stored audi
   const sha = review!.sourceHash; const hash = (letter: string) => letter.repeat(64);
   const claude = (model: string) => ({ provider: "claude", model, responseModel: model, effort: "low", promptVersion: "receipt-category-claude-v1", schemaVersion: "receipt-proposals-v1",
     sourceSha256: sha, requestSha256: hash("a"), responseSha256: hash("b"), latencyMs: 1200, inputTokens: 812, outputTokens: 57 });
-  // Direct inserts of stored suggestions only. This server runs with no provider variable, so a Claude name here can only come from the audit.
+  // Direct inserts of stored suggestions only. This server runs with no model variable, so a Claude name here can only come from the audit.
   const check = async (attempt: number, audit: Record<string, string | number>, columns: { provider: "local" | "claude"; model: string }, model: string, label: string, recommendation: string) => {
     await connection.db.insert(s.receiptSuggestions).values({ reviewId: review!.id, attempt, status: "READY", proposals, audit, ...columns }); await page.reload();
     await expect(page.locator(".receipt-evidence .muted")).toContainText(`${model}. Text in, category suggestions out. No PayPal tools or approval access.`);
     await expect(page.locator(".ai-label").first()).toContainText(`${label} suggests:`); await expect(page.locator("blockquote")).toHaveCount(3);
     await expect(page.locator(".ai-recommendation .ai-model-line")).toContainText(recommendation);
   };
-  // The idle strip names the configured provider: AI is on and no provider variable is set, so local.
-  await expect(page.locator(".ai-recommendation.ai-strip .ai-model-line")).toContainText("Local model Qwen3-1.7B through llama.cpp");
+  // The idle strip names the configured Claude model: a key is set and no model variable is set, so the Haiku default.
+  await expect(page.locator(".ai-recommendation.ai-strip .ai-model-line")).toContainText("Claude Haiku 5.5 through the Claude API");
   await check(1, claude("claude-haiku-5-5"), { provider: "claude", model: "claude-haiku-5-5" }, "Claude Haiku 5.5", "Claude Haiku 5.5", "Model: Claude Haiku 5.5 through the Claude API");
   await check(2, claude("claude-sonnet-5-5"), { provider: "claude", model: "claude-sonnet-5-5" }, "Claude Sonnet 5.5", "Claude Sonnet 5.5", "Model: Claude Sonnet 5.5 through the Claude API");
-  await check(3, { sourceSha256: sha, requestSha256: hash("a"), responseSha256: hash("b"), modelSha256: hash("c"), modelRevision: "d".repeat(40), promptVersion: "receipt-category-v1" }, { provider: "local", model: "d".repeat(40) }, "Local Qwen3 model", "Local AI", "Model: Qwen3-1.7B through llama.cpp");
+  await check(3, { sourceSha256: sha, requestSha256: hash("a"), responseSha256: hash("b"), modelSha256: hash("c"), modelRevision: "d".repeat(40), promptVersion: "receipt-category-v1" }, { provider: "local", model: "d".repeat(40) }, "Earlier AI model, since retired", "Earlier AI", "Model: Earlier AI model, since retired. This suggestion was saved before AidTrace moved to Claude.");
   // The database check refuses a provider the audit contradicts, so the unrecognized case is an audit the columns accept but the reader refuses (effort outside the stored contract).
   await check(4, { ...claude("claude-haiku-5-5"), effort: "high" }, { provider: "claude", model: "claude-haiku-5-5" }, "Unrecognized AI record", "AI", "the saved AI record is not recognized");
   expect(modelCalls).toBe(0); expect(await connection.db.select().from(s.disbursements)).toHaveLength(0);

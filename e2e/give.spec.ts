@@ -128,7 +128,7 @@ test('DON-10 keyless: /give shows the read-only panel at 375 and 1280, loads no 
   expect(await violations(page)).toEqual([]); expect(watched.errors).toEqual([]); expect(watched.external).toEqual([]);
 });
 
-type Canned = { status?: number; json?: unknown; abort?: boolean };
+type Canned = { status?: number; json?: unknown; abort?: boolean; raw?: string; contentType?: string };
 async function keyedPage(page: Page) {
   const watched = await watch(page);
   const posts: Record<string, string>[] = []; const api: Record<string, (body: Record<string, string>) => Canned> = {};
@@ -138,6 +138,7 @@ async function keyedPage(page: Page) {
     const body = JSON.parse(route.request().postData() ?? '{}') as Record<string, string>; posts.push(body);
     const canned = api[body.action ?? '']?.(body); if (!canned) return route.fulfill({ status: 500, body: 'unscripted' });
     if (canned.abort) return route.abort('failed');
+    if (canned.raw !== undefined) return route.fulfill({ status: canned.status ?? 200, contentType: canned.contentType ?? 'text/plain', body: canned.raw });
     return route.fulfill({ status: canned.status ?? 200, contentType: 'application/json', body: JSON.stringify(canned.json) });
   });
   const response = await page.goto('/give');
@@ -244,5 +245,40 @@ test('DON-10 keyed (stubbed SDK, canned API): a lost capture answer is never rep
   await expect(status(page)).toHaveText('We could not confirm this payment. Please do not pay again. Reload this page later to check.');
   await expect(page.getByTestId('give-done')).toHaveCount(0); await expect(status(page)).not.toContainText(/Thank you|recorded|Capture ID/);
   expect(posts.map(post => post.action)).toEqual(['create', 'capture']);
+  expect(await orderRows()).toBe(0); expect(await violations(page)).toEqual([]); expect(watched.errors).toEqual([]); expect(watched.external).toEqual([]);
+});
+
+// IAC-396 run 4 question: a capture answer that is not the server's JSON (a proxy 502 page, an empty 500) arrives after the
+// donor approved, so the capture may already have happened. It must stay unknown and never invite a second payment.
+const UNCERTAIN = 'We could not confirm this payment. Please do not pay again. Reload this page later to check.';
+test('DON-10 keyed (stubbed SDK, canned API): a capture answer without the server JSON stays unknown and never says nothing was recorded', async ({ page }) => {
+  await startServer(KEYED_ENV);
+  const { watched, posts, api } = await keyedPage(page);
+  api.create = () => ({ json: created() });
+  const scenarios: { label: string; canned: Canned; text: string }[] = [
+    { label: '502 HTML', canned: { status: 502, contentType: 'text/html', raw: '<html><body><h1>502 Bad Gateway</h1></body></html>' }, text: UNCERTAIN },
+    { label: '500 empty', canned: { status: 500, raw: '' }, text: UNCERTAIN },
+    { label: '200 empty', canned: { status: 200, raw: '' }, text: UNCERTAIN },
+    { label: '500 server error string', canned: { status: 500, json: { error: 'We could not complete this payment. If you already approved a payment in PayPal, please do not pay again.' } }, text: 'We could not complete this payment. If you already approved a payment in PayPal, please do not pay again.' },
+  ];
+  for (const scenario of scenarios) {
+    api.capture = () => scenario.canned;
+    await page.locator('#stub-pay').click();
+    await expect(status(page), scenario.label).toHaveText(scenario.text);
+    await expect(status(page), scenario.label).not.toContainText(/Nothing was recorded|try again/i);
+    await expect(page.getByTestId('give-done')).toHaveCount(0); await expect(page.getByRole('button', { name: 'Try again' })).toHaveCount(0);
+  }
+  expect(posts.map(post => post.action)).toEqual(['create', 'capture', 'create', 'capture', 'create', 'capture', 'create', 'capture']);
+  expect(await orderRows()).toBe(0); expect(await violations(page)).toEqual([]); expect(watched.errors).toEqual([]); expect(watched.external).toEqual([]);
+});
+
+// The pre-approval paths keep their text: a create answer without the server JSON still says nothing was recorded.
+test('DON-10 keyed (stubbed SDK, canned API): a create answer without the server JSON keeps the nothing-recorded wording', async ({ page }) => {
+  await startServer(KEYED_ENV);
+  const { watched, posts, api } = await keyedPage(page);
+  api.create = () => ({ status: 502, contentType: 'text/html', raw: '<html>502</html>' });
+  await page.locator('#stub-pay').click();
+  await expect(status(page)).toHaveText('Something went wrong. Nothing was recorded. Please try again.');
+  expect(posts.map(post => post.action)).toEqual(['create']);
   expect(await orderRows()).toBe(0); expect(await violations(page)).toEqual([]); expect(watched.errors).toEqual([]); expect(watched.external).toEqual([]);
 });

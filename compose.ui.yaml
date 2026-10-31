@@ -8,14 +8,13 @@ services:
       DATABASE_URL: postgres://aidtrace@db:5432/postgres
       APP_ORIGIN: http://127.0.0.1:3100
       NEXT_TELEMETRY_DISABLED: "1"
+      # Test-only: lets src/ai/claude-client.ts send Claude requests to the loopback stub instead of the Anthropic API. Only the two compose.ui.yaml test files set it.
       UI_TEST_CONTAINER: "true"
     volumes:
       - ${AIDTRACE_UI_SOURCE:?Use scripts/aidtrace ui-check}:/workspace
       - node_modules:/workspace/node_modules:ro
       - ui_next_build:/workspace/.next
-    networks:
-      database:
-        aliases: [model]
+    networks: [database]
     shm_size: 1gb
     mem_limit: 3g
     cpus: 2
