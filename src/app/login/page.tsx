@@ -33,6 +33,6 @@ export default async function Login({ searchParams }: { searchParams: Promise<{ 
         </article>
       </div>
     </div>
-    <footer>Sandbox demo with fictional data. Sign in separately for each role.</footer>
+    <footer>Sign in separately for each role.</footer>
   </main></>;
 }

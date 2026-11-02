@@ -54,7 +54,7 @@ async function create(page: Page, wine = false, aiOff = false) {
     for (const i of [2, 3]) { await page.getByLabel(`Description ${i}`, { exact: true }).fill(""); await page.getByLabel(`USD amount ${i}`, { exact: true }).fill(""); }
     await page.getByLabel("Receipt total in USD").fill("1.00"); await page.getByLabel("Invented receipt text").fill("Wine");
   }
-  await page.getByLabel("This receipt is fictional sandbox data.").check(); await page.getByRole("button", { name: "Create receipt draft", exact: true }).click(); await expect(page.getByRole("heading", { name: aiOff ? "AI is off in this session" : "Prepare this expense for review", exact: true })).toBeVisible();
+  await page.getByLabel("This receipt is sample data with no real personal details.").check(); await page.getByRole("button", { name: "Create receipt draft", exact: true }).click(); await expect(page.getByRole("heading", { name: aiOff ? "AI is off in this session" : "Prepare this expense for review", exact: true })).toBeVisible();
   return page.url().split("?")[0]!;
 }
 async function noOverflow(page: Page) {
@@ -106,8 +106,8 @@ test.describe("Synthetic response interface checks", () => {
       await expect(other.getByRole("heading", { level: 1 })).toBeVisible(); await noOverflow(other);
       const status = await other.evaluate(() => Array.from(document.fonts).filter(face => /inter/i.test(face.family)).map(face => face.status));
       expect(status).toContain("error");
-      await other.goto("/receipts/new"); await other.getByLabel("Fictional vendor").fill("Font fallback remains editable");
-      await expect(other.getByLabel("Fictional vendor")).toHaveValue("Font fallback remains editable"); await noOverflow(other);
+      await other.goto("/receipts/new"); await other.getByLabel("Vendor", { exact: true }).fill("Font fallback remains editable");
+      await expect(other.getByLabel("Vendor", { exact: true })).toHaveValue("Font fallback remains editable"); await noOverflow(other);
     } finally { await fallback.close(); }
     expect(calls).toBe(0);
   });
@@ -116,7 +116,7 @@ test.describe("Synthetic response interface checks", () => {
     const literal = '<img src="/never-load" onerror="window.__receiptInjection=1">';
     await page.getByLabel("Description 1", { exact: true }).fill(literal);
     await page.getByLabel("Invented receipt text").fill(literal + "\nBlank writing notebook\nSandwiches and apple juice");
-    await page.getByLabel("This receipt is fictional sandbox data.").check();
+    await page.getByLabel("This receipt is sample data with no real personal details.").check();
     const unexpected: string[] = [];
     page.on("request", request => { if (new URL(request.url()).pathname === "/never-load") unexpected.push(request.url()); });
     await page.getByRole("button", { name: "Create receipt draft", exact: true }).click();
@@ -130,11 +130,11 @@ test.describe("Synthetic response interface checks", () => {
   });
   test("AP-10: the unsubmitted receipt form remains stable while idle", async ({ page }) => {
     await login(page, "maria"); await page.goto("/receipts/new");
-    await page.getByLabel("Fictional vendor").fill("Unsubmitted stability fixture");
+    await page.getByLabel("Vendor", { exact: true }).fill("Unsubmitted stability fixture");
     let reloads = 0;
     page.on("request", request => { if (new URL(request.url()).pathname === "/receipts/new") reloads++; });
     await new Promise(resolve => setTimeout(resolve, 15000));
-    await expect(page.getByLabel("Fictional vendor")).toHaveValue("Unsubmitted stability fixture");
+    await expect(page.getByLabel("Vendor", { exact: true })).toHaveValue("Unsubmitted stability fixture");
     expect(reloads).toBe(0); expect(calls).toBe(0);
     expect(await connection.db.select().from(s.receiptReviews)).toHaveLength(0);
     expect(await connection.db.select().from(s.disbursements)).toHaveLength(0); await noOverflow(page);
@@ -154,32 +154,50 @@ test.describe("Synthetic response interface checks", () => {
     await expect(page.locator(".proposal-split")).toHaveCount(0); await expect(page.getByRole("button", { name: "Refresh funding preview" })).toBeDisabled();
     await page.getByLabel(/I checked every category/).check(); await page.getByRole("button", { name: "Confirm categories", exact: true }).click(); await expect(page.getByRole("heading", { name: "Human confirmation recorded" })).toBeVisible();
     await page.getByRole("link", { name: "View allocation", exact: true }).click(); await expect(page.getByRole("button", { name: "Freeze allocation for approval" })).toBeVisible();
-    await expect(page.getByText(/Opening journals have not been created yet/)).toBeVisible();
-    await expect(page.locator(".recipient-note")).toHaveText("Fictional non-payable recipient for Maria");
+    await page.locator("details.accounting > summary").click(); await expect(page.getByText(/Opening journals have not been created yet/)).toBeVisible();
+    await expect(page.locator(".recipient-note")).toHaveText("Placeholder recipient for Maria. PayPal cannot pay it.");
     await expect(page.getByText(/less General than this comparison/)).toHaveCount(0);
     await page.getByRole("button", { name: "Freeze allocation for approval" }).click(); await expect(page.getByText("The allocation is frozen.", { exact: false })).toBeVisible();
-    await expect(page.getByText("Ledger tie-out: Matches.", { exact: true })).toBeVisible();
+    await page.locator("details.accounting > summary").click(); await expect(page.getByText("Ledger tie-out: Matches.", { exact: true })).toBeVisible();
     await expect(page.locator(".expense-review")).toContainText("Human correction for this fixture");
-    await expect(page.locator(".recipient-note")).toHaveText("Fictional non-payable recipient for Maria");
+    await expect(page.locator(".recipient-note")).toHaveText("Placeholder recipient for Maria. PayPal cannot pay it.");
     await expect(page.locator(".provenance-tags", { hasText: "Person chose" }).first()).toBeVisible(); expect(await page.locator(".provenance-tags", { hasText: "Person confirmed" }).count()).toBeGreaterThan(0);
     await expect(page.locator(".expense-review")).toContainText("Original AI suggestion: Robot kits and parts");
     await expect(page.locator(".recipient-review")).toHaveCount(0);
     const claimUrl = receipt.replace(/\/receipt$/, "");
     await page.getByRole("button", { name: "Sign out" }).click(); await login(page, "tara"); await page.goto(claimUrl);
     await expect(page.locator(".expense-review")).toContainText("L1: Science experiment kit");
-    await expect(page.locator(".expense-review")).toContainText("Claimant made a manual category choice");
-    await expect(page.locator(".expense-review")).toContainText("Claimant accepted an AI category suggestion");
-    await expect(page.locator(".recipient-note")).toHaveText("Fictional non-payable recipient for Maria");
-    await page.getByText("Review exact sandbox recipient", { exact: true }).click();
+    // IAC-415 PR 4: the provenance sentences were removed; the tags beside them state the same facts once.
+    await expect(page.locator(".expense-review .provenance-tags", { hasText: "Person chose" }).first()).toBeVisible(); await expect(page.locator(".expense-review")).not.toContainText("Claimant made a manual category choice");
+    await expect(page.locator(".expense-review .provenance-tags", { hasText: "AI suggested" }).first()).toBeVisible(); await expect(page.locator(".expense-review")).not.toContainText("Claimant accepted an AI category suggestion");
+    await expect(page.locator(".recipient-note")).toHaveText("Placeholder recipient for Maria. PayPal cannot pay it.");
+    await page.getByText("Review exact recipient", { exact: true }).click();
     await expect(page.locator(".recipient-review")).toContainText("review@example.invalid"); await noOverflow(page);
     await page.getByRole("button", { name: "Approve these terms", exact: true }).click();
     await expect(page.getByText("A different approver is still required.", { exact: false })).toBeVisible();
     await page.getByRole("button", { name: "Sign out" }).click(); await login(page, "ben"); await page.goto(claimUrl); await page.getByRole("button", { name: "Approve these terms", exact: true }).click();
-    await expect(page.getByText("Both approvals are complete.", { exact: false })).toBeVisible();
+    await expect(page.locator(".hybrid-review-count")).toContainText("2 of 2"); // IAC-415 polish: a keyless approved claim states itself in the title and the Decision panel, so the banner is not repeated
     await expect(page.getByText("Organization-wide open payable: $6.00.", { exact: false })).toBeVisible();
     expect(await connection.db.select().from(s.approvals)).toHaveLength(2);
     expect(await connection.db.select().from(s.disbursements)).toHaveLength(0); await noOverflow(page);
     await page.goto(receipt); await expect(page.getByRole("button", { name: "Prepare expense proposal", exact: true })).toHaveCount(0);
+  });
+  // FT-02b (IAC-415 PR 5, docs/GATE_REPORT.md section 52): the proposal path renders the same AI recommendation header, so a READY suggestion states the one instruction there and nowhere else.
+  test("FT-02b: on the proposal path a READY suggestion says 'Edit the receipt to request a new review.' once and never 'AI suggestions are saved for this receipt', before confirmation only", async ({ page }) => {
+    const receipt = await create(page); const sentence = "Edit the receipt to request a new review."; const saved = "AI suggestions are saved for this receipt";
+    const count = (text: string, part: string) => text.split(part).length - 1;
+    await page.getByRole("button", { name: "Prepare expense proposal", exact: true }).click();
+    await expect(page.getByRole("heading", { name: "Provisional funding available", exact: true })).toBeVisible();
+    const header = page.locator('.ai-recommendation[data-state="READY"]'); await expect(header).toHaveCount(1);
+    const before = await page.locator("main").innerText(); expect(count(before, sentence), "instruction before confirmation").toBe(1); expect(count(before, saved), "saved-suggestions paragraph before confirmation").toBe(0);
+    const headerText = await header.innerText(); expect(count(headerText, sentence), "instruction in the header").toBe(1); expect(headerText.indexOf(sentence)).toBeGreaterThan(headerText.indexOf("Saved record:"));
+    await page.goto(receipt); await expect(header).toHaveCount(1); const reloaded = await page.locator("main").innerText();
+    expect(count(reloaded, sentence), "instruction on a fresh load").toBe(1); expect(count(reloaded, saved), "saved-suggestions paragraph on a fresh load").toBe(0);
+    await page.getByLabel(/I checked every category/).check(); await page.getByRole("button", { name: "Confirm categories", exact: true }).click();
+    await expect(page.getByRole("heading", { name: "Human confirmation recorded" })).toBeVisible();
+    const after = await page.locator("main").innerText(); expect(count(after, sentence), "instruction after confirmation").toBe(0); expect(count(after, saved), "saved-suggestions paragraph after confirmation").toBe(0);
+    await expect(page.locator(".ai-recommendation")).toHaveCount(0);
+    console.log("FT-02b occurrences " + JSON.stringify({ before: [count(before, sentence), count(before, saved)], reloaded: [count(reloaded, sentence), count(reloaded, saved)], after: [count(after, sentence), count(after, saved)] }));
   });
   test("AP-04/06: repeated requests, unsaved choices, stale capacity and stale forms stay in the review flow", async ({ page }) => {
     const receipt = await create(page); const fields = await page.locator(".proposal-form").evaluate((form: HTMLFormElement) => Object.fromEntries(new FormData(form)) as Record<string, string>);
@@ -205,10 +223,10 @@ test.describe("Synthetic response interface checks", () => {
     await expect(page.getByRole("button", { name: "Freeze allocation for approval" })).toHaveCount(0);
     expect(await connection.db.select().from(s.approvals)).toHaveLength(0);
     expect(await connection.db.select().from(s.disbursements)).toHaveLength(0);
-    await page.goto("/receipts/new"); await page.getByLabel("This receipt is fictional sandbox data.").check(); await page.getByRole("button", { name: "Create receipt draft", exact: true }).click(); mode = "unknown";
+    await page.goto("/receipts/new"); await page.getByLabel("This receipt is sample data with no real personal details.").check(); await page.getByRole("button", { name: "Create receipt draft", exact: true }).click(); mode = "unknown";
     await page.getByRole("button", { name: "Prepare expense proposal", exact: true }).click(); await expect(page.getByRole("heading", { name: "Category review needed", exact: true })).toBeVisible(); await expect(page.getByLabel("Category for L1", { exact: true })).toHaveValue("");
     await page.getByRole("button", { name: "Confirm categories", exact: true }).click(); expect(await page.getByLabel("Category for L1", { exact: true }).evaluate((el: HTMLSelectElement) => el.validity.valueMissing)).toBe(true);
-    await page.goto("/receipts/new"); await page.getByLabel("This receipt is fictional sandbox data.").check(); await page.getByRole("button", { name: "Create receipt draft", exact: true }).click(); mode = "unavailable";
+    await page.goto("/receipts/new"); await page.getByLabel("This receipt is sample data with no real personal details.").check(); await page.getByRole("button", { name: "Create receipt draft", exact: true }).click(); mode = "unavailable";
     await page.getByRole("button", { name: "Prepare expense proposal", exact: true }).click(); await expect(page.getByRole("heading", { name: "Preparation unavailable", exact: true })).toBeVisible();
     for (const [line, category] of [["L1", "robot_kits_parts"], ["L2", "classroom_supplies"], ["L3", "participant_meals"]]) { await page.getByLabel(`Category for ${line}`, { exact: true }).selectOption(category!); await page.getByLabel(`Reason for manual choice ${line}`, { exact: true }).fill("Checked invented source"); }
     await page.getByLabel(/I checked every category/).check(); await page.getByRole("button", { name: "Confirm categories", exact: true }).click(); await expect(page.getByRole("heading", { name: "Human confirmation recorded" })).toBeVisible();
@@ -219,8 +237,8 @@ test.describe("Synthetic response interface checks", () => {
     const v = await readReceiptView(connection.db, id, "maria"); const p = await readExpenseProposal(connection.db, id, "maria");
     await prepareExpenseProposal(connection.db, id, "maria", { reviewId: v.review.id, draftHash: v.review.draftHash, suggestionHash: suggestionHash(v.suggestion), runHash: p.runHash }, async () => { throw new ReceiptAiError("TIMEOUT"); });
     await page.reload(); await expect(page.locator(".proposal-panel")).toContainText("Preparation timed out");
-    await page.getByText("Edit receipt or amounts", { exact: true }).click(); await page.getByLabel("Fictional vendor").fill("Unsaved fictional vendor"); await expect(page.getByRole("button", { name: "Prepare expense proposal", exact: true })).toBeDisabled(); await expect(page.getByRole("button", { name: "Confirm categories", exact: true })).toBeDisabled();
-    await page.getByLabel("This receipt is fictional sandbox data.").check(); await page.getByRole("button", { name: "Save edits and require a new review" }).click(); await expect(page.getByText("Unsaved fictional vendor", { exact: false }).first()).toBeVisible();
+    await page.getByText("Edit receipt or amounts", { exact: true }).click(); await page.getByLabel("Vendor", { exact: true }).fill("Unsaved fictional vendor"); await expect(page.getByRole("button", { name: "Prepare expense proposal", exact: true })).toBeDisabled(); await expect(page.getByRole("button", { name: "Confirm categories", exact: true })).toBeDisabled();
+    await page.getByLabel("This receipt is sample data with no real personal details.").check(); await page.getByRole("button", { name: "Save edits and require a new review" }).click(); await expect(page.getByText("Unsaved fictional vendor", { exact: false }).first()).toBeVisible();
     expect(calls).toBe(0); expect(await connection.db.select().from(s.receiptConfirmations)).toHaveLength(0); await noOverflow(page);
   });
   test("AP-09: AI disabled still allows explicit manual category confirmation", async ({ page }) => {
@@ -241,12 +259,12 @@ test.describe("Isolated single-receipt judging", () => {
     await expect(page.getByRole("link", { name: "Review Maria's $500 receipt", exact: true })).toBeVisible();
     await expect(page.getByRole("link", { name: "Inspect the separate claim C-104", exact: true })).toHaveCount(0);
     await page.getByRole("link", { name: "Review Maria's $500 receipt", exact: true }).click();
-    await page.getByLabel("This receipt is fictional sandbox data.").check(); await page.getByRole("button", { name: "Create receipt draft", exact: true }).click();
+    await page.getByLabel("This receipt is sample data with no real personal details.").check(); await page.getByRole("button", { name: "Create receipt draft", exact: true }).click();
     await expect(page.getByRole("heading", { name: "Prepare this expense for review", exact: true })).toBeVisible();
     const receipt = page.url().split("?")[0]!; const input = await readReceiptView(connection.db, receipt.split("/").at(-2)!, "maria");
     expect(input.lines.map(line => line.amountCents)).toEqual([28000n, 15000n, 7000n]);
     // Before any suggestion: a compact idle strip, no "AI suggested" tag, and a plain anchor to the Prepare card.
-    const strip = page.locator(".ai-recommendation.ai-strip"); await expect(strip).toContainText("Not run yet"); await expect(strip).toContainText("Claude Haiku 5.5"); await expect(strip).toContainText("A person confirms each category.");
+    const strip = page.locator(".ai-recommendation.ai-strip"); await expect(strip).toContainText("Not run yet"); await expect(strip).toContainText("Claude Haiku 5.5"); await expect(strip).toContainText("The receipt text goes to Anthropic."); await expect(strip).toContainText("A person confirms each category.");
     await expect(page.locator(".ai-recommendation .ai-tag", { hasText: "AI suggested" })).toHaveCount(0);
     for (const [width, height] of [[1440, 900], [390, 844]] as const) {
       await page.setViewportSize({ width, height }); await page.evaluate(() => window.scrollTo(0, 0));
@@ -259,7 +277,8 @@ test.describe("Isolated single-receipt judging", () => {
     await expect(page.locator(".receipt-source mark")).toHaveCount(3);
     await expect(page.locator(".ai-recommendation")).toContainText("AI recommendation"); await expect(page.locator(".ai-recommendation")).toContainText("Claude Haiku 5.5");
     await expect(page.locator(".ai-recommendation")).toContainText("The receipt text was sent to Anthropic for these suggestions."); await expect(page.locator(".ai-recommendation")).toContainText("A person confirms each category. The AI cannot pick funds, approve or pay.");
-    await expect(page.locator(".ai-recommendation .ai-suggestions li")).toHaveCount(3); await expect(page.locator(".ai-recommendation mark")).toHaveCount(3);
+    // IAC-415 PR 4: the header counts the suggestions and the per-line list moved out; each quote now appears once, beside its category choice (FO-02).
+    await expect(page.locator(".ai-recommendation .ai-count")).toHaveText("Suggested a category for 3 of 3 lines."); await expect(page.locator(".ai-recommendation .ai-suggestions")).toHaveCount(0); await expect(page.locator(".ai-recommendation mark")).toHaveCount(0);
     await expect(page.locator(".category-choice .ai-tag", { hasText: "AI suggested" })).toHaveCount(3);
     await page.setViewportSize({ width: 1440, height: 900 }); await page.evaluate(() => window.scrollTo(0, 0));
     const fold = (await page.locator(".ai-recommendation").boundingBox())!; expect(fold.y).toBeGreaterThanOrEqual(0); expect(fold.y + fold.height).toBeLessThanOrEqual(900);
@@ -276,11 +295,14 @@ test.describe("Isolated single-receipt judging", () => {
     await expect(page.getByLabel("Unpaid PayPal handoff", { exact: true })).toBeVisible();
     await expect(page.getByRole("heading", { level: 1 })).toHaveText("$500.00 approved. PayPal handoff ready. Unpaid.");
     await expect(page.locator(".state-badge")).toHaveText("Approved / unpaid");
-    await expect(page.locator(".paypal-handoff .recipient-note")).toHaveText("Fictional non-payable recipient for Maria"); await expect(page.locator(".recipient-note")).toHaveCount(2);
+    await expect(page.locator(".paypal-handoff .recipient-note")).toHaveText("Placeholder recipient for Maria. PayPal cannot pay it."); await expect(page.locator(".recipient-note")).toHaveCount(2);
     const handoffBox = (await page.locator(".paypal-handoff").boundingBox())!; const titleBox = (await page.getByRole("heading", { level: 1 }).boundingBox())!;
-    expect(handoffBox.y).toBeGreaterThan(titleBox.y); expect(handoffBox.y).toBeLessThan(titleBox.y + titleBox.height + 500); // IAC-373: the Next decision card (full-width primary action) now sits between the title and the handoff, was 400
+    // IAC-415 Trust v2 PR 2 (5.1 update): the header band (state badge sentence and Claim total), the compact trace and the Next decision card now sit between the title and the handoff,
+    // so the old "within 500 px of the title" (400 before IAC-373) became: below the title, above the Receipt panel, and inside 1.6 screens of the page top. Measured 1103.6 px of 1299.2 at 375x812.
+    const receiptTop = (await page.locator(".receipt-panel").boundingBox())!.y;
+    expect(handoffBox.y).toBeGreaterThan(titleBox.y); expect(handoffBox.y).toBeLessThan(receiptTop); expect(handoffBox.y).toBeLessThan(Math.round(812 * 1.6));
     await expect(page.locator(".provenance-tags .ai-tag.confirmed", { hasText: "Person confirmed" })).toHaveCount(3);
-    await expect(page.getByRole("button", { name: /Send .*PayPal sandbox/ })).toHaveCount(0);
+    await expect(page.getByRole("button", { name: /Send .* with PayPal/ })).toHaveCount(0);
     await expect(page.getByText("Organization-wide open payable: $500.00.", { exact: false })).toBeVisible();
     const before = await financial();
     await page.getByText("Inspect the proposed request structure", { exact: true }).click();

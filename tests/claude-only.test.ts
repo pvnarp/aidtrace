@@ -60,7 +60,7 @@ describe("AI off without a key", () => {
       expect(claudeAiStatus({ [flag]: "false", ...FAKE_ENV }, flag, createClaudeBudget())).toEqual({ on: false, reason: "SWITCHED_OFF" });
       expect(claudeAiStatus({ ...FAKE_ENV }, flag, createClaudeBudget())).toEqual({ on: false, reason: "SWITCHED_OFF" });
     }
-    expect(AI_OFF_MESSAGES.NO_KEY).toBe("AI suggestions are off in this session: no Claude key is configured.");
+    expect(AI_OFF_MESSAGES.NO_KEY).toBe("AI suggestions are off in this session: no AI key is configured.");
     expect(claudeAiStatus({ AI_RECEIPT_ENABLED: "true", ...FAKE_ENV, AIDTRACE_RECEIPT_AI_PROVIDER: "local" })).toEqual({ on: false, reason: "SWITCHED_OFF" });
   });
   it("CLA-04 with no key the receipt categorizer, the default categorizer and the analytics selector make no request", async () => {
@@ -77,7 +77,7 @@ describe("AI off without a key", () => {
 describe("spend cap", () => {
   it("CLA-05 the process-wide cap is the constant 60 and no environment variable can raise it", async () => {
     expect(CLAUDE_REQUEST_CAP).toBe(60); expect(processClaudeBudget.cap).toBe(60); expect(createClaudeBudget().cap).toBe(60);
-    expect(CLAUDE_LIMIT_MESSAGE).toBe("AI suggestions are off for this process: the limit of 60 Claude requests was reached. Review manually.");
+    expect(CLAUDE_LIMIT_MESSAGE).toBe("AI suggestions are off for this process: the limit of 60 AI requests was reached. Review manually.");
     for (const name of ["AIDTRACE_CLAUDE_REQUEST_CAP", "CLAUDE_REQUEST_CAP", "AIDTRACE_AI_BUDGET", "AI_REQUEST_CAP", "MAX_CLAUDE_REQUESTS"]) vi.stubEnv(name, "100000");
     vi.resetModules(); const again = await import("../src/ai/budget");
     expect(again.CLAUDE_REQUEST_CAP).toBe(60); expect(again.createClaudeBudget().cap).toBe(60);
@@ -156,12 +156,12 @@ describe("analytics on Claude", () => {
 });
 
 describe("shell wording", () => {
-  it("CLA-10 key and no key wording is exact, and follows the configured model", () => {
+  it("CLA-10 key and no key wording is exact, says AI for every configured model (IAC-416 PR 2), and never says AI is off", () => {
     const on = claudeAiStatus({ AI_RECEIPT_ENABLED: "true", ...FAKE_ENV }, "AI_RECEIPT_ENABLED", createClaudeBudget());
-    expect(on.on && shellWording({ name: on.name, shellName: on.shellName })).toEqual({ tag: "Claude AI + PayPal sandbox", line: "Built with PayPal Payouts (sandbox) and Claude Haiku" });
+    expect(on.on && shellWording({ name: on.name, shellName: on.shellName })).toEqual({ tag: "AI + PayPal", line: "Built with PayPal Payouts and AI" });
     const sonnet = claudeAiStatus({ AI_RECEIPT_ENABLED: "true", ...FAKE_ENV, AIDTRACE_CLAUDE_MODEL: "claude-sonnet-5-5" }, "AI_RECEIPT_ENABLED", createClaudeBudget());
-    expect(sonnet.on && shellWording({ name: sonnet.name, shellName: sonnet.shellName }).line).toBe("Built with PayPal Payouts (sandbox) and Claude Sonnet 5.5");
-    expect(shellWording(null)).toEqual({ tag: "PayPal sandbox, AI off", line: "Built with PayPal Payouts (sandbox). AI suggestions are off: no Claude key is configured." });
+    expect(sonnet.on && shellWording({ name: sonnet.name, shellName: sonnet.shellName }).line).toBe("Built with PayPal Payouts and AI");
+    expect(shellWording(null)).toEqual({ tag: "", line: "Built with PayPal Payouts." });
     expect(FOOTER_PROMISE).toBe("AI suggests. People decide. PayPal pays.");
   });
 });

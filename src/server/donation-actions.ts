@@ -2,6 +2,7 @@ import { eq } from "drizzle-orm";
 import * as s from "../../db/schema";
 import type { DonationOrderStatus } from "../../db/schema";
 import { maskTail } from "../donation/display";
+import { issueGiftLink } from "../donation/gift-link";
 import { DonationOrderError, captureDonationOrder, createDonationOrder, resumeDonationOrder, type DonationOrderErrorCode, type DonationOrderPayments, type DonationOrderResult } from "../donation/orders";
 import { isSameOrigin } from "./auth";
 import type { AppDatabase } from "./db";
@@ -53,6 +54,9 @@ const ERROR_RESPONSES: Record<DonationOrderErrorCode, readonly [number, string]>
 export interface DonationView {
   id: string; status: DonationOrderStatus; messageKey: DonationMessageKey; message: string;
   orderId?: string; attemptsLeft?: number; captureTail?: string; retry?: boolean; restart?: boolean;
+  // IAC-413: the one-time private gift link token, present only in the response that issued it, and the link state. The token is
+  // never stored or logged by the server and is not repeated by a later response (SHOWN_BEFORE carries no token).
+  giftToken?: string; giftLinkState?: "ISSUED" | "SHOWN_BEFORE";
 }
 const respond = (body: unknown, status = 200) => Response.json(body, { status, headers: { "Cache-Control": "no-store" } });
 const refuse = (status: number, error: string) => respond({ error }, status);
@@ -68,7 +72,13 @@ async function present(db: AppDatabase, result: DonationOrderResult, action: "cr
       let captureId = result.captureId;
       if (!captureId && result.orderId) captureId = (await db.select({ captureId: s.donationReceipts.captureId }).from(s.donationReceipts).where(eq(s.donationReceipts.orderId, result.orderId)))[0]?.captureId ?? undefined;
       const captureTail = maskTail(captureId);
-      return view("COMPLETED", DONOR_MESSAGES.COMPLETED, captureTail ? { captureTail } : {});
+      // IAC-413 (docs/plans/DONOR_TRAIL_SCOPE.md section 5.3): the private gift link is issued here, in the route layer, after the
+      // capture is recorded. issueGiftLink never throws and never logs, so a refusal leaves the donation response unchanged.
+      const link = captureId ? await issueGiftLink(db, captureId) : null;
+      return view("COMPLETED", DONOR_MESSAGES.COMPLETED, {
+        ...(captureTail ? { captureTail } : {}),
+        ...(link ? { giftLinkState: link.state, ...(link.state === "ISSUED" ? { giftToken: link.token } : {}) } : {}),
+      });
     }
     case "PENDING": return view("PENDING", DONOR_MESSAGES.PENDING);
     case "DECLINED": {

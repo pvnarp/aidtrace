@@ -1647,6 +1647,18 @@
       ]
     },
     {
+      "name": "unpdf",
+      "version": "1.9.1",
+      "declaredLicense": "MIT",
+      "repository": "git+https://github.com/unjs/unpdf.git",
+      "notices": [
+        {
+          "file": "LICENSE",
+          "sha256": "4a57080b8ecdb3a53ec678828121849ce5df877a99b1ad8d50e165d8a2aded1b"
+        }
+      ]
+    },
+    {
       "name": "vite",
       "version": "7.3.7",
       "declaredLicense": "MIT",

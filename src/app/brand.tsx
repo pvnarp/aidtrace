@@ -6,7 +6,7 @@ import { paypalParts } from "./shell-copy";
  * The owner may rename the product. Edit BRAND here and every header, page title and
  * sign-in line follows. Names inside explanatory sentences are plain copy, not brand chrome.
  * `organization` is the fixture organization's display name, shown in the header only.
- * `tag` is the default header tag. The header passes the configuration-aware tag (shellWording).
+ * `tag` is the default header tag. The header passes the configuration-aware tag (shellWording); an empty tag renders no tag element.
  */
 export const BRAND = { name: "AidTrace", tag: "AI + PayPal", organization: "Lanternfield Community Alliance" } as const;
 
@@ -22,5 +22,5 @@ export function TraceMark() {
 }
 
 export function Brand({ tag = BRAND.tag }: { tag?: string }) {
-  return <Link className="brand" href="/"><TraceMark /><strong className="brand-name">{BRAND.name}</strong><span className="header-tag"><PayPalText text={tag} /></span></Link>;
+  return <Link className="brand" href="/"><TraceMark /><strong className="brand-name">{BRAND.name}</strong>{tag !== "" && <span className="header-tag"><PayPalText text={tag} /></span>}</Link>;
 }

@@ -39,11 +39,13 @@ async function login(page: Page, user: keyof typeof passwords) {
   await page.goto("/login"); await page.getByLabel("Username").fill(user); await page.getByLabel("Password").fill(passwords[user]); await page.getByRole("button", { name: "Sign in", exact: true }).click(); await page.waitForURL(url => url.pathname === "/");
 }
 async function fits(page: Page) { expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true); }
+// IAC-416: with no AI configured the header renders no tag element at all, so an empty tag asserts that.
+async function headerTag(page: Page, tag: string) { if (tag === "") await expect(page.locator(".header-tag")).toHaveCount(0); else await expect(page.locator(".header-tag")).toHaveText(tag); }
 
 const CONFIGS: { label: string; env: Record<string, string>; tag: string; line: string }[] = [
-  { label: "Claude key set", env: { AI_RECEIPT_ENABLED: "true", ANTHROPIC_API_KEY: "sk-ant-api03-UI-STUB-NOT-A-REAL-KEY" }, tag: "Claude AI + PayPal sandbox", line: "Built with PayPal Payouts (sandbox) and Claude Haiku" },
-  { label: "no Claude key", env: { AI_RECEIPT_ENABLED: "true", ANTHROPIC_API_KEY: "" }, tag: "PayPal sandbox, AI off", line: "Built with PayPal Payouts (sandbox). AI suggestions are off: no Claude key is configured." },
-  { label: "AI switched off", env: { AI_RECEIPT_ENABLED: "false", ANTHROPIC_API_KEY: "sk-ant-api03-UI-STUB-NOT-A-REAL-KEY" }, tag: "PayPal sandbox, AI off", line: "Built with PayPal Payouts (sandbox). AI suggestions are switched off in this session." },
+  { label: "AI key set", env: { AI_RECEIPT_ENABLED: "true", ANTHROPIC_API_KEY: "sk-ant-api03-UI-STUB-NOT-A-REAL-KEY" }, tag: "AI + PayPal", line: "Built with PayPal Payouts and AI" },
+  { label: "no AI key", env: { AI_RECEIPT_ENABLED: "true", ANTHROPIC_API_KEY: "" }, tag: "", line: "Built with PayPal Payouts." },
+  { label: "AI switched off", env: { AI_RECEIPT_ENABLED: "false", ANTHROPIC_API_KEY: "sk-ant-api03-UI-STUB-NOT-A-REAL-KEY" }, tag: "", line: "Built with PayPal Payouts." },
 ];
 for (const config of CONFIGS) {
   test(`SHELL-11: app shell at 1440 and 390 px, ${config.label}`, async ({ page }) => {
@@ -53,7 +55,7 @@ for (const config of CONFIGS) {
       await page.setViewportSize({ width, height: 900 });
       await page.goto("/claims/C-104");
       // Header tag and footer follow the configured receipt AI, on every screen.
-      await expect(page.locator(".header-tag")).toHaveText(config.tag);
+      await headerTag(page, config.tag);
       await expect(page.locator(".footer-promise")).toHaveText("AI suggests. People decide. PayPal pays.");
       await expect(page.locator(".footer-built")).toHaveText(config.line);
       await expect(page.locator(".footer-promise .paypal-word")).toHaveText("PayPal");
@@ -64,9 +66,11 @@ for (const config of CONFIGS) {
       await expect(trace.locator("[aria-current=step] .t")).toHaveText("Fund split");
       const approvals = trace.locator("li").nth(4), payout = trace.locator("li").nth(5);
       await expect(approvals).toHaveAttribute("data-state", "future"); await expect(approvals).toContainText("Not reached: ");
-      await expect(approvals.locator(".t")).toHaveText("Approvals"); await expect(approvals.locator(".d")).toHaveText("Locked. People: 0 of 2");
+      await expect(approvals.locator(".t")).toHaveText("Approvals"); await expect(approvals.locator(".d")).toHaveText("Locked. Two approvers");
       await expect(payout).toHaveAttribute("data-state", "future"); await expect(payout).toContainText("Not reached: ");
-      await expect(payout.locator(".t")).toHaveText("PayPal sandbox payout"); await expect(payout.locator(".d")).toHaveText("Locked. Not ready");
+      await expect(payout.locator(".t")).toHaveText("PayPal payout"); await expect(payout.locator(".d")).toHaveText("Locked. Not ready");
+      // IAC-415 PR 5: at 1440 every step detail stays on one line ("Locked. Two different people" wrapped), so all detail heights match.
+      if (width === 1440) { const heights = await trace.locator("li .d").evaluateAll(nodes => nodes.map(node => (node as HTMLElement).offsetHeight)); expect(new Set(heights).size, `trace detail heights ${heights.join(",")}`).toBe(1); }
       await expect(page.locator(".trace-now")).toContainText("Step 4 of 6, Fund split");
       // Summary cards: AI teal, PayPal blue, boundary notes, states from loaded state only.
       const ai = page.getByLabel("AI review status"), paypal = page.getByLabel("PayPal payout status");
@@ -74,10 +78,10 @@ for (const config of CONFIGS) {
       await expect(ai).toContainText("No financial tools. It cannot approve, choose funds or pay.");
       await expect(paypal).toContainText("Approved does not mean paid.");
       await expect(paypal).toHaveAttribute("data-paypal-state", "not-ready");
-      await expect(paypal).toContainText("Not ready: 0 of 2 approvals");
+      await expect(paypal).toContainText("Not ready: needs two approvals"); await expect(paypal).not.toContainText(/\d of 2/);
       await expect(paypal).not.toContainText(/Paid, verified/);
       await expect(page.locator(".hybrid-review-count")).toContainText("Human reviews: 0 of 2");
-      expect(await ai.evaluate(node => getComputedStyle(node).borderTopColor)).not.toBe(await paypal.evaluate(node => getComputedStyle(node).borderTopColor));
+      expect(await ai.evaluate(node => getComputedStyle(node).boxShadow)).not.toBe(await paypal.evaluate(node => getComputedStyle(node).boxShadow));
       expect(await paypal.locator(".card-kicker .paypal-word").evaluate(node => getComputedStyle(node).color)).toBe("rgb(0, 48, 135)");
       await fits(page);
       const [c, s] = await Promise.all([".hybrid-content", ".hybrid-summary"].map(selector => page.locator(selector).boundingBox()));
@@ -95,12 +99,12 @@ for (const config of CONFIGS) {
     for (const path of ["/", "/receipts/new", "/architecture"]) {
       for (const width of [1440, 390]) {
         await page.setViewportSize({ width, height: 900 }); await page.goto(path);
-        await expect(page.locator(".header-tag")).toHaveText(config.tag);
+        await headerTag(page, config.tag);
         await expect(page.locator(".footer-built")).toHaveText(config.line);
         await fits(page);
       }
     }
     await page.context().clearCookies(); await page.goto("/login");
-    await expect(page.locator(".header-tag")).toHaveText(config.tag); await expect(page.locator(".footer-promise")).toBeVisible(); await expect(page.locator("[aria-current=step]")).toHaveCount(0); await fits(page);
+    await headerTag(page, config.tag); await expect(page.locator(".footer-promise")).toBeVisible(); await expect(page.locator("[aria-current=step]")).toHaveCount(0); await fits(page);
   });
 }

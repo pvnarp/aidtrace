@@ -5,7 +5,7 @@ export function KeylessPanel({ funds }: { funds: readonly GiveFund[] }) {
   const model = keylessPanelModel(funds);
   return <section className="paypal-handoff give-panel" aria-label="Donation preview without PayPal credentials" data-testid="give-keyless-panel">
     <h2>{model.headline}</h2>
-    <p>This session has no PayPal sandbox credentials, so it cannot start Checkout. Below is what a keyed sandbox session would offer and send. Nothing on this page is submitted.</p>
+    <p>This session has no PayPal credentials, so it cannot start Checkout. Below is what a session with credentials would offer and send. Nothing on this page is submitted.</p>
     <dl className="payment-details">
       <dt>State</dt><dd>{model.state}</dd>
       <dt>Funds you could choose</dt><dd>{model.funds.length ? <ul className="give-list">{model.funds.map(fund => <li key={fund.id}>{fund.name}</li>)}</ul> : "No restricted fund is available."}</dd>

@@ -78,10 +78,10 @@ describe("DON-10 support: the /give CSP and the proxy that sets it", () => {
     expect(policy).toContain("object-src 'none'"); expect(policy).toContain("frame-ancestors 'none'");
     expect(() => giveContentSecurityPolicy("short")).toThrow(); expect(() => giveContentSecurityPolicy("x'; script-src *;aaaaaaaaaa")).toThrow();
   });
-  it("is matched to /give only and gives every request a fresh nonce", () => {
-    expect(config.matcher).toEqual(["/give"]);
-    const first = proxy(new NextRequest("http://127.0.0.1:3100/give")).headers.get("content-security-policy")!;
-    const second = proxy(new NextRequest("http://127.0.0.1:3100/give")).headers.get("content-security-policy")!;
+  it("is matched to /give and /gift/:path* and gives every /give request a fresh nonce", async () => {
+    expect(config.matcher).toEqual(["/give", "/gift/:path*"]); // IAC-413 added the gift page; /give itself is unchanged
+    const first = (await proxy(new NextRequest("http://127.0.0.1:3100/give"))).headers.get("content-security-policy")!;
+    const second = (await proxy(new NextRequest("http://127.0.0.1:3100/give"))).headers.get("content-security-policy")!;
     expect(first).toMatch(/script-src 'self' 'nonce-[A-Za-z0-9+/=]{48}'/);
     expect(first).not.toBe(second);
   });

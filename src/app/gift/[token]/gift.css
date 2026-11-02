@@ -1,0 +1,52 @@
+/* IAC-413 PR A (docs/plans/DONOR_TRAIL_SCOPE.md section 5.1): the public gift page.
+   It uses the final Trust v2 property names (docs/plans/TRUST_V2_PORT_SCOPE.md section 2.2), each with the Trust v2 literal as its
+   fallback until the port lands. Where src/app/style.css already defines a name (--accent, --muted, --line, --tint) the app value
+   wins until the port changes it, so the page follows the app. Never fall back to --warm: it is the pale quote background, not a hold color.
+   The .gift-trace rules began as a copy of design/fintech-mocks/c2-trust.html. They keep their own class because the app stepper (.trace in style.css) hides its step text at 900 px and below, and a donor must read every step. */
+.gift-page { max-width: 760px; margin: 0 auto; padding: 28px 24px 56px; color: var(--navy, #0b1f3a); overflow-wrap: anywhere; }
+.gift-page h1 { font-size: clamp(26px, 5vw, 32px); line-height: 1.25; letter-spacing: -.02em; margin: 24px 0 8px; max-width: none; text-wrap: balance; }
+.gift-page h2 { font-size: 17px; line-height: 1.3; margin: 0; }
+.gift-page p { margin: 0; line-height: 1.55; }
+.gift-brand { display: flex; align-items: center; gap: 10px; }
+.gift-state { font-size: 18px; line-height: 1.5; color: var(--navy, #0b1f3a); }
+.gift-panel { margin-top: 24px; padding: 20px 24px; background: var(--paper, #fff); border-radius: var(--radius-panel, 14px); box-shadow: var(--shadow, 0 1px 2px rgba(11,31,58,.04), 0 0 0 1px rgba(11,31,58,.06)); }
+.gift-amount { font-size: 24px; font-weight: 600; line-height: 1.3; letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
+.gift-received { margin-top: 4px; font-size: 14px; color: var(--muted, #5b6b80); }
+
+.gift-page .gift-trace { display: flex; list-style: none; margin: 32px 0 0; padding: 0; }
+.gift-page .gift-trace li { position: relative; flex: 1 1 0; min-width: 0; padding: 24px 16px 0 0; }
+.gift-page .gift-trace li::before { content: ""; position: absolute; left: 0; top: 0; width: 12px; height: 12px; border-radius: 50%; background: var(--paper, #fff); border: 2px solid var(--grey, #74829a); }
+.gift-page .gift-trace li.done::before { background: var(--navy, #0b1f3a); border-color: var(--navy, #0b1f3a); }
+.gift-page .gift-trace li.cur::before { border: 3px solid var(--accent, #0a66ff); }
+.gift-page .gift-trace li:not(:last-child)::after { content: ""; position: absolute; left: 12px; right: 0; top: 5px; height: 2px; background: var(--connector, #d3dae5); }
+.gift-page .gift-trace li.done:not(:last-child)::after { background: var(--navy, #0b1f3a); }
+.gift-page .gift-trace .t { display: block; font-size: 13px; font-weight: 500; line-height: 1.35; }
+.gift-page .gift-trace li.fut .t { color: var(--muted, #5b6b80); }
+.gift-page .gift-trace li.cur .t { font-weight: 600; }
+.gift-page .gift-trace .d { display: block; font-size: 13px; line-height: 1.4; color: var(--muted, #5b6b80); margin-top: 2px; }
+.gift-page .gift-trace li.cur .d { color: var(--accent-ink, #0850cc); font-weight: 500; }
+
+.gift-lines { list-style: none; margin: 32px 0 0; padding: 0; display: grid; gap: 12px; }
+.gift-card { padding: 16px 20px; background: var(--paper, #fff); border-radius: var(--radius-panel, 14px); box-shadow: var(--shadow, 0 1px 2px rgba(11,31,58,.04), 0 0 0 1px rgba(11,31,58,.06)); min-width: 0; }
+.gift-line-vendor { margin-top: 2px; font-size: 14px; color: var(--muted, #5b6b80); }
+.gift-line-share { margin-top: 8px; font-size: 14px; font-variant-numeric: tabular-nums; }
+.gift-line-payout { margin-top: 4px; font-size: 14px; }
+.gift-line-payout[data-payout="PAID"] { color: var(--ok, #05603a); font-weight: 500; }
+.gift-line-payout[data-payout="UNKNOWN"], .gift-line-payout[data-payout="NEEDS_ATTENTION"] { color: var(--hold, #8a4b08); font-weight: 500; }
+
+.gift-waiting { margin-top: 24px; padding: 16px 20px; border-radius: var(--radius-panel, 14px); box-shadow: inset 0 0 0 1px var(--dot-hold, #b36a00); font-size: 14px; }
+.gift-waiting-title { font-weight: 600; color: var(--hold, #8a4b08); }
+.gift-note { margin-top: 24px; padding: 16px 20px; background: var(--tint, #f0f5ff); border-radius: var(--radius-panel, 14px); }
+.gift-note p { margin-top: 6px; font-size: 14px; }
+.gift-note .gift-note-caption { color: var(--muted, #5b6b80); font-size: 13px; }
+.gift-page .gift-footer { margin-top: 40px; padding-top: 16px; border-top: 1px solid var(--line, #e6eaf0); font-size: 13px; color: var(--muted, #5b6b80); display: grid; gap: 4px; }
+
+@media (max-width: 640px) {
+  .gift-page { padding: 20px 16px 40px; }
+  .gift-panel { padding: 16px; }
+  .gift-page .gift-trace { flex-direction: column; }
+  .gift-page .gift-trace li { flex: none; padding: 0 0 20px 28px; min-height: 24px; }
+  .gift-page .gift-trace li::before { top: 3px; }
+  .gift-page .gift-trace li:not(:last-child)::after { left: 5px; right: auto; top: 15px; bottom: -3px; width: 2px; height: auto; }
+  .gift-page .gift-trace li:last-child { padding-bottom: 0; }
+}

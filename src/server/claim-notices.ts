@@ -6,12 +6,13 @@ export const claimFailureNotices = {
   "receipt-review-required": "Confirm the current receipt categories before freezing this allocation.",
   "rejection-reason-required": "Enter a rejection reason between 1 and 500 characters.",
   "claim-not-open": "This claim is no longer open for that action. Reload its current status. Do not send another payment.",
-  "recipient-not-payable": "This fixture uses a non-payable recipient. Continue the no-payment review; do not replace approved terms or use the owner's sandbox account.",
-  "provider-balance-short": "The readable sandbox balance is too short for this reimbursement. No new payout was submitted by this action. Review funding before any separately authorized submission.",
+  "recipient-not-payable": "This fixture uses a non-payable recipient. Continue the no-payment review; do not replace approved terms or use the owner's PayPal account.",
+  "provider-balance-short": "The readable PayPal balance is too short for this reimbursement. No new payout was submitted by this action. Review funding before any separately authorized submission.",
   "payout-review-required": "An existing or unresolved payout needs status review or manual reconciliation. Do not send again or change saved sender IDs.",
   "provider-review-required": "The provider result could not be safely reconciled with the saved payment. Preserve the records for manual review. Do not send again.",
   "action-failed": "That action could not be completed. Review the current state before acting again. Payment failures do not authorize another send.",
 } as const;
+// IAC-416: the keys are the exact error strings the ledger throws (src/ledger/payout.ts, retry.ts). They are never shown; only the fixed notices above are.
 const knownFailures = new Map<string, keyof typeof claimFailureNotices>([
   ["The same approver cannot approve twice", "already-approved"],
   ["Approval hash does not match this decision", "terms-changed"],

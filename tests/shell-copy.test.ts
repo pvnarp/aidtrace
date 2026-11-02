@@ -37,13 +37,13 @@ describe("SHELL-02 AI card wording for every receipt review state", () => {
   const base: AiInput = { applicable: true, suggestion: "NONE", confirmed: false, aiAccepted: false, savedModel: null, configured: claude };
   const table: [string, Partial<AiInput>, string, string, string | null][] = [
     ["preclassified example", { applicable: false }, "Not used. Preclassified example", "Not used", null],
-    ["not run, claude configured", {}, "Not run yet", "Not run yet", "Configured model: Claude Haiku 5.5 (Claude API)"],
-    ["not run, AI off", { configured: null }, "AI is off in this session. A person chooses each category", "AI off", null],
-    ["running", { suggestion: "RUNNING" }, "Reading the typed receipt text", "Reading receipt text", "Configured model: Claude Haiku 5.5 (Claude API)"],
-    ["suggestion ready, saved audit names the model", { suggestion: "READY", savedModel: "Claude Haiku 5.5" }, "Suggestion awaiting confirmation", "Suggested, awaiting you", "Model: Claude Haiku 5.5"],
+    ["not run, claude configured", {}, "Not run yet", "Not run yet", "Configured model: AI (Haiku 5.5)"],
+    ["not run, no AI configured", { configured: null }, "A person chooses each category", "Person chooses", null],
+    ["running", { suggestion: "RUNNING" }, "Reading the typed receipt text", "Reading receipt text", "Configured model: AI (Haiku 5.5)"],
+    ["suggestion ready, saved audit names the model", { suggestion: "READY", savedModel: "Claude Haiku 5.5" }, "Suggestion awaiting confirmation", "Suggested, awaiting you", "Model: AI (Haiku 5.5)"],
     ["suggestion ready, saved by a retired model", { suggestion: "READY", savedModel: "Earlier AI model, since retired" }, "Suggestion awaiting confirmation", "Suggested, awaiting you", "Model: Earlier AI model, since retired"],
-    ["unusable", { suggestion: "UNUSABLE" }, "No usable suggestion. A person chooses each category", "No usable suggestion", "Configured model: Claude Haiku 5.5 (Claude API)"],
-    ["confirmed with an accepted suggestion", { confirmed: true, aiAccepted: true, suggestion: "READY", savedModel: "Claude Haiku 5.5" }, "Suggestion confirmed by a person", "Confirmed by a person", "Model: Claude Haiku 5.5"],
+    ["unusable", { suggestion: "UNUSABLE" }, "No usable suggestion. A person chooses each category", "No usable suggestion", "Configured model: AI (Haiku 5.5)"],
+    ["confirmed with an accepted suggestion", { confirmed: true, aiAccepted: true, suggestion: "READY", savedModel: "Claude Haiku 5.5" }, "Suggestion confirmed by a person", "Confirmed by a person", "Model: AI (Haiku 5.5)"],
     ["confirmed by manual choice", { confirmed: true }, "Categories chosen by a person", "Person chose", null],
   ];
   it.each(table)("%s", (_name, patch, state, rail, model) => {
@@ -60,9 +60,9 @@ describe("SHELL-02 AI card wording for every receipt review state", () => {
 describe("SHELL-03 PayPal card wording for every claim and payout state", () => {
   const input = (claimStatus: string | null, approvals: number | null, payout: PayPalInput["payout"], amount = "$500.00"): PayPalInput => ({ claimStatus, approvals, payout, amount });
   const table: [string, PayPalInput, string, string, string][] = [
-    ["no claim yet", input(null, 0, null), "not-ready", "Not ready: 0 of 2 approvals", "Not ready"],
-    ["draft", input("DRAFT", 0, null), "not-ready", "Not ready: 0 of 2 approvals", "Not ready"],
-    ["awaiting, approvals loaded", input("AWAITING_APPROVAL", 1, null), "not-ready", "Not ready: 1 of 2 approvals", "Not ready"],
+    ["no claim yet", input(null, 0, null), "not-ready", "Not ready: needs two approvals", "Not ready"],
+    ["draft", input("DRAFT", 0, null), "not-ready", "Not ready: needs two approvals", "Not ready"],
+    ["awaiting, approvals loaded", input("AWAITING_APPROVAL", 1, null), "not-ready", "Not ready: needs two approvals", "Not ready"],
     ["awaiting, approvals not loaded", input("AWAITING_APPROVAL", null, null), "see-claim", "See the claim for approvals and payment status", "See the claim"],
     ["rejected", input("REJECTED", 1, null), "rejected", "Rejected. Nothing will be sent", "Rejected"],
     ["approved, keyless, no attempt", input("APPROVED", 2, { attempt: null, keyless: true }), "ready-keyless", "Ready: $500.00. Unpaid in this keyless session, no request is made", "Ready, unpaid"],
@@ -168,13 +168,53 @@ describe("SHELL-07 rail lines carry tags, live state and the Locked prefix", () 
     const rail = lines(2);
     expect(rail.map(line => line.tag)).toEqual([undefined, "AI", undefined, undefined, "PayPal"]);
     expect(rail[0]!.state).toBe("Typed text and amounts"); expect(rail[1]!.state).toBe("Suggested, awaiting you");
-    expect(rail[2]!.state).toBe("Locked. Rules, not AI"); expect(rail[3]!.state).toBe("Locked. People: 0 of 2"); expect(rail[4]!.state).toBe("Locked. Not ready");
+    // IAC-415 PR 5: before the freeze no approval can exist, so the locked Approvals line says who, not how many (FT-01 below).
+    expect(rail[2]!.state).toBe("Locked. Rules, not AI"); expect(rail[3]!.state).toBe("Locked. Two approvers"); expect(rail[4]!.state).toBe("Locked. Not ready");
   });
   it("prefixes Locked. only on future stages", () => {
     for (const stage of [1, 2, 3, 4, 5] as const) lines(stage).forEach((line, index) => expect(line.state.startsWith("Locked. ")).toBe(index + 1 > stage));
   });
   it("shows the approvals the page loaded or sends the reader to the claim", () => {
-    expect(lines(4, 1)[3]!.state).toBe("People: 1 of 2"); expect(lines(4, null)[3]!.state).toBe("People: see the claim");
+    // IAC-415 PR 4: stage 4 is the awaiting claim, whose title and approvals section carry the count (see FO-08 below), so the loaded count is asserted
+    // at stage 5 (approved). IAC-415 PR 5: stage 3 and earlier is before the freeze, so a loaded count there reads "Locked. Two approvers" (FT-01 below).
+    // "People: see the claim" is unchanged, at every stage.
+    expect(lines(5, 2)[3]!.state).toBe("People: 2 of 2"); expect(lines(3, 1)[3]!.state).toBe("Locked. Two approvers"); expect(lines(4, null)[3]!.state).toBe("People: see the claim");
+    expect(lines(3, null)[3]!.state).toBe("Locked. People: see the claim");
+  });
+  it("FT-01 before the freeze the rail and the trace say 'Locked. Two approvers' with no approval count, and every other state keeps its words", () => {
+    const draft = paypalCard({ claimStatus: "DRAFT", approvals: 0, payout: null });
+    const awaiting = paypalCard({ claimStatus: "AWAITING_APPROVAL", approvals: 1, payout: null });
+    const rejected = paypalCard({ claimStatus: "REJECTED", approvals: 1, payout: null });
+    const none = paypalCard({ claimStatus: null, approvals: 0, payout: null });
+    expect([draft.key, awaiting.key, rejected.key, none.key]).toEqual(["not-ready", "not-ready", "rejected", "not-ready"]);
+    const approvalsLine = (stage: 1 | 2 | 3 | 4 | 5, approvals: number | null, paypal: typeof draft) => railLines({ stage, typedReceipt: true, ai, approvals, paypal })[3]!.state;
+    // Stages 1 to 3 (receipt pages and a DRAFT claim): locked, and no digit, whatever count the page loaded.
+    for (const card of [draft, none]) for (const stage of [1, 2, 3] as const) for (const approvals of [0, 1, 2]) {
+      expect(approvalsLine(stage, approvals, card), `stage ${stage} approvals ${approvals} card ${card.key}`).toBe("Locked. Two approvers");
+    }
+    // Stage 4 awaiting reads "Two different people", unlocked (the PR 4 rule). REJECTED keeps its count. Stage 5 keeps the count.
+    for (const approvals of [0, 1]) expect(approvalsLine(4, approvals, awaiting)).toBe("Two different people");
+    expect(approvalsLine(4, 1, rejected)).toBe("People: 1 of 2"); expect(approvalsLine(5, 2, draft)).toBe("People: 2 of 2");
+    // A page that did not load approvals still says "see the claim", before the freeze too.
+    expect(approvalsLine(2, null, draft)).toBe("Locked. People: see the claim"); expect(approvalsLine(4, null, awaiting)).toBe("People: see the claim");
+    // The visible trace (the receipt pages and the DRAFT claim page render TraceStepper with these inputs) carries the new words and no count.
+    const state = { ai, paypal: draft, typedReceipt: true };
+    for (const stage of [2, 3] as const) {
+      const html = renderToStaticMarkup(createElement(TraceStepper, { stage, state, reviews: 0 }));
+      expect(html).toContain("Locked. Two approvers"); expect(html).not.toMatch(/People: \d of 2/); expect(html).not.toContain("0 of 2");
+    }
+    expect(traceSteps({ stage: 2, typedReceipt: true, ai, approvals: 0, paypal: draft })[4]!.detail).toBe("Locked. Two approvers");
+  });
+  it("FO-08 every not-ready PayPal card (no claim, DRAFT, awaiting) reads the same words with no count, an awaiting rail repeats none, and a rejected claim keeps its count", () => {
+    const awaiting = paypalCard({ claimStatus: "AWAITING_APPROVAL", approvals: 1, payout: null });
+    expect(awaiting.state).toBe("Not ready: needs two approvals"); expect(awaiting.state).not.toMatch(/\d/); expect(awaiting.key).toBe("not-ready"); expect(awaiting.note).toBe(PAYPAL_NOTE);
+    for (const approvals of [0, 1]) expect(railLines({ stage: 4, typedReceipt: true, ai, approvals, paypal: awaiting })[3]!.state).toBe("Two different people");
+    // IAC-415 PR 6: the DRAFT card and the no-claim-yet card read the awaiting words too, because no approval count exists before the freeze and the page says it once.
+    expect(paypalCard({ claimStatus: "DRAFT", approvals: 0, payout: null }).state).toBe("Not ready: needs two approvals");
+    expect(paypalCard({ claimStatus: null, approvals: 0, payout: null }).state).toBe("Not ready: needs two approvals");
+    for (const status of [null, "DRAFT", "AWAITING_APPROVAL"] as const) for (const approvals of [0, 1, 2]) expect(paypalCard({ claimStatus: status, approvals, payout: null }).state, `${status} with ${approvals}`).toBe("Not ready: needs two approvals");
+    // A rejected claim sits at stage 4 too, with a rejected card: it keeps the loaded count.
+    expect(railLines({ stage: 4, typedReceipt: true, ai, approvals: 1, paypal: paypalCard({ claimStatus: "REJECTED", approvals: 1, payout: null }) })[3]!.state).toBe("People: 1 of 2");
   });
   it("renders six trace steps with one current step and links only where the page supplies them", () => {
     const state = { ai, paypal: paypalCard({ claimStatus: "DRAFT", approvals: 0, payout: null }), typedReceipt: true };
@@ -183,7 +223,7 @@ describe("SHELL-07 rail lines carry tags, live state and the Locked prefix", () 
     expect(html.match(/<li /g)).toHaveLength(6); expect(html.match(/aria-current="step"/g)).toHaveLength(1);
     expect(html.match(/<a class="trace-body"/g)).toHaveLength(2);
     expect(html.match(/Done: /g)).toHaveLength(3); expect(html.match(/Current step: /g)).toHaveLength(1); expect(html.match(/Not reached: /g)).toHaveLength(2);
-    expect(html).toContain("Locked. People: 0 of 2"); expect(html).toContain("Check, then freeze");
+    expect(html).toContain("Locked. Two approvers"); expect(html).toContain("Check, then freeze");
     expect(html).toContain("Step 4 of 6, Fund split");
     expect(html).not.toContain("Blocked: ");
   });
@@ -191,7 +231,7 @@ describe("SHELL-07 rail lines carry tags, live state and the Locked prefix", () 
     const state = { ai, paypal: paypalCard({ claimStatus: "DRAFT", approvals: 0, payout: null }), typedReceipt: true };
     const input = (stage: 1 | 2 | 3 | 4 | 5, policyBlocked: boolean) => traceSteps({ stage, typedReceipt: true, ai, approvals: 0, paypal: state.paypal, policyBlocked });
     const blocked = input(3, true);
-    expect(blocked.map(step => step.name)).toEqual(["Receipt", "AI review", "Rule checks", "Fund split", "Approvals", "PayPal sandbox payout"]);
+    expect(blocked.map(step => step.name)).toEqual(["Receipt", "AI review", "Rule checks", "Fund split", "Approvals", "PayPal payout"]);
     expect(blocked.map(step => step.state)).toEqual(["done", "done", "blocked", "future", "future", "future"]);
     expect(blocked[2]!.detail).toBe("Stopped by organization policy");
     for (const stage of [1, 2, 4, 5] as const) expect(input(stage, true).some(step => step.state === "blocked")).toBe(false);
@@ -205,35 +245,35 @@ describe("SHELL-07 rail lines carry tags, live state and the Locked prefix", () 
   });
 });
 
-describe("SHELL-08 header tag and footer follow whether Claude is configured", () => {
-  it("says what the brief asks for when a Claude key is configured", () => {
-    expect(shellWording(claude)).toEqual({ tag: "Claude AI + PayPal sandbox", line: "Built with PayPal Payouts (sandbox) and Claude Haiku" });
-    expect(shellWording(sonnet)).toEqual({ tag: "Claude AI + PayPal sandbox", line: "Built with PayPal Payouts (sandbox) and Claude Sonnet 5.5" });
+describe("SHELL-08 header tag and footer follow whether AI is configured", () => {
+  it("says AI and no model name when AI is configured (IAC-416 PR 2)", () => {
+    expect(shellWording(claude)).toEqual({ tag: "AI + PayPal", line: "Built with PayPal Payouts and AI" });
+    expect(shellWording(sonnet)).toEqual({ tag: "AI + PayPal", line: "Built with PayPal Payouts and AI" });
     expect(FOOTER_PROMISE).toBe("AI suggests. People decide. PayPal pays.");
   });
-  it("says AI is off, and why, when no key is configured, the limit is reached or AI is switched off", () => {
-    expect(shellWording(null)).toEqual({ tag: "PayPal sandbox, AI off", line: "Built with PayPal Payouts (sandbox). AI suggestions are off: no Claude key is configured." });
-    expect(shellWording(null, "NO_KEY")).toEqual(shellWording(null));
-    expect(shellWording(null, "LIMIT").line).toContain("the Claude request limit for this process was reached");
-    expect(shellWording(null, "SWITCHED_OFF").line).toContain("switched off");
-    for (const off of ["NO_KEY", "LIMIT", "SWITCHED_OFF"] as const) { const wording = shellWording(null, off); expect(wording.tag).toBe("PayPal sandbox, AI off"); expect(wording.tag + wording.line).not.toMatch(/local|qwen|llama/i); }
+  it("shows no tag and a plain PayPal Payouts line when no AI is configured (IAC-416), and never names a local model", () => {
+    expect(shellWording(null)).toEqual({ tag: "", line: "Built with PayPal Payouts." });
+    const none = shellWording(null); expect(none.tag + none.line).not.toMatch(/local|qwen|llama/i);
     const on = shellWording(claude); expect(on.tag + on.line).not.toMatch(/local|qwen|llama/i);
   });
   it("splits the word PayPal for coloring and nothing else", () => {
-    expect(paypalParts("Claude AI + PayPal sandbox")).toEqual([{ text: "Claude AI + ", paypal: false }, { text: "PayPal", paypal: true }, { text: " sandbox", paypal: false }]);
+    expect(paypalParts("AI + PayPal payout")).toEqual([{ text: "AI + ", paypal: false }, { text: "PayPal", paypal: true }, { text: " payout", paypal: false }]);
     expect(paypalParts("no mention")).toEqual([{ text: "no mention", paypal: false }]);
   });
 });
 
 describe("SHELL-09 every screen has the shell header and footer", () => {
   const pages = walk("src/app").filter(path => /\/page\.tsx$/.test(path));
+  const PUBLIC_TRAIL_PAGE = "src/app/gift/[token]/page.tsx";
   it("renders the footer once from the root layout", () => {
     const layout = readFileSync("src/app/layout.tsx", "utf8"); expect(layout).toContain("<AppFooter />");
     expect(readFileSync("src/app/app-footer.tsx", "utf8")).toContain("FOOTER_PROMISE");
   });
   it("gives every page the header, directly or through the workspace", () => {
     expect(pages.length).toBeGreaterThanOrEqual(9);
-    expect(pages.filter(path => { const text = readFileSync(path, "utf8"); return !/<AppHeader|<Workspace/.test(text); })).toEqual([]);
+    // IAC-413: the public donor trail has no session and its imports may not reach the AI status that AppHeader reads (GT-30), so it carries its own brand-only header.
+    expect(pages.filter(path => { const text = readFileSync(path, "utf8"); return path !== PUBLIC_TRAIL_PAGE && !/<AppHeader|<Workspace/.test(text); })).toEqual([]);
+    expect(readFileSync("src/app/gift/[token]/trail-view.tsx", "utf8")).toContain("<GiftBrand />");
   });
   it("keeps the trace and summary on the claim workspace pages only", () => {
     const workspace = pages.filter(path => /<Workspace/.test(readFileSync(path, "utf8"))).sort();

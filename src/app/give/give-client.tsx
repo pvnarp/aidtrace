@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { GIVE_PRESET_CENTS, formatUsd, parseUsdAmount } from "../../donation/display";
 import type { GiveFund } from "../../donation/give-model";
 import type { DonationView } from "../../server/donation-actions";
+import { GiftLinkPanel, type GiftLinkView } from "./gift-link-panel";
 
 // IAC-379 step 3a: PayPal Checkout buttons for a KEYED sandbox session. The server creates and captures; this component
 // only shows the donor's choices and relays them. The SDK loads here and on no other page.
@@ -37,6 +38,7 @@ export function GiveClient({ funds, clientId, nonce }: { funds: readonly GiveFun
   const [notice, setNotice] = useState("");
   const [retryRow, setRetryRow] = useState<string | null>(null);
   const [done, setDone] = useState<string | null>(null);
+  const [giftLink, setGiftLink] = useState<GiftLinkView | null>(null); // the one-time token lives in this state only
   const container = useRef<HTMLDivElement>(null);
   const rows = useRef(new Map<string, string>()); // provider order ID -> stored row id
   const confirmed = useRef<{ rowId: string; orderId: string } | null>(null);
@@ -95,7 +97,10 @@ export function GiveClient({ funds, clientId, nonce }: { funds: readonly GiveFun
         const view = result.data as Partial<DonationView>;
         setNotice(view.message ?? captureText(result.data));
         if (view.messageKey === "DECLINED" && view.restart) return actions.restart();
-        if (view.messageKey === "COMPLETED") setDone(view.captureTail ? `Capture ID ending in ${view.captureTail}.` : "");
+        if (view.messageKey === "COMPLETED") {
+          setDone(view.captureTail ? `Capture ID ending in ${view.captureTail}.` : "");
+          setGiftLink(view.giftLinkState === "ISSUED" && typeof view.giftToken === "string" ? { state: "ISSUED", token: view.giftToken } : view.giftLinkState === "SHOWN_BEFORE" ? { state: "SHOWN_BEFORE" } : null);
+        }
       },
       onCancel() { setNotice("You closed PayPal before approving, so nothing was captured or recorded."); },
       onError() {
@@ -121,7 +126,7 @@ export function GiveClient({ funds, clientId, nonce }: { funds: readonly GiveFun
       else { setNotice(result.ok ? view.message ?? errorText(result.data) : errorText(result.data)); setRetryRow(null); }
     } catch { setNotice(NETWORK); }
   }
-  function giveAgain() { rows.current.clear(); confirmed.current = null; setDone(null); setNotice(""); setRetryRow(null); }
+  function giveAgain() { rows.current.clear(); confirmed.current = null; setDone(null); setGiftLink(null); setNotice(""); setRetryRow(null); }
 
   return <section className="give-panel" data-testid="give-keyed">
     <form className="receipt-form give-form" onSubmit={event => event.preventDefault()}>
@@ -142,7 +147,7 @@ export function GiveClient({ funds, clientId, nonce }: { funds: readonly GiveFun
       {sdk === "loading" && <p className="muted">Loading PayPal Checkout...</p>}
       {sdk === "failed" && <p role="alert">PayPal Checkout could not load. Nothing was created. Reload this page to try again.</p>}
       <div className="give-buttons" ref={container} data-testid="give-buttons" />
-    </> : <div className="notice" data-testid="give-done"><p>{done}</p><button type="button" className="secondary" onClick={giveAgain}>Give again</button></div>}
+    </> : <><div className="notice" data-testid="give-done"><p>{done}</p><button type="button" className="secondary" onClick={giveAgain}>Give again</button></div>{giftLink ? <GiftLinkPanel link={giftLink} /> : null}</>}
     <p role="status" aria-live="polite" data-testid="give-status">{notice}</p>
     {retryRow && <button type="button" onClick={tryAgain}>Try again</button>}
   </section>;

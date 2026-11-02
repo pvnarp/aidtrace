@@ -6,6 +6,8 @@ import { connectDatabase, type AppDatabase } from "../../src/server/db";
 import { seedFixture } from "../../db/fixture";
 import * as s from "../../db/schema";
 import { SESSION_COOKIE } from "../../src/server/auth";
+import { freezeDecision } from "../../src/ledger/service";
+import { createReceiptDraft, readReceiptView, confirmReceipt, suggestionHash } from "../../src/receipt/service";
 
 // IAC-405 step 1 test helpers. Real Postgres in the isolated check project. No network, no model, no provider.
 export interface PolicyDatabase { db: AppDatabase; client: ReturnType<typeof postgres>; name: string; close: () => Promise<void> }
@@ -60,4 +62,23 @@ export async function financialHash(client: ReturnType<typeof postgres>) {
 export async function tableHash(client: ReturnType<typeof postgres>, table: string) {
   const rows = await client`select to_jsonb(r)::text as v from ${client(table)} r order by (to_jsonb(r)::text) collate "C"`;
   return { count: rows.length, hash: digest(JSON.stringify(rows)) };
+}
+
+// IAC-405 piece G helper: a confirmed receipt claim by Maria, frozen. Receipt claims carry the R- id the model check requires. The default lines
+// give three funds: L1 goes to fund_b, L2 to fund_a and L3 to fund_g (measured with the fixture allocation, not assumed). Writes through the services only.
+export type ReceiptLineSpec = { description: string; amount: string; category: string };
+export const STANDARD_RECEIPT_LINES: ReceiptLineSpec[] = [
+  { description: "Robot servo kit", amount: "150.00", category: "robot_kits_parts" }, { description: "Classroom markers", amount: "100.00", category: "classroom_supplies" }, { description: "Pizza party", amount: "50.00", category: "participant_meals" },
+];
+export const RECEIPT_PAYEE = "receipt-test@personal.example.com";
+export async function receiptClaim(db: AppDatabase, spec: { vendor?: string; source?: string; lines?: ReceiptLineSpec[] } = {}) {
+  const lines = spec.lines ?? STANDARD_RECEIPT_LINES;
+  const total = (lines.reduce((sum, line) => sum + Math.round(Number(line.amount) * 100), 0) / 100).toFixed(2);
+  const id = await createReceiptDraft(db, "maria", { vendor: spec.vendor ?? "Fictional shop", program: "robotics", incurredOn: "2026-10-14", source: spec.source ?? lines.map(line => line.description).join("\n"), total,
+    lines: lines.map(line => ({ description: line.description, amount: line.amount })) }, RECEIPT_PAYEE);
+  const view = await readReceiptView(db, id, "maria");
+  await confirmReceipt(db, id, "maria", view.review.id, view.review.draftHash, null, suggestionHash(view.suggestion), lines.map((line, index) => ({ lineId: `L${index + 1}`, category: line.category, reason: "Checked synthetic source" })), true);
+  const frozen = await freezeDecision(db, id, "maria");
+  if (frozen.status !== "AWAITING_APPROVAL") throw new Error("Expected a funded frozen decision");
+  return { id, hash: frozen.decisionHash, decisionId: frozen.decisionId };
 }

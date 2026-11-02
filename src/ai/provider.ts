@@ -49,12 +49,14 @@ export function defaultReceiptCategorizer(env: Env = process.env): AnyReceiptCat
 // Why AI is off, for the page and the shell. Fixed messages only.
 export type AiOffReason = "SWITCHED_OFF" | "NO_KEY" | "LIMIT";
 export const AI_OFF_MESSAGES: Record<AiOffReason, string> = {
-  NO_KEY: "AI suggestions are off in this session: no Claude key is configured.",
+  NO_KEY: "AI suggestions are off in this session: no AI key is configured.",
   LIMIT: CLAUDE_LIMIT_MESSAGE,
   SWITCHED_OFF: "AI suggestions are switched off in this session.",
 };
 export type AiStatus = { on: true; model: ClaudeModel; name: string; shellName: string } | { on: false; reason: AiOffReason };
-export type AiFlag = "AI_RECEIPT_ENABLED" | "AI_ANALYTICS_ENABLED" | "AI_EXPENSE_PROPOSALS_ENABLED";
+// AI_COMPLIANCE_ENABLED (IAC-405 piece G) gates the approver's model compliance check. Off by default like the others.
+// AI_RULE_DRAFTS_ENABLED (IAC-440 Package A) gates the approver's AI-drafted fund rules request. Off by default and in every compose file.
+export type AiFlag = "AI_RECEIPT_ENABLED" | "AI_ANALYTICS_ENABLED" | "AI_EXPENSE_PROPOSALS_ENABLED" | "AI_COMPLIANCE_ENABLED" | "AI_RULE_DRAFTS_ENABLED";
 
 // Display and gating: is Claude usable for this surface right now? On only with the surface's flag, a valid configuration, a
 // key present in this process and request budget left. It reads the key's presence only, never its value.

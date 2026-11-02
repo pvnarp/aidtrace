@@ -53,6 +53,15 @@ async function compactJourney(page: Page) {
     await fits(page);
   }
 }
+// IAC-415 polish: an approved claim has no Next decision card (the title and the Decision panel state it), so only the top of the page is measured.
+async function compactTop(page: Page) {
+  for (const width of [390, 1440]) {
+    await page.setViewportSize({ width, height: 900 });
+    await expect(page.getByLabel("Expense journey", { exact: true })).toHaveCount(0);
+    expect((await page.getByRole("heading", { level: 1 }).boundingBox())!.y).toBeLessThan(700);
+    await fits(page);
+  }
+}
 
 test("IAC-350: architecture is authenticated, keyboard-operable and executes no requests", async ({ page }) => {
   await page.goto("/architecture"); await expect(page).toHaveURL(/\/login$/);
@@ -66,15 +75,15 @@ test("IAC-350: architecture is authenticated, keyboard-operable and executes no 
   const requests: string[] = []; page.on("request", request => requests.push(request.url()));
   const explanation = note.getByRole("heading", { level: 2 });
   await expect(explanation).not.toBeFocused();
-  await expect(page.getByText(/This page is an illustration using fictional data, not live telemetry/)).toBeVisible();
+  await expect(page.getByText(/This page is an illustration, not live telemetry/)).toBeVisible();
   await stages.getByRole("button", { name: "Rules allocate", exact: true }).click();
   await expect(explanation).toHaveText("Rules allocate"); await expect(note).toContainText("$70 refreshments from General Operating");
   await expect(explanation).toBeFocused(); await expect(explanation).toBeInViewport({ ratio: 1 });
-  await page.getByRole("button", { name: "Explore Claude AI model", exact: true }).click();
-  await expect(explanation).toHaveText("AI suggests"); await expect(note).toContainText("AI is off in this session");
+  await page.getByRole("button", { name: "Explore AI model", exact: true }).click();
+  await expect(explanation).toHaveText("AI suggests"); await expect(note).toContainText("A person chooses every category in this session");
   await expect(explanation).toBeFocused(); await expect(explanation).toBeInViewport({ ratio: 1 });
   // Re-selecting the same component must still return focus to its explanation.
-  await page.getByRole("button", { name: "Explore Claude AI model", exact: true }).click();
+  await page.getByRole("button", { name: "Explore AI model", exact: true }).click();
   await expect(explanation).toBeFocused(); await expect(explanation).toBeInViewport({ ratio: 1 });
   await stages.getByRole("button", { name: "People approve", exact: true }).focus(); await page.keyboard.press("Enter");
   await expect(explanation).toHaveText("People approve"); await expect(note).toContainText("Maria cannot approve her own claim");
@@ -82,7 +91,7 @@ test("IAC-350: architecture is authenticated, keyboard-operable and executes no 
   await stages.getByRole("button", { name: "PayPal handoff", exact: true }).click();
   await expect(explanation).toHaveText("PayPal handoff"); await expect(note).toContainText("submits nothing");
   await expect(stages.getByRole("button", { name: "PayPal handoff", exact: true })).toHaveAttribute("aria-pressed", "true");
-  await expect(page.getByRole("button", { name: "Explore PayPal Sandbox", exact: true })).toHaveAttribute("aria-pressed", "true");
+  await expect(page.getByRole("button", { name: "Explore PayPal", exact: true })).toHaveAttribute("aria-pressed", "true");
   await page.getByText("Deployment boundaries", { exact: true }).click();
   await expect(page.getByText("Private Docker containers", { exact: true })).toBeVisible();
   await expect(page.getByText(/one Next.js app container/)).toBeVisible();
@@ -96,11 +105,11 @@ test("IAC-350: guidance follows one expense, role handoff and two approvals with
   await login(page, "maria"); await page.getByRole("link", { name: "Start a $6 practice expense", exact: true }).click();
   const journey = page.getByLabel("Expense journey", { exact: true });
   await traceAt(page, "Receipt"); await fits(page);
-  const checkbox = page.getByLabel("This receipt is fictional sandbox data.");
+  const checkbox = page.getByLabel("This receipt is sample data with no real personal details.");
   const checkboxBox = await checkbox.boundingBox();
   expect(checkboxBox!.width).toBeGreaterThanOrEqual(20); expect(checkboxBox!.height).toBeGreaterThanOrEqual(20);
   expect((await page.locator("label.confirm").boundingBox())!.height).toBeGreaterThanOrEqual(44);
-  await page.getByLabel("This receipt is fictional sandbox data.").check(); await page.getByRole("button", { name: "Create receipt draft", exact: true }).click();
+  await page.getByLabel("This receipt is sample data with no real personal details.").check(); await page.getByRole("button", { name: "Create receipt draft", exact: true }).click();
   await traceAt(page, "AI review");
   for (const [line, category] of [["L1", "robot_kits_parts"], ["L2", "classroom_supplies"], ["L3", "participant_meals"]]) {
     await page.getByLabel(`Category for ${line}`, { exact: true }).selectOption(category!); await page.getByLabel(`Reason for manual choice ${line}`, { exact: true }).fill("Checked this fictional receipt directly");
@@ -113,23 +122,25 @@ test("IAC-350: guidance follows one expense, role handoff and two approvals with
   await expect(journey.getByText(/Freezing holds the eligible funds/)).toBeVisible();
   await journey.getByText("Step details and roles", { exact: true }).click();
   await page.getByRole("button", { name: "Freeze allocation for approval", exact: true }).click();
-  await traceAt(page, "Approvals"); await expect(journey).toContainText("Hand this claim to a different approver.");
+  // IAC-415 PR 4: the claimant on her own awaiting claim reads "Waiting for two approvers." (the approver wording moved to the approvers).
+  await traceAt(page, "Approvals"); await expect(journey).toContainText("Waiting for two approvers.");
   await expect(page.getByRole("button", { name: "Approve these terms", exact: true })).toHaveCount(0);
   await page.getByRole("button", { name: "Sign out", exact: true }).click(); await login(page, "tara"); await page.goto(claim);
-  await expect(journey).toContainText("0 of 2 approvals saved");
+  // IAC-415 PR 4: the count lives in the title and the approvals section only, so the Journey title is the instruction alone.
+  await expect(journey).toContainText("Review the frozen terms."); await expect(journey).not.toContainText(/of 2/);
   await page.getByRole("button", { name: "Approve these terms", exact: true }).click();
   await expect(journey).toContainText("Hand this claim to a different approver.");
-  await expect(page.getByRole("button", { name: /Send .*PayPal sandbox/ })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: /Send .* with PayPal/ })).toHaveCount(0);
   await page.getByRole("button", { name: "Sign out", exact: true }).click(); await login(page, "ben"); await page.goto(claim);
-  await expect(journey).toContainText("1 of 2 approvals saved");
+  await expect(journey).toContainText("Review the frozen terms."); await expect(journey).not.toContainText(/of 2/);
   await page.getByRole("button", { name: "Approve these terms", exact: true }).click();
-  await traceAt(page, "PayPal sandbox payout"); await expect(journey).toContainText("Approved is not paid"); await fits(page);
-  await compactJourney(page);
+  await traceAt(page, "PayPal payout"); await expect(journey).toHaveCount(0); await expect(page.locator(".paypal-card")).toContainText("Approved does not mean paid."); await fits(page);
+  await compactTop(page);
   await page.getByRole("link", { name: "Review receipt and confirmed categories", exact: true }).click();
-  await traceAt(page, "PayPal sandbox payout"); await expect(journey).not.toContainText("freeze the terms for two human approvers");
+  await traceAt(page, "PayPal payout"); await expect(journey).not.toContainText("freeze the terms for two human approvers");
   await expect(journey.getByRole("link", { name: "Continue to funding", exact: true })).toHaveCount(0);
   await journey.getByRole("link", { name: "View current claim", exact: true }).click();
-  await expect(page).toHaveURL(claim); await expect(journey).toContainText("Approved is not paid");
+  await expect(page).toHaveURL(claim); await expect(journey).toHaveCount(0); await expect(page.locator(".paypal-card")).toContainText("Approved does not mean paid.");
   expect(await connection.db.select().from(s.approvals)).toHaveLength(2);
   expect(await connection.db.select().from(s.disbursementAttempts)).toHaveLength(0);
   expect(await connection.db.select().from(s.disbursements)).toHaveLength(0);

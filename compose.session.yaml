@@ -29,6 +29,8 @@ services:
       AI_RECEIPT_ENABLED: "true"
       AI_ANALYTICS_ENABLED: "true"
       AI_EXPENSE_PROPOSALS_ENABLED: "true"
+      AI_COMPLIANCE_ENABLED: "true"
+      AI_RULE_DRAFTS_ENABLED: "false"
       PAYPAL_BASE_URL: https://api-m.sandbox.paypal.com
       PAYPAL_CLIENT_ID: ""
       PAYPAL_CLIENT_SECRET: ""

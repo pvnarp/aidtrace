@@ -37,6 +37,30 @@ const budgetRows = [
 // IAC-405 step 1 (docs/plans/POLICY_CHECK_SCOPE.md section 3): version 1 check thresholds for the fixture funds, written on a fresh database only.
 // An existing database is not asserted against these rows and gets no additive seed (docs/ASSUMPTIONS.md).
 const checkSettings = ["fund_a", "fund_b", "fund_g"].map(fundId => ({ fundId, version: 1, approvedBy: "tara", suppliesLimitCents: 25000n, equipmentLimitCents: 50000n, claimLimitCents: 100000n, staleReceiptDays: 60, duplicateWindowDays: 90, splitWindowDays: 3 }));
+// IAC-405 step 1 piece G and N1 (docs/plans/POLICY_CHECK_SCOPE.md sections 2.2 and 3.3; docs/ASSUMPTIONS.md section 60): the clause text the model
+// reads, at the fixture policy version 1, written on a fresh database only and only when migration 0017 has created the table. The wording was
+// finalized by the orchestrator under the owner's October 31 delegation (docs/decisions.md decision 12) and is seeded word for word. fund_g
+// (General Operating) has no clauses on purpose: the model check skips it. An existing database gets no additive seed, as with the check settings.
+const clauseTexts: Record<string, readonly string[]> = {
+  fund_a: [
+    "Funds may be used only for direct costs of the Eastside Robotics Club afterschool program: robot kits, robot parts and electronic components, and classroom supplies such as engineering notebooks.",
+    "Every cost must be reasonable and necessary for the program and must benefit participating students rather than the organization generally.",
+    "Food, meals, travel, entertainment and staff pay are not allowable under this subgrant.",
+    "Gift cards, gift certificates and any other cash equivalent are not allowable under any circumstances, including as prizes or incentives.",
+    "Alcoholic beverages are not allowable under any circumstances.",
+    "Items for personal use, and costs that benefit an individual rather than the program, are not allowable.",
+    "Costs of the organization's other programs are not allowable, even where the item could also be used by the robotics club.",
+  ],
+  fund_b: [
+    "Funds may be used only for robot kits and robot parts for the Eastside Robotics Club, including motors, sensors, controllers, structural pieces and batteries for the robots.",
+    "Classroom supplies, notebooks, tools, furniture and general electronics that are not robot parts are not allowable under this initiative.",
+    "Food, meals, travel, entertainment and staff pay are not allowable.",
+    "Gift cards, gift certificates, other cash equivalents and alcoholic beverages are not allowable under any circumstances.",
+    "Costs of the organization's other programs are not allowable.",
+  ],
+};
+const clauseNumber: Record<string, number> = { fund_a: 1, fund_b: 2 };
+export const fixtureClauses = Object.entries(clauseTexts).flatMap(([fundId, texts]) => texts.map((text, index) => ({ fundId, policyVersion: 1, clauseId: `${clauseNumber[fundId]}.${index + 1}`, text })));
 const priority = { organizationId: organization.id, version: 1, approvedBy: "tara", costsPerCent: { fund_a: "2000", fund_b: "1001", fund_g: "1000000" } };
 const lines = [
   { claimId: "C-104", claimVersion: 1, id: "L1", description: "Robot kit and parts", category: "robot_kits_parts", budgetLine: "supplies", amountCents: 28000n },
@@ -91,6 +115,9 @@ export async function seedFixture(db: AppDatabase, config: SeedConfig) {
     // A database taken only through migration 0014 (tests build one to prove migration 0015 on retained data) has no settings table yet. Skip it there, never fail.
     const [settingsTable] = await tx.execute<{ present: boolean }>(sql`select to_regclass('public.fund_check_settings') is not null as present`);
     if (settingsTable?.present) await tx.insert(s.fundCheckSettings).values(checkSettings);
+    // Same rule for the clause table of migration 0017: a database taken only through 0016 or earlier has none, so skip it there, never fail.
+    const [clauseTable] = await tx.execute<{ present: boolean }>(sql`select to_regclass('public.fund_policy_clauses') is not null as present`);
+    if (clauseTable?.present) await tx.insert(s.fundPolicyClauses).values(fixtureClauses);
     await tx.insert(s.solverPriorityVersions).values(priority);
     await tx.insert(s.claims).values(claim);
     await tx.insert(s.claimLines).values(lines);

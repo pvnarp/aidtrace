@@ -4,7 +4,7 @@ export function DraftForm({ id, reviewId, hash, vendor = "Cedar Science Shop", p
   return <form action={id ? `/api/receipts/${id}` : "/api/receipts"} method="post" className="receipt-form">
     <input type="hidden" name="action" value={id ? "edit" : "create"} />
     {reviewId && <input type="hidden" name="reviewId" value={reviewId} />}{hash && <input type="hidden" name="draftHash" value={hash} />}
-    <div className="receipt-meta"><label htmlFor="vendor">Fictional vendor<input id="vendor" name="vendor" defaultValue={vendor} required maxLength={120} /></label>
+    <div className="receipt-meta"><label htmlFor="vendor">Vendor<input id="vendor" name="vendor" defaultValue={vendor} required maxLength={120} /></label>
     <label htmlFor="program">Program<input id="program" name="program" defaultValue={program} required maxLength={64} /></label>
     <label htmlFor="incurredOn">Expense date<input id="incurredOn" type="date" name="incurredOn" defaultValue={incurredOn} required /></label></div>
     {Array.from({ length: Math.max(3, lines.length) }, (_, i) => <fieldset key={i} className="receipt-line"><legend>Line {i + 1}</legend>
@@ -14,7 +14,7 @@ export function DraftForm({ id, reviewId, hash, vendor = "Cedar Science Shop", p
     <label htmlFor="total">Receipt total in USD</label><input id="total" name="total" defaultValue={total} required inputMode="decimal" pattern="[0-9]+\.[0-9]{2}" />
     <label htmlFor="source">Invented receipt text</label><textarea id="source" name="source" defaultValue={source} required rows={7} maxLength={16384} />
     <p>Use invented receipt text only. Amounts are entered by you, with two decimal places. Maximum total $500.00.</p>
-    <label className="confirm"><input type="checkbox" name="syntheticReceipt" value="yes" required /> This receipt is fictional sandbox data.</label>
+    <label className="confirm"><input type="checkbox" name="syntheticReceipt" value="yes" required /> This receipt is sample data with no real personal details.</label>
     <button type="submit">{id ? "Save edits and require a new review" : "Create receipt draft"}</button>
   </form>;
 }

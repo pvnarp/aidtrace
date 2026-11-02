@@ -16,6 +16,10 @@ export function ProposalReview({ id, reviewId, draftHash, suggestionHash, sugges
   const [reviewChanged, setReviewChanged] = useState(false);
   useEffect(() => { setInteractive(true); }, []);
   const running = pending || panel.state === "RUNNING" || receiptRunning;
+  // IAC-415 PR 6: once a preparation has finished (NEEDS_REVIEW, READY_FOR_REVIEW, POLICY_BLOCKED, STALE) the real next step is the category review, so the link to it is
+  // the primary control and the submit button, now a repeat or a refresh, takes the secondary style. NOT_STARTED and UNAVAILABLE keep the button as the primary control.
+  // While a request runs the panel renders as it did before: the label and style follow the running state, and the disabled conditions are unchanged.
+  const finished = !running && ["NEEDS_REVIEW", "READY_FOR_REVIEW", "POLICY_BLOCKED", "STALE"].includes(panel.state ?? "");
   // AI off hides the prepare button. The off heading replaces the panel text only while no finished preparation is on show.
   const offNotice = Boolean(aiOff) && !["READY_FOR_REVIEW", "POLICY_BLOCKED", "NEEDS_REVIEW"].includes(panel.state ?? "");
   const receiptUrl = `/claims/${id}/receipt`;
@@ -47,14 +51,14 @@ export function ProposalReview({ id, reviewId, draftHash, suggestionHash, sugges
       <p>Next: confirm the categories below. Funding stays provisional until you freeze it for two human approvals.</p>
       {editable && !aiOff && <form action={`/api/receipts/${id}/proposal`} method="post" className="proposal-form" onSubmit={event => { event.preventDefault(); void prepare(event.currentTarget); }}>
         <input type="hidden" name="action" value="prepare" /><input type="hidden" name="reviewId" value={reviewId} /><input type="hidden" name="draftHash" value={draftHash} /><input type="hidden" name="suggestionHash" value={suggestionHash} /><input type="hidden" name="runHash" value={runHash} />
-        <button disabled={!interactive || running || dirty || editDirty || Boolean(message)} type="submit">{running ? "Preparation in progress..." : panel.state === "READY_FOR_REVIEW" || panel.state === "POLICY_BLOCKED" || panel.state === "STALE" ? "Refresh funding preview" : "Prepare expense proposal"}</button>
+        <button className={finished ? "secondary" : undefined} disabled={!interactive || running || dirty || editDirty || Boolean(message)} type="submit">{running ? "Preparation in progress..." : panel.state === "NEEDS_REVIEW" ? "Run preparation again" : panel.state === "READY_FOR_REVIEW" || panel.state === "POLICY_BLOCKED" || panel.state === "STALE" ? "Refresh funding preview" : "Prepare expense proposal"}</button>
       </form>}
       <noscript><p>JavaScript is needed for preparation. Manual category review below remains available.</p></noscript>
       {dirty && <p role="status">You have unsaved review choices. Confirm them below or reload the saved receipt before preparing again.</p>}
       {editDirty && <p role="status">You have unsaved receipt edits. Save them below or reload the saved receipt before preparing or confirming.</p>}
       {running && <p><a href={receiptUrl}>Refresh preparation status</a></p>}
       {message && <p role="alert">{message} <a href={receiptUrl}>Reload saved receipt</a> or <a href="/login">sign in</a>.</p>}
-      <p><a className="button-link secondary" href="#category-review">{panel.state === "READY_FOR_REVIEW" ? "Review suggested categories" : "Review categories manually"}</a></p>
+      <p><a className={finished ? "button-link" : "button-link secondary"} href="#category-review">{panel.state === "NEEDS_REVIEW" ? "Choose the unresolved categories" : panel.state === "READY_FOR_REVIEW" ? "Review suggested categories" : "Review categories manually"}</a></p>
     </section>
     <section id="category-review" aria-labelledby="category-review-heading"><h2 id="category-review-heading">Review and confirm each category</h2>
       <p>Check each suggested category and its quote against the receipt. Matching text does not prove the category is right. Changing a category requires your reason.</p>

@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { ARCHITECTURE_NODES, type ArchitectureStage, type NodeId } from "./stages";
 
 // IAC-403: the locked mock's stage picker with a polite live note. The component highlight from the earlier explorer is kept,
-// including the Claude node. Everything is an illustration of the selected explanation: no request is made and nothing is observed.
+// including the AI model node. Everything is an illustration of the selected explanation: no request is made and nothing is observed.
 // As before, choosing a stage or component moves focus to the explanation heading so keyboard and screen reader users land on it.
 export function ArchitectureExplorer({ stages }: { stages: ArchitectureStage[] }) {
   const [selected, select] = useState(0);
@@ -33,6 +33,6 @@ export function ArchitectureExplorer({ stages }: { stages: ArchitectureStage[] }
       <div className="deployment-edge"><p className="eyebrow">External service</p>{component("paypal", 3)}</div>
     </div>
     <p className="muted">Click a stage or a component. Highlights illustrate the selected explanation; they do not indicate live traffic.</p>
-    <details className="architecture-boundaries"><summary>Deployment boundaries</summary><p>Rules, authentication, approvals, the PayPal adapter and the ledger are modules in one Next.js app container. Postgres is a separate Docker container. PayPal Sandbox and the Claude API are external services. This view calls none of them and reads no claim or account data.</p></details>
+    <details className="architecture-boundaries"><summary>Deployment boundaries</summary><p>Rules, authentication, approvals, the PayPal adapter and the ledger are modules in one Next.js app container. Postgres is a separate Docker container. PayPal and the hosted AI API are external services. This view calls none of them and reads no claim or account data.</p></details>
   </div>;
 }

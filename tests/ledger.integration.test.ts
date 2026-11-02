@@ -10,6 +10,7 @@ import { postJournal } from "../src/ledger/journal";
 import { ensureFixtureOpening } from "../src/ledger/opening";
 import { reconcile } from "../src/ledger/reconcile";
 import { approveDecision, freezeDecision, recognizeDecision, rejectClaim, serializable } from "../src/ledger/service";
+import { loadClaimView } from "../src/server/claim-view";
 
 const databaseName = `aidtrace_iac135_test_${randomBytes(6).toString("hex")}`;
 const adminUrl = new URL(process.env.DATABASE_URL ?? "postgres://aidtrace@db:5432/aidtrace");
@@ -173,6 +174,36 @@ describe("IAC-135 real PostgreSQL ledger and approval boundaries", () => {
     expect((await freezeDecision(db, "infeasible-edit", "maria")).status).toBe("INFEASIBLE");
     expect((await db.select().from(s.fundReservations).where(eq(s.fundReservations.decisionId, frozen.decisionId)))[0]!.status).toBe("RELEASED");
     expect((await db.select().from(s.claims).where(eq(s.claims.id, "infeasible-edit")))[0]!.status).toBe("DRAFT");
+  });
+  // FRZ-01 (IAC-415 PR 4, docs/GATE_REPORT.md section 51). Read-only evidence for the claimant's "Receipt or fund policy changed? Re-check the frozen terms"
+  // copy on an awaiting claim: unchanged terms keep the decision and approvals, changed terms funded again replace both, changed terms not funded return
+  // the claim to draft (the test above). It asserts current freezeDecision behavior and changes none.
+  it("FRZ-01: re-freezing an awaiting claim keeps the decision and approvals when nothing changed and replaces them when the terms changed", async () => {
+    await extraClaim("refreeze"); const first = await mustFreeze("refreeze");
+    await approveDecision(db, first.decisionId, "tara", first.decisionHash);
+    const reservationsOf = async (id: string) => db.select().from(s.fundReservations).where(eq(s.fundReservations.decisionId, id));
+    const statusOf = async () => (await db.select().from(s.claims).where(eq(s.claims.id, "refreeze")))[0]!.status;
+    const before = await counts();
+    // Unchanged terms: the same decision, hash and reservations, and the earlier approval still shows on the claim.
+    const again = await mustFreeze("refreeze");
+    expect(again.decisionId).toBe(first.decisionId); expect(again.decisionHash).toBe(first.decisionHash);
+    expect((await reservationsOf(first.decisionId)).length).toBeGreaterThan(0); expect((await reservationsOf(first.decisionId)).every(row => row.status === "ACTIVE")).toBe(true);
+    expect((await loadClaimView(db, "refreeze", "maria")).approvals.map(row => row.approverId)).toEqual(["tara"]);
+    expect(await statusOf()).toBe("AWAITING_APPROVAL");
+    // Changed terms that funds still cover: the old decision and its reservations are released and new terms are frozen with no approvals on them.
+    await db.update(s.claimLines).set({ amountCents: 250n }).where(eq(s.claimLines.claimId, "refreeze"));
+    const next = await mustFreeze("refreeze");
+    expect(next.decisionId).not.toBe(first.decisionId); expect(next.decisionHash).not.toBe(first.decisionHash);
+    expect((await db.select().from(s.allocationDecisions).where(eq(s.allocationDecisions.id, first.decisionId)))[0]!.invalidatedAt).not.toBeNull();
+    expect((await reservationsOf(first.decisionId)).every(row => row.status === "RELEASED")).toBe(true);
+    expect((await reservationsOf(next.decisionId)).length).toBeGreaterThan(0); expect((await reservationsOf(next.decisionId)).every(row => row.status === "ACTIVE")).toBe(true);
+    const view = await loadClaimView(db, "refreeze", "maria");
+    expect(view.decision!.id).toBe(next.decisionId); expect(view.approvals).toHaveLength(0);
+    // The earlier approval stays as evidence bound to the old hash, and it does not count for the new one.
+    expect((await db.select().from(s.approvals).where(eq(s.approvals.decisionHash, first.decisionHash))).length).toBe(1);
+    expect((await db.select().from(s.approvals).where(eq(s.approvals.decisionHash, next.decisionHash))).length).toBe(0);
+    expect(await statusOf()).toBe("AWAITING_APPROVAL");
+    expect(await counts()).toEqual(before);
   });
   it("rejects a draft obligation and releases its reservation without journal postings", async () => {
     await extraClaim("rejected-claim"); const frozen = await mustFreeze("rejected-claim"); const before = await counts();

@@ -3,7 +3,6 @@ import { compare, hash } from "bcryptjs";
 import { and, eq, gt, sql } from "drizzle-orm";
 import { loginWindows, sessions, users } from "../../db/schema";
 import { getDatabase, type AppDatabase } from "./db";
-import { judgeSession } from "./judge-mode";
 
 export const SESSION_COOKIE = "aidtrace_session";
 const SESSION_SECONDS = 8 * 60 * 60;
@@ -11,9 +10,11 @@ const dummyHash = hash("synthetic-login-timing-value", 12);
 const digest = (token: string) => createHash("sha256").update(token).digest("hex");
 export function appOrigin() {
   const origin = process.env.APP_ORIGIN;
-  const sessionOrigin = judgeSession() && /^http:\/\/127\.0\.0\.1:([1-9][0-9]{3,4})$/.exec(origin ?? "");
-  const sessionPort = sessionOrigin ? Number(sessionOrigin[1]) : 0;
-  if (!origin || (!["http://127.0.0.1:3100", "http://localhost:3100"].includes(origin) && !(sessionPort >= 3102 && sessionPort <= 65535))) throw new Error("APP_ORIGIN must be the explicit local demo origin");
+  // IAC-418 (owner approval, October 31): the owner instance accepts the same extra loopback ports as a judge session, so a second owner-mode
+  // instance (the recording instance on 3120) can sign in. Port 3101 stays refused; the mock viewer holds it.
+  const extraOrigin = /^http:\/\/127\.0\.0\.1:([1-9][0-9]{3,4})$/.exec(origin ?? "");
+  const extraPort = extraOrigin ? Number(extraOrigin[1]) : 0;
+  if (!origin || (!["http://127.0.0.1:3100", "http://localhost:3100"].includes(origin) && !(extraPort >= 3102 && extraPort <= 65535))) throw new Error("APP_ORIGIN must be the explicit local demo origin");
   return origin;
 }
 export function isSameOrigin(request: Request) { return request.headers.get("origin") === appOrigin(); }

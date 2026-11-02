@@ -7,6 +7,6 @@ import { FOOTER_PROMISE, shellWording } from "./shell-copy";
 export async function AppFooter() {
   await connection();
   const status = receiptAiStatus();
-  const { line } = status.on ? shellWording(status) : shellWording(null, status.reason);
+  const { line } = shellWording(status.on ? status : null);
   return <footer className="app-footer"><p className="footer-promise"><PayPalText text={FOOTER_PROMISE} /></p><p className="footer-built"><PayPalText text={line} /></p></footer>;
 }

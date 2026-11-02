@@ -8,7 +8,7 @@ import { normalizeVendor } from "./text";
 import type { PolicyFacts, PolicyPeer, PolicyThresholds } from "./types";
 
 export type PolicyReader = Pick<Parameters<Parameters<AppDatabase["transaction"]>[0]>[0], "select">;
-const RECEIPT_CLAIM = /^R-[a-f0-9-]{36}$/;
+export const RECEIPT_CLAIM = /^R-[a-f0-9-]{36}$/;
 
 export async function loadPolicyFacts(tx: PolicyReader, decisionHash: string): Promise<PolicyFacts | null> {
   const [decision] = await tx.select().from(s.allocationDecisions).where(eq(s.allocationDecisions.decisionHash, decisionHash));

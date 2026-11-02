@@ -76,13 +76,13 @@ export interface Lookups {
 }
 
 const ENTRY_TYPES: Readonly<Record<string, { label: string; tip: string }>> = {
-  'fixture_opening_balance:opening': { label: 'Opening balance', tip: 'Sandbox fixture opening balances: cash and net assets.' },
+  'fixture_opening_balance:opening': { label: 'Opening balance', tip: 'Fixture opening balances: cash and net assets.' },
   'claim_recognition:recognition': { label: 'Claim recognition', tip: 'An approved expense recognized as expense and reimbursement payable.' },
   'claim_recognition:restriction_release': { label: 'Restriction release', tip: 'Restricted net assets released to unrestricted when the approved expense was recognized.' },
-  'paypal_capture:donation': { label: 'Donation', tip: 'A completed sandbox donation capture: cash and restricted contribution revenue.' },
-  'paypal_capture:donation_fee': { label: 'Donation fee', tip: 'The processing fee the sandbox reported for a donation capture.' },
-  'paypal_payout_item:settlement': { label: 'Payout settlement', tip: 'A verified sandbox payout settled the reimbursement payable.' },
-  'paypal_payout_item:payout_fee': { label: 'Payout fee', tip: 'The processing fee the sandbox reported for a payout item.' },
+  'paypal_capture:donation': { label: 'Donation', tip: 'A completed donation capture: cash and restricted contribution revenue.' },
+  'paypal_capture:donation_fee': { label: 'Donation fee', tip: 'The processing fee PayPal reported for a donation capture.' },
+  'paypal_payout_item:settlement': { label: 'Payout settlement', tip: 'A verified PayPal payout settled the reimbursement payable.' },
+  'paypal_payout_item:payout_fee': { label: 'Payout fee', tip: 'The processing fee PayPal reported for a payout item.' },
 };
 export function entryTypeOf(sourceType: string, purpose: string) {
   const known = ENTRY_TYPES[`${sourceType}:${purpose}`];
@@ -125,7 +125,7 @@ export function mapLedgerRow(posting: RawPosting, lookups: Lookups): LedgerRow {
     if (decision) { claim = decision.claimId; approvals = approvalsText(lookups.approvals.get(decision.decisionHash) ?? 0); }
     else { claim = unresolved('no allocation decision matches this source id'); approvals = claim; }
   } else if (posting.sourceType === 'paypal_capture') {
-    if (lookups.captures.has(posting.sourceId)) { paypalReference = posting.sourceId; paypalTip = 'PayPal sandbox capture id from the stored donation receipt.'; }
+    if (lookups.captures.has(posting.sourceId)) { paypalReference = posting.sourceId; paypalTip = 'PayPal capture id from the stored donation receipt.'; }
     else { paypalReference = unresolved('no donation receipt matches this capture id'); paypalTip = 'The capture id did not match a stored donation receipt, so the raw source is shown.'; }
   } else if (posting.sourceType === 'paypal_payout_item') {
     const matches = lookups.attempts.get(posting.sourceId) ?? [];
@@ -134,7 +134,7 @@ export function mapLedgerRow(posting: RawPosting, lookups: Lookups): LedgerRow {
       claim = attempt.claimId; approvals = approvalsText(lookups.approvals.get(attempt.decisionHash) ?? 0);
       const status = payoutNoteStatus({ state: attempt.state, itemStatus: attempt.itemStatus, payoutBatchId: attempt.payoutBatchId }).status;
       if (status === 'UNKNOWN') { paypalReference = 'UNKNOWN'; paypalTip = 'The payout outcome is not verified. It is neither paid nor failed.'; verify = true; }
-      else { paypalReference = posting.sourceId; paypalTip = 'PayPal sandbox payout item id from the matching disbursement attempt.'; }
+      else { paypalReference = posting.sourceId; paypalTip = 'PayPal payout item id from the matching disbursement attempt.'; }
     } else {
       const why = matches.length === 0 ? 'no disbursement attempt matches this payout item id' : 'more than one disbursement attempt matches this payout item id';
       claim = unresolved(why); approvals = claim; paypalReference = unresolved(why); paypalTip = 'The payout item id did not match exactly one disbursement attempt, so the raw source is shown.';

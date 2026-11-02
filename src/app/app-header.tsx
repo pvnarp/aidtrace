@@ -7,13 +7,13 @@ import { shellWording } from "./shell-copy";
 
 /**
  * Presentation only. Signed-in identity comes from the session the page already loaded; signed out shows the brand and the organization.
- * The header tag follows the receipt AI status the server reads (shellWording), so it never claims AI that is off or has no key. It is read per request.
+ * The header tag follows the receipt AI status the server reads (shellWording), so it never claims AI that is not running, and says nothing about AI when none is configured. It is read per request.
  * Render it above the page's <main> so the bar spans the window. The links come from nav.ts, by role.
  */
 export async function AppHeader({ user }: { user?: { displayName: string; role: string } }) {
   await connection();
   const status = receiptAiStatus();
-  const { tag } = status.on ? shellWording(status) : shellWording(null, status.reason);
+  const { tag } = shellWording(status.on ? status : null);
   const links = user ? navLinksFor(user.role) : [];
   return <header className="top"><div className="top-in"><Brand tag={tag} />
     {links.length > 0 && <PrimaryNav links={links} />}

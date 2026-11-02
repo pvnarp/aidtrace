@@ -38,19 +38,30 @@ export function claimantLabel(user: { id: string; displayName: string }, claiman
 
 // ---- Header tag and footer: true to the configured receipt model ----
 export type AiConfig = { name: string; shellName: string } | null;
-export type AiOff = "NO_KEY" | "LIMIT" | "SWITCHED_OFF";
 /**
- * The receipt AI is Claude through the Claude API, or off (no key, request limit reached, or switched off). The header tag and
- * footer line follow what the server reads, so they never claim AI that is not running. configured is null when AI is off;
- * off then says why (no key is the usual reason, and the default).
+ * The receipt AI is hosted AI, or not configured (no key, request limit reached, or switched off).
+ * The header tag and footer line follow what the server reads, so they never claim AI that is not running. configured is
+ * null when AI is not available. IAC-416: the shell then says nothing about AI (an empty tag renders no tag element) and the
+ * footer names only PayPal Payouts. The true reason still shows on the receipt and proposal panels, where AI would act.
+ * IAC-416 PR 2 (Pavan, November 1: "we need to just say AI"): the shell names no model or vendor, only "AI". The model and its
+ * provider are named once, in the disclosure lines where receipt or clause text leaves the app.
  */
-export function shellWording(configured: AiConfig, off: AiOff = "NO_KEY"): { tag: string; line: string } {
-  if (configured) return { tag: "Claude AI + PayPal sandbox", line: `Built with PayPal Payouts (sandbox) and ${configured.shellName}` };
-  const line = off === "NO_KEY" ? "Built with PayPal Payouts (sandbox). AI suggestions are off: no Claude key is configured."
-    : off === "LIMIT" ? "Built with PayPal Payouts (sandbox). AI suggestions are off: the Claude request limit for this process was reached."
-    : "Built with PayPal Payouts (sandbox). AI suggestions are switched off in this session.";
-  return { tag: "PayPal sandbox, AI off", line };
+export function shellWording(configured: AiConfig): { tag: string; line: string } {
+  if (configured) return { tag: "AI + PayPal", line: "Built with PayPal Payouts and AI" };
+  return { tag: "", line: "Built with PayPal Payouts." };
 }
+/**
+ * IAC-416 PR 2: a model's display name for a screen that does not disclose the provider. A name of the form "Vendor Family 5.5" (the
+ * stored display names, CLAUDE_NAMES) shows as "AI (Family 5.5)". Any other name, for example the retired-model label, passes through
+ * unchanged. It formats the string it is given and names no vendor itself.
+ */
+const VENDOR_MODEL_NAME = /^\S+ (\S+ \d+\.\d+)$/;
+export function aiModelLabel(name: string): string {
+  const parts = VENDOR_MODEL_NAME.exec(name);
+  return parts ? `AI (${parts[1]})` : name;
+}
+/** The name before "suggests:" on a per-line suggestion. A vendor-named model reads "AI"; the retired label ("Earlier AI") passes through. */
+export function aiSuggesterName(short: string): string { return VENDOR_MODEL_NAME.test(short) ? "AI" : short; }
 export const FOOTER_PROMISE = "AI suggests. People decide. PayPal pays.";
 
 /** Splits text around the word PayPal so the component can color exactly that word. */
@@ -77,8 +88,8 @@ export type AiCard = { key: AiKey; state: string; rail: string; model: string | 
 export const AI_NOTE = "No financial tools. It cannot approve, choose funds or pay.";
 
 export function aiCard(input: AiInput): AiCard {
-  const configured = input.configured ? `Configured model: ${input.configured.name} (Claude API)` : null;
-  const saved = input.savedModel ? `Model: ${input.savedModel}` : null;
+  const configured = input.configured ? `Configured model: ${aiModelLabel(input.configured.name)}` : null;
+  const saved = input.savedModel ? `Model: ${aiModelLabel(input.savedModel)}` : null;
   if (!input.applicable) return { key: "not-applicable", state: "Not used. Preclassified example", rail: "Not used", model: null, note: AI_NOTE };
   if (input.confirmed) {
     if (input.aiAccepted) return { key: "confirmed", state: "Suggestion confirmed by a person", rail: "Confirmed by a person", model: saved, note: AI_NOTE };
@@ -89,7 +100,7 @@ export function aiCard(input: AiInput): AiCard {
     case "RUNNING": return { key: "running", state: "Reading the typed receipt text", rail: "Reading receipt text", model: configured, note: AI_NOTE };
     case "UNUSABLE": return { key: "unusable", state: "No usable suggestion. A person chooses each category", rail: "No usable suggestion", model: configured, note: AI_NOTE };
     default: return input.configured ? { key: "not-run", state: "Not run yet", rail: "Not run yet", model: configured, note: AI_NOTE }
-      : { key: "not-run", state: "AI is off in this session. A person chooses each category", rail: "AI off", model: null, note: AI_NOTE };
+      : { key: "not-run", state: "A person chooses each category", rail: "Person chooses", model: null, note: AI_NOTE };
   }
 }
 
@@ -116,7 +127,9 @@ export function paypalCard(input: PayPalInput): PayPalCard {
   if (status === null || status === "DRAFT" || status === "AWAITING_APPROVAL") {
     const n = input.approvals ?? (status === null || status === "DRAFT" ? 0 : null);
     return n === null ? { key: "see-claim", state: "See the claim for approvals and payment status", rail: "See the claim", note: PAYPAL_NOTE, batchId: null }
-      : { key: "not-ready", state: `Not ready: ${n} of 2 approvals`, rail: "Not ready", note: PAYPAL_NOTE, batchId: null };
+      // Say it once (IAC-415 PR 4, PR 6): a claim page states its approval count in the title and the approvals section, and before a claim is frozen no approval count
+      // exists, so every not-ready card (no claim yet, DRAFT, AWAITING_APPROVAL) reads the same words and carries no digit.
+      : { key: "not-ready", state: "Not ready: needs two approvals", rail: "Not ready", note: PAYPAL_NOTE, batchId: null };
   }
   if (status === "REJECTED") return { key: "rejected", state: "Rejected. Nothing will be sent", rail: "Rejected", note: PAYPAL_NOTE, batchId: null };
   if (!input.payout) return { key: "see-claim", state: "See the claim for payment status", rail: "See the claim", note: PAYPAL_NOTE, batchId: null };
@@ -145,7 +158,10 @@ export function railLines(input: { stage: Stage; typedReceipt: boolean; ai: AiCa
     { name: "Receipt", state: input.typedReceipt ? "Typed text and amounts" : "Preclassified example" },
     { name: "AI review", tag: "AI", state: input.ai.rail },
     { name: "Funding", state: "Rules, not AI" },
-    { name: "Approvals", state: input.approvals === null ? "People: see the claim" : `People: ${input.approvals} of 2` },
+    // Say it once (IAC-415 PR 4, PR 5): while a claim awaits approval (stage 4) the count lives in the title and the approvals section, and before the freeze (stages 1 to 3)
+    // no approval can exist, so a count says nothing: the locked line reads "Locked. Two approvers" (short enough to stay on one rail line at 1440) and stage 4 reads
+    // "Two different people", both while the PayPal card is "not-ready". A REJECTED claim (card "rejected") and stage 5 keep the count.
+    { name: "Approvals", state: input.approvals === null ? "People: see the claim" : input.stage <= 4 && input.paypal.key === "not-ready" ? input.stage === 4 ? "Two different people" : "Two approvers" : `People: ${input.approvals} of 2` },
     { name: "PayPal", tag: "PayPal", state: input.paypal.rail },
   ];
   return lines.map((line, index) => index + 1 > input.stage ? { ...line, state: `Locked. ${line.state}` } : line);

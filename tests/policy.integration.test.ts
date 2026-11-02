@@ -270,14 +270,18 @@ describe("PC-19 append-only, one run, concurrency", () => {
     const [run] = await ctx.db.select().from(s.policyCheckRuns);
     const duplicate = { decisionHash, claimId: run!.claimId, claimVersion: run!.claimVersion, organizationId: run!.organizationId, kind: "RULES" as const, startedBy: "tara", settingsVersions: {}, ruleSetVersion: "x", factsDigest: "a".repeat(64) };
     expect((await dbError(ctx.db.insert(s.policyCheckRuns).values(duplicate))).code).toBe("23505");
-    expect((await dbError(ctx.db.insert(s.policyCheckRuns).values({ ...duplicate, kind: "MODEL", model: "m", effort: "low", promptVersion: "p", schemaVersion: "s", clauseSetHash: "c", requestDigest: "r" }))).message).toContain("Only rule checks are recorded");
     expect((await dbError(ctx.db.insert(s.policyCheckRuns).values({ ...duplicate, startedBy: "maria" }))).message).toContain("started by an approver");
     const end = { runId: result.runId, entry: "RUN_END" as const, ruleId: null, severity: null, lineId: null, fundId: null, settingsVersion: null, reasonCode: null, flagText: null, inputs: {} };
     expect((await dbError(ctx.db.insert(s.policyCheckResults).values({ ...end, sequence: 99 }))).message).toContain("accepts no more rows");
     const second = await createPolicyDatabase("aidtrace_policy"); open.push(second);
     const f2 = await freezeDecision(second.db, "C-104", "maria"); if (f2.status !== "AWAITING_APPROVAL") throw new Error("Expected funded");
     const [claim] = await second.db.select().from(s.claims);
+    // Migration 0017 accepts MODEL runs, but only after the rule checks of the same frozen decision. Before 0017 a MODEL row said "Only rule checks are recorded".
+    const modelRun = { decisionHash: f2.decisionHash, claimId: "C-104", claimVersion: 1, organizationId: claim!.organizationId, kind: "MODEL" as const, startedBy: "tara", settingsVersions: {}, ruleSetVersion: "x", factsDigest: "b".repeat(64), model: "m", effort: "low", promptVersion: "p", schemaVersion: "s", clauseSetHash: "c", requestDigest: "r" };
+    expect((await dbError(second.db.insert(s.policyCheckRuns).values(modelRun))).message).toContain("follows the rule checks");
     const [started] = await second.db.insert(s.policyCheckRuns).values({ decisionHash: f2.decisionHash, claimId: "C-104", claimVersion: 1, organizationId: claim!.organizationId, kind: "RULES", startedBy: "tara", settingsVersions: {}, ruleSetVersion: "x", factsDigest: "b".repeat(64) }).returning();
+    expect((await dbError(second.db.insert(s.policyCheckRuns).values(modelRun))).message).toBe("no error");
+    expect((await dbError(second.db.insert(s.policyCheckRuns).values(modelRun))).code).toBe("23505");
     expect((await dbError(second.db.insert(s.policyCheckResults).values({ ...end, runId: started!.id, sequence: 2 }))).message).toContain("numbered in order");
     expect((await dbError(second.db.insert(s.policyCheckResults).values({ ...end, runId: started!.id, sequence: 1 }))).message).toBe("no error");
   });
@@ -423,19 +427,19 @@ describe("PC-23 claim view for approver and claimant", () => {
   });
 });
 
-// A migrations folder holding only the migrations up to and including idx 14 (0014), the state of every database before IAC-405.
-function folderThrough0014() {
+// A migrations folder holding only the migrations up to and including idx `last`: 14 is the state of every database before IAC-405, 15 adds IAC-405 and nothing later (IAC-413 added 0016).
+function folderThrough(last: 14 | 15, tag: RegExp) {
   const dir = mkdtempSync(join(tmpdir(), "aidtrace-iac405-")); folders.push(dir); mkdirSync(join(dir, "meta"));
   const journal = JSON.parse(readFileSync("db/migrations/meta/_journal.json", "utf8")) as { entries: { idx: number; tag: string }[] };
-  const entries = journal.entries.filter(entry => entry.idx <= 14);
-  expect(entries.at(-1)!.tag).toMatch(/^0014_/); expect(journal.entries.at(-1)!.tag).toBe("0015_policy-checks");
+  const entries = journal.entries.filter(entry => entry.idx <= last);
+  expect(entries.at(-1)!.tag).toMatch(tag); expect(journal.entries.find(entry => entry.idx === 15)!.tag).toBe("0015_policy-checks");
   writeFileSync(join(dir, "meta", "_journal.json"), JSON.stringify({ ...journal, entries }));
   for (const entry of entries) copyFileSync(join("db/migrations", `${entry.tag}.sql`), join(dir, `${entry.tag}.sql`));
   return dir;
 }
 describe("PC-24 migration 0015 on a database with retained data", () => {
   it("applied by the real migrator to a database at 0014 with a frozen claim and one approval, it changes no existing row and only adds the three policy tables", async () => {
-    const old = await createPolicyDatabase("aidtrace_policy", { migrationsFolder: folderThrough0014() }); open.push(old);
+    const old = await createPolicyDatabase("aidtrace_policy", { migrationsFolder: folderThrough(14, /^0014_/) }); open.push(old);
     const tables = async () => (await old.client`select table_name from information_schema.tables where table_schema = 'public' and table_type = 'BASE TABLE' order by 1`).map(row => String(row.table_name));
     expect(await tables()).not.toEqual(expect.arrayContaining(["policy_check_runs"]));
     const frozenOld = await freezeDecision(old.db, "C-104", "maria"); if (frozenOld.status !== "AWAITING_APPROVAL") throw new Error("Expected funded");
@@ -445,7 +449,7 @@ describe("PC-24 migration 0015 on a database with retained data", () => {
     const hashes = async () => Object.fromEntries(await Promise.all(existing.map(async name => [name, await tableHash(old.client, name)] as const)));
     const retained = await hashes();
     expect(retained["journal_entries"]!.count).toBeGreaterThan(0); expect(retained["approvals"]!.count).toBe(1);
-    await migrate(old.db, { migrationsFolder: "db/migrations" });
+    await migrate(old.db, { migrationsFolder: folderThrough(15, /^0015_/) });
     expect(await hashes()).toEqual(retained);
     expect((await tables()).filter(name => !existing.includes(name) && name !== "__drizzle_migrations")).toEqual(["fund_check_settings", "policy_check_results", "policy_check_runs"]);
     for (const table of ["fund_check_settings", "policy_check_runs", "policy_check_results"]) expect((await old.client`select count(*)::int as n from ${old.client(table)}`)[0]!.n).toBe(0);

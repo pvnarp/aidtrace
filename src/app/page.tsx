@@ -8,10 +8,15 @@ import { and, eq, like } from "drizzle-orm";
 import { AppHeader } from "./app-header";
 import { ExpenseCard, type ExpenseCardData } from "./expense-card";
 import { judgeSession } from "../server/judge-mode";
-import { loadClaimView } from "../server/claim-view";
 import { claimTotals } from "../server/home-view";
+import { ApproverQueueAccessError, loadApproverQueue } from "../server/approver-queue";
+import { ApproverQueueClient } from "./approver-queue/client";
 import { usd } from "../analytics/model";
-import { CLAIMANT_LEDE, approverHeading, approverLede, approverReviewLine, claimActionLabel, claimantHeading, frozenSplit, nextStep, statusLabel } from "./home-copy";
+import { loadAnalyticsSnapshot } from "../analytics/snapshot";
+import { fundMeter, type FundMeter } from "./fund-meter";
+import { FundRow } from "./fund-row";
+import { shortClaimRef } from "./claim-ref";
+import { CLAIMANT_LEDE, approverHeading, approverLede, claimActionLabel, claimantHeading, nextStep, statusLabel } from "./home-copy";
 
 // IAC-403: the locked mock's Claimant home and Approver home. Every amount, status and count below comes from state this page loads
 // (claims, claim lines, and for an approver the same loadClaimView the claim page reads). Nothing is scripted.
@@ -26,27 +31,28 @@ export default async function Home() {
   const money = (claim: { id: string; version: number }) => { const total = totals.get(`${claim.id}:${claim.version}`); return total === undefined ? null : usd(total); };
 
   if (user.role === "APPROVER") {
-    // An approver sees an awaiting claim once. One this approver already approved waits for the second approver, so it is not counted as needing review.
-    const cards: ExpenseCardData[] = []; const shown = new Set<string>();
-    for (const claim of drafts.filter(row => row.status === "AWAITING_APPROVAL")) {
-      const view = await loadClaimView(db, claim.id, user.id).catch(() => null);
-      const approvedByMe = view?.approvals.some(approval => approval.approverId === user.id) ?? false;
-      if (approvedByMe) continue;
-      const total = view ? view.lines.reduce((sum, line) => sum + line.amountCents, 0n) : 0n;
-      const split = view ? frozenSplit({ total, generalCents: view.generalCents, frozen: Boolean(view.decision), edges: view.edges }) : null;
-      shown.add(`${claim.id}:${claim.version}`);
-      cards.push({ id: claim.id, vendor: claim.vendor, program: claim.program, status: claim.status, amount: money(claim), line: approverReviewLine(split, false), href: `/claims/${claim.id}`, action: "Review this expense", kicker: "Expenses awaiting your approval" });
-    }
-    const continuing = drafts.filter(claim => !shown.has(`${claim.id}:${claim.version}`));
+    // IAC-414 Q1: the claims awaiting this approver are one read-only grid, so each claim shows once. The loader keeps today's rule: a claim this
+    // approver already approved waits for the second approver, so it is not listed and not counted. It stays under Other expenses as before.
+    const queue = await loadApproverQueue(db, user.id).catch(error => { if (error instanceof ApproverQueueAccessError) return { observedAt: new Date().toISOString(), rows: [] }; throw error; });
+    const queued = new Set(queue.rows.map(row => row.id));
+    const continuing = drafts.filter(claim => !queued.has(claim.id));
+    // Trust v2: one meter per fund from the same read-only snapshot /analytics shows. A failed read renders no meters and no error text.
+    const meters = await loadAnalyticsSnapshot(db, user.id).then(snapshot => snapshot.funds.map(fundMeter), () => [] as FundMeter[]);
+    const [firstWord, ...restWords] = approverHeading(queue.rows.length).split(" ");
     return <><AppHeader user={user} /><main className="claim-page home-page reference-page">
-      <div className="reference-screen">
-        <h1 className="screen-heading">{approverHeading(cards.length)}</h1>
-        <p className="reference-intro">{approverLede(cards.length)}</p>
-        {cards.map((card, index) => <ExpenseCard key={`${card.id}:${index}`} card={card} />)}
-        {continuing.length > 0 && <section aria-labelledby="other-expenses"><h2 id="other-expenses">Other expenses</h2><ul className="draft-list">{continuing.map(claim => <li key={`${claim.id}:${claim.version}`}><Link href={`/claims/${claim.id}`} prefetch={false}>{claim.vendor}<small className="claim-reference">Claim {claim.id}{money(claim) ? ` · ${money(claim)}` : ""}</small></Link><span>{statusLabel(claim.status)}</span></li>)}</ul></section>}
+      <div className={`reference-screen home-grid${queue.rows.length > 0 ? " aq-home" : ""}`}>
+        <div className="home-main">
+        <div className="home-head-text">
+          <h1 className="screen-heading">{queue.rows.length > 0 ? <><span className="act">{firstWord}</span> {restWords.join(" ")}</> : approverHeading(0)}</h1>
+          <p className="reference-intro">{approverLede(queue.rows.length)}</p>
+        </div>
+        {queue.rows.length > 0 && <ApproverQueueClient rows={queue.rows} observedAt={queue.observedAt} userId={user.id} />}
+        {continuing.length > 0 && <section aria-labelledby="other-expenses"><h2 id="other-expenses">Other expenses</h2><ul className="draft-list">{continuing.map(claim => <li key={`${claim.id}:${claim.version}`}><Link href={`/claims/${claim.id}`} prefetch={false}>{claim.vendor}<small className="claim-reference">Claim {shortClaimRef(claim.id)}{money(claim) ? ` · ${money(claim)}` : ""}</small></Link><span>{statusLabel(claim.status)}</span></li>)}</ul></section>}
         <div className="reference-links"><Link className="button-link secondary" href="/analytics" prefetch={false}>View funding and cash</Link><Link className="button-link secondary" href="/architecture" prefetch={false}>Explore how it works</Link></div>
+        </div>
+        {meters.length > 0 && <div className="funds" role="group" aria-label="Fund balances">{meters.map(meter => <FundRow key={meter.name} meter={meter} />)}</div>}
       </div>
-      <footer>Fictional data for Lanternfield Community Alliance. Funds follow organization-approved rules. General Operating is flexible, not exempt from those rules.</footer>
+      <footer>Funds follow organization-approved rules. General Operating is flexible, not exempt from those rules.</footer>
     </main></>;
   }
 
@@ -69,6 +75,6 @@ export default async function Home() {
       </div>
       {!judge && <p className="muted">C-104 is a separate, preclassified example. The practice receipt is your own draft.</p>}
     </div>
-    <footer>Fictional data for Lanternfield Community Alliance. Funds follow organization-approved rules. General Operating is flexible, not exempt from those rules.</footer>
+    <footer>Funds follow organization-approved rules. General Operating is flexible, not exempt from those rules.</footer>
   </main></>;
 }

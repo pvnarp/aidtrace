@@ -1,0 +1,5 @@
+/* IAC-413 PR A: the private link panel on the thank-you screen. Layout only, so it follows whatever palette the app uses. */
+.gift-link-panel { margin-top: 16px; }
+.gift-link-panel h2 { font-size: 18px; margin: 0 0 8px; }
+.gift-link-panel input { width: 100%; max-width: 100%; margin-top: 12px; font-size: 14px; }
+.gift-link-actions { display: flex; flex-wrap: wrap; gap: 16px; align-items: center; margin-top: 12px; }

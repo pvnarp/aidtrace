@@ -6,7 +6,7 @@ import { railLines, type AiCard, type PayPalCard, type Stage } from "./shell-cop
  * plus the claim page's policy-block flag. It stores nothing and does not change claimStage.
  * Presentation only: the page supplies authorized saved state, never query-string progress.
  */
-export const TRACE_NAMES = ["Receipt", "AI review", "Rule checks", "Fund split", "Approvals", "PayPal sandbox payout"] as const;
+export const TRACE_NAMES = ["Receipt", "AI review", "Rule checks", "Fund split", "Approvals", "PayPal payout"] as const;
 export type TraceName = (typeof TRACE_NAMES)[number];
 export type TraceState = "done" | "current" | "future" | "blocked";
 export type TraceStep = { name: TraceName; state: TraceState; detail?: string; stage: Stage };
@@ -17,7 +17,7 @@ const STEP_STAGE: readonly Stage[] = [1, 2, 3, 3, 4, 5];
 const PREFIX: Record<TraceState, string> = { done: "Done: ", current: "Current step: ", future: "Not reached: ", blocked: "Blocked: " };
 const LEGEND: readonly (readonly [TraceName, string])[] = [
   ["Receipt", "Typed text and amounts"], ["AI review", "Suggests categories with quotes"], ["Rule checks", "Rules, not AI"],
-  ["Fund split", "Computed from fund policy"], ["Approvals", "Two different people"], ["PayPal sandbox payout", "Separate decision, test money"],
+  ["Fund split", "Computed from fund policy"], ["Approvals", "Two different people"], ["PayPal payout", "Separate decision"],
 ];
 
 export type TraceInput = { stage: Stage; typedReceipt: boolean; ai: AiCard; approvals: number | null; paypal: PayPalCard; policyBlocked?: boolean };

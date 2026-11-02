@@ -18,6 +18,7 @@ export const NAV_LINKS: Readonly<Record<NavRole, readonly NavLink[]>> = {
     { label: "Review", href: "/" },
     { label: "Funding and cash", href: "/analytics" },
     { label: "Ledger", href: "/ledger" },
+    { label: "Donations", href: "/donations" },
     { label: "How it works", href: "/architecture" },
   ],
 };

@@ -11,7 +11,7 @@ export default async function ArchitecturePage() {
   const user = await findSession((await cookies()).get(SESSION_COOKIE)?.value);
   if (!user) redirect("/login");
   const status = receiptAiStatus();
-  const stages = architectureStages(status.on ? { on: true, shellName: status.shellName } : { on: false });
+  const stages = architectureStages({ on: status.on });
   return <><AppHeader user={user} /><main className="claim-page architecture-page story-page reference-page">
     <div className="reference-screen">
       <p className="kicker">AI + PayPal / How the decisions connect</p>
@@ -19,6 +19,6 @@ export default async function ArchitecturePage() {
       <p className="reference-intro">One $500 expense. Components highlight the selected explanation, not live traffic. AI suggests, rules allocate, two people approve and the keyless review ends at an unpaid PayPal handoff.</p>
       <ArchitectureExplorer stages={stages} />
     </div>
-    <footer><Link href="/">Back to your workspace</Link>. AI suggestions require human confirmation. PayPal Sandbox uses test funds. This page is an illustration using fictional data, not live telemetry.</footer>
+    <footer><Link href="/">Back to your workspace</Link>. AI suggestions require human confirmation. This page is an illustration, not live telemetry.</footer>
   </main></>;
 }

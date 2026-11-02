@@ -4,7 +4,7 @@
 // process restart. The counter lives on globalThis under a registered symbol so that bundles
 // which load this module twice still share one count.
 export const CLAUDE_REQUEST_CAP = 60;
-export const CLAUDE_LIMIT_MESSAGE = `AI suggestions are off for this process: the limit of ${CLAUDE_REQUEST_CAP} Claude requests was reached. Review manually.`;
+export const CLAUDE_LIMIT_MESSAGE = `AI suggestions are off for this process: the limit of ${CLAUDE_REQUEST_CAP} AI requests was reached. Review manually.`;
 
 export type ClaudeBudget = { readonly cap: number; reserve(): boolean; used(): number; exhausted(): boolean };
 

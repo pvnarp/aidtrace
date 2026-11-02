@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { eq, sql } from "drizzle-orm";
 import * as s from "../db/schema";
+import { hashGiftToken } from "../src/donation/gift-link";
 import { closeDatabase } from "../src/server/db";
 import { DONOR_MESSAGES, declinedMessage, handleDonationAction } from "../src/server/donation-actions";
 import { donationMode, type DonationMode } from "../src/server/donation-mode";
@@ -99,13 +100,17 @@ describe("DON-12 the keyed handler runs the order lifecycle with fixed donor mes
     const done = await capture(stub, made.body.id as string, made.body.orderId as string);
     expect(done.status).toBe(200);
     const tail = stub.captureId.slice(-6);
-    expect(done.body).toEqual({ id: made.body.id, status: "COMPLETED", messageKey: "COMPLETED", message: "Thank you. Your gift is recorded.", captureTail: tail });
+    // IAC-413 (GT-05, route level): the capture that completes a gift carries the one-time private link token, and only the hash is stored.
+    expect(done.body).toEqual({ id: made.body.id, status: "COMPLETED", messageKey: "COMPLETED", message: "Thank you. Your gift is recorded.", captureTail: tail, giftLinkState: "ISSUED", giftToken: expect.stringMatching(/^[A-Za-z0-9_-]{43}$/) });
+    const issued = (await db().select().from(s.giftLinks).where(eq(s.giftLinks.captureId, stub.captureId)))[0]!;
+    expect(issued.tokenHash).toBe(hashGiftToken(done.body.giftToken as string)); expect(JSON.stringify(issued)).not.toContain(done.body.giftToken as string);
     expect(JSON.stringify(done.body)).not.toContain(stub.captureId);
     expect(await receiptCount(made.body.orderId as string)).toBe(1);
     const posted = await journalCount(); expect(posted).toBeGreaterThan(journalBefore);
     // Replaying the capture reports the recorded gift and posts nothing again. The masked ID comes from the ledger evidence.
     const again = await capture(stub, made.body.id as string, made.body.orderId as string);
-    expect(again.body).toMatchObject({ messageKey: "COMPLETED", message: "Thank you. Your gift is recorded.", captureTail: tail });
+    expect(again.body).toMatchObject({ messageKey: "COMPLETED", message: "Thank you. Your gift is recorded.", captureTail: tail, giftLinkState: "SHOWN_BEFORE" });
+    expect(again.body).not.toHaveProperty("giftToken"); expect((await db().select().from(s.giftLinks).where(eq(s.giftLinks.captureId, stub.captureId))).length).toBe(1);
     expect(await journalCount()).toBe(posted); expect(await receiptCount(made.body.orderId as string)).toBe(1);
     expect(stub.payments.captureDonationOrder).toHaveBeenCalledTimes(1);
   });

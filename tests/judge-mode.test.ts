@@ -14,9 +14,14 @@ test("judge mode refuses provider construction even if credentials are injected"
   vi.stubEnv("PAYPAL_CLIENT_ID", "synthetic-injected"); vi.stubEnv("PAYPAL_CLIENT_SECRET", "synthetic-injected");
   expect(() => getPayments()).toThrow("Judge session payments disabled");
 });
-test("extra loopback ports require judge mode and never authorize a public origin", () => {
+// IAC-418 (owner approval, October 31): the first assertion flipped. It used to say owner mode refuses http://127.0.0.1:3102; owner mode now accepts it,
+// so the recording instance on 3120 can sign in. Every refused origin below is refused in both modes. tests/owner-origin.test.ts holds the wider set.
+test("extra loopback ports are accepted in owner and judge mode, and no mode authorizes a public origin", () => {
   vi.stubEnv("AIDTRACE_JUDGE_SESSION", "false"); vi.stubEnv("APP_ORIGIN", "http://127.0.0.1:3102");
-  expect(() => appOrigin()).toThrow();
+  expect(appOrigin()).toBe("http://127.0.0.1:3102");
   vi.stubEnv("AIDTRACE_JUDGE_SESSION", "true"); expect(appOrigin()).toBe("http://127.0.0.1:3102");
-  for (const origin of ["http://127.0.0.1:3101", "http://127.0.0.1:65536", "http://127.0.0.1:03102", "http://localhost.evil:3102", "https://127.0.0.1:3102", "http://user@127.0.0.1:3102", "http://127.0.0.1:3102/", "http://0.0.0.0:3102"]) { vi.stubEnv("APP_ORIGIN", origin); expect(() => appOrigin()).toThrow(); }
+  for (const mode of ["false", "true"]) {
+    vi.stubEnv("AIDTRACE_JUDGE_SESSION", mode);
+    for (const origin of ["http://127.0.0.1:3101", "http://127.0.0.1:65536", "http://127.0.0.1:03102", "http://localhost.evil:3102", "https://127.0.0.1:3102", "http://user@127.0.0.1:3102", "http://127.0.0.1:3102/", "http://0.0.0.0:3102"]) { vi.stubEnv("APP_ORIGIN", origin); expect(() => appOrigin()).toThrow(); }
+  }
 });

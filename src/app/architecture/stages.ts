@@ -1,25 +1,25 @@
 // IAC-403: the four stages of the locked mock's Architecture screen, with copy corrected to the app's facts.
 // Pure data, no I/O. The amounts are the documented illustrative $500 scenario, not loaded claim or account data.
-// Wording about AI follows the configured Claude status, so it never claims AI that is not running.
+// Wording about AI follows the configured AI status, so it never claims AI that is not running. IAC-416 PR 2: the stages say "AI" and name no model.
 
 export type NodeId = "browser" | "app" | "model" | "db" | "paypal";
 export type ArchitectureStage = { title: string; path: string; text: string; nodes: NodeId[] };
-export type ArchitectureAi = { on: true; shellName: string } | { on: false };
+export type ArchitectureAi = { on: boolean };
 
 export const ARCHITECTURE_NODES: { id: NodeId; label: string; description: string }[] = [
   { id: "browser", label: "Browser", description: "Maria, Tara or Ben" },
   { id: "app", label: "AidTrace app", description: "Rules, approvals, adapter, ledger" },
-  { id: "model", label: "Claude AI model", description: "Hosted Claude API, no keys or tools" },
+  { id: "model", label: "AI model", description: "Hosted Anthropic API, no keys or tools" },
   { id: "db", label: "Postgres", description: "Separate container" },
-  { id: "paypal", label: "PayPal Sandbox", description: "External service" },
+  { id: "paypal", label: "PayPal", description: "External service" },
 ];
 
 export function architectureStages(ai: ArchitectureAi): ArchitectureStage[] {
   const suggests: ArchitectureStage = ai.on
-    ? { title: "AI suggests", path: `AidTrace app → ${ai.shellName} over the Anthropic API → validated quotes`, nodes: ["app", "model", "app", "db"],
-        text: "Claude reads the typed receipt text and suggests a category for each line with a quote. The app validates the quotes. A person checks and confirms every category. The model has no PayPal tools, approval authority or ledger access." }
-    : { title: "AI suggests", path: "AidTrace app → a person chooses each category (AI is off in this session)", nodes: ["app", "db"],
-        text: "AI suggestions are off in this session, so a person chooses every category. When AI is on, Claude would suggest categories with quotes the app validates. It never approves, chooses funds or pays." };
+    ? { title: "AI suggests", path: "AidTrace app → AI model over the Anthropic API → validated quotes", nodes: ["app", "model", "app", "db"],
+        text: "AI reads the typed receipt text and suggests a category for each line with a quote. The app validates the quotes. A person checks and confirms every category. The AI model has no PayPal tools, approval authority or ledger access." }
+    : { title: "AI suggests", path: "AidTrace app → a person chooses each category", nodes: ["app", "db"],
+        text: "A person chooses every category in this session. With AI connected, it would suggest categories with quotes the app validates. It never approves, chooses funds or pays." };
   return [
     suggests,
     { title: "Rules allocate", path: "AidTrace app → Postgres → exact allocation", nodes: ["app", "db", "app"],

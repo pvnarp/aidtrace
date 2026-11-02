@@ -1,0 +1,128 @@
+{
+  "id": "eval-rules-draft-v1",
+  "purpose": "IAC-440 Package A owner-run comparison of the AI rule drafter (docs/GATE_REPORT.md section 58). Four invented grant agreements with answer keys. Nothing here is real grant text, a real organization or a real person.",
+  "scoring": "Every scored field is compared with its key by exact match. A key of UNSURE means the agreement does not clearly state the field, so UNSURE is the right answer and any value is fabricated. breadth is derived: the number of key categories, or UNSURE when the categories are UNSURE.",
+  "cases": [
+    {
+      "id": "robotics-fixture",
+      "kind": "typical",
+      "programs": ["robotics", "literacy"],
+      "prohibited": ["alcohol", "gift_cards"],
+      "agreementLines": [
+        "Grant Agreement RG-2026-014",
+        "Between Cedar Hollow Community Fund (the Funder) and the Eastside Robotics Club (the Grantee).",
+        "1. Purpose. The grant supports the Grantee's robotics afterschool program. Funds may be used only for direct costs of that program: robot kits, robot parts and classroom supplies.",
+        "2. Term. The grant period begins on 2026-09-01 and ends on 2027-06-30. Costs outside that period are not eligible.",
+        "3. Limits. Spending on supplies may not exceed $300.00 in total over the grant period.",
+        "4. Prohibited uses. Gift cards and alcoholic beverages are not allowable under any circumstances.",
+        "5. Reporting. A final report is due 30 days after the end of the grant period."
+      ],
+      "key": {
+        "programs": ["robotics"],
+        "allowedCategories": ["robot_kits_parts", "classroom_supplies"],
+        "periodStart": "2026-09-01",
+        "periodEnd": "2027-06-30",
+        "caps": { "supplies": 30000, "other": "UNSURE", "travel": "UNSURE", "equipment": "UNSURE", "contractual": "UNSURE" },
+        "thresholds": { "suppliesLimitCents": "UNSURE", "equipmentLimitCents": "UNSURE", "claimLimitCents": "UNSURE", "staleReceiptDays": "UNSURE", "duplicateWindowDays": "UNSURE", "splitWindowDays": "UNSURE" }
+      },
+      "keyEvidence": {
+        "programs": { "clause": "1. Purpose. The grant supports the Grantee's robotics afterschool program. Funds may be used only for direct costs of that program: robot kits, robot parts and classroom supplies.", "quote": "robotics afterschool program" },
+        "allowedCategories": { "clause": "1. Purpose. The grant supports the Grantee's robotics afterschool program. Funds may be used only for direct costs of that program: robot kits, robot parts and classroom supplies.", "quote": "robot kits, robot parts and classroom supplies" },
+        "periodStart": { "clause": "2. Term. The grant period begins on 2026-09-01 and ends on 2027-06-30. Costs outside that period are not eligible.", "quote": "begins on 2026-09-01" },
+        "periodEnd": { "clause": "2. Term. The grant period begins on 2026-09-01 and ends on 2027-06-30. Costs outside that period are not eligible.", "quote": "ends on 2027-06-30" },
+        "caps.supplies": { "clause": "3. Limits. Spending on supplies may not exceed $300.00 in total over the grant period.", "quote": "$300.00" }
+      },
+      "keyNotes": "The report deadline in section 5 is a distractor: it is not the period end."
+    },
+    {
+      "id": "narrow-dated",
+      "kind": "narrow",
+      "programs": ["robotics", "literacy"],
+      "prohibited": ["alcohol", "gift_cards"],
+      "agreementLines": [
+        "Fall Competition Grant Agreement FC-2026-03",
+        "Between Cedar Hollow Community Fund and the Eastside Robotics Club.",
+        "1. Purpose. Funds may be used only for robot kits and robot parts for the Fall Competition team of the robotics program. No other expense is covered.",
+        "2. Period. Eligible costs are those incurred from October 1, 2026 through December 31, 2026. The application was submitted on September 12, 2026 and the final report is due January 15, 2027.",
+        "3. Limits. Total spending on supplies under this grant may not exceed $200.00.",
+        "4. Receipts. Receipts dated more than 45 days before a claim is submitted are not reimbursable."
+      ],
+      "key": {
+        "programs": ["robotics"],
+        "allowedCategories": ["robot_kits_parts"],
+        "periodStart": "2026-10-01",
+        "periodEnd": "2026-12-31",
+        "caps": { "supplies": 20000, "other": "UNSURE", "travel": "UNSURE", "equipment": "UNSURE", "contractual": "UNSURE" },
+        "thresholds": { "suppliesLimitCents": "UNSURE", "equipmentLimitCents": "UNSURE", "claimLimitCents": "UNSURE", "staleReceiptDays": 45, "duplicateWindowDays": "UNSURE", "splitWindowDays": "UNSURE" }
+      },
+      "keyEvidence": {
+        "programs": { "clause": "1. Purpose. Funds may be used only for robot kits and robot parts for the Fall Competition team of the robotics program. No other expense is covered.", "quote": "robotics program" },
+        "allowedCategories": { "clause": "1. Purpose. Funds may be used only for robot kits and robot parts for the Fall Competition team of the robotics program. No other expense is covered.", "quote": "robot kits and robot parts" },
+        "periodStart": { "clause": "2. Period. Eligible costs are those incurred from October 1, 2026 through December 31, 2026. The application was submitted on September 12, 2026 and the final report is due January 15, 2027.", "quote": "from October 1, 2026" },
+        "periodEnd": { "clause": "2. Period. Eligible costs are those incurred from October 1, 2026 through December 31, 2026. The application was submitted on September 12, 2026 and the final report is due January 15, 2027.", "quote": "through December 31, 2026" },
+        "caps.supplies": { "clause": "3. Limits. Total spending on supplies under this grant may not exceed $200.00.", "quote": "$200.00" },
+        "thresholds.staleReceiptDays": { "clause": "4. Receipts. Receipts dated more than 45 days before a claim is submitted are not reimbursable.", "quote": "more than 45 days" }
+      },
+      "keyNotes": "Dates are written in words and must be normalized. The application date and the report deadline are distractors."
+    },
+    {
+      "id": "meals-cap",
+      "kind": "capped",
+      "programs": ["robotics", "literacy", "community_meals"],
+      "prohibited": ["alcohol", "gift_cards"],
+      "agreementLines": [
+        "Community Meals Grant Agreement CM-2026-07",
+        "Between Cedar Hollow Community Fund and the Harbor Street Pantry.",
+        "1. Purpose. The grant supports the community meals program. Funds may be used for groceries given to families and for meals or snacks eaten by participants at program events.",
+        "2. Grant period. The grant period is 2026-07-01 to 2027-03-31.",
+        "3. Spending limits. Groceries given to families may not exceed $500.00 in total. Meals and snacks eaten by participants may not exceed $150.00 in total.",
+        "4. Claims. No single claim may exceed $1,000.00. Gift cards and alcohol may not be purchased with grant funds."
+      ],
+      "key": {
+        "programs": ["community_meals"],
+        "allowedCategories": ["food_for_distribution", "participant_meals"],
+        "periodStart": "2026-07-01",
+        "periodEnd": "2027-03-31",
+        "caps": { "supplies": 50000, "other": 15000, "travel": "UNSURE", "equipment": "UNSURE", "contractual": "UNSURE" },
+        "thresholds": { "suppliesLimitCents": "UNSURE", "equipmentLimitCents": "UNSURE", "claimLimitCents": 100000, "staleReceiptDays": "UNSURE", "duplicateWindowDays": "UNSURE", "splitWindowDays": "UNSURE" }
+      },
+      "keyEvidence": {
+        "programs": { "clause": "1. Purpose. The grant supports the community meals program. Funds may be used for groceries given to families and for meals or snacks eaten by participants at program events.", "quote": "community meals program" },
+        "allowedCategories": { "clause": "1. Purpose. The grant supports the community meals program. Funds may be used for groceries given to families and for meals or snacks eaten by participants at program events.", "quote": "groceries given to families and for meals or snacks eaten by participants" },
+        "periodStart": { "clause": "2. Grant period. The grant period is 2026-07-01 to 2027-03-31.", "quote": "2026-07-01" },
+        "periodEnd": { "clause": "2. Grant period. The grant period is 2026-07-01 to 2027-03-31.", "quote": "2027-03-31" },
+        "caps.supplies": { "clause": "3. Spending limits. Groceries given to families may not exceed $500.00 in total. Meals and snacks eaten by participants may not exceed $150.00 in total.", "quote": "Groceries given to families may not exceed $500.00" },
+        "caps.other": { "clause": "3. Spending limits. Groceries given to families may not exceed $500.00 in total. Meals and snacks eaten by participants may not exceed $150.00 in total.", "quote": "Meals and snacks eaten by participants may not exceed $150.00" },
+        "thresholds.claimLimitCents": { "clause": "4. Claims. No single claim may exceed $1,000.00. Gift cards and alcohol may not be purchased with grant funds.", "quote": "No single claim may exceed $1,000.00" }
+      },
+      "keyNotes": "Groceries belong to the supplies budget line and participant meals to the other line, so each cap lands on a different line. The gift card and alcohol sentence names no scored field."
+    },
+    {
+      "id": "vague-letter",
+      "kind": "vague",
+      "programs": ["robotics", "literacy"],
+      "prohibited": ["alcohol", "gift_cards"],
+      "agreementLines": [
+        "Letter of Grant Support",
+        "Cedar Hollow Community Fund is pleased to support the Eastside Robotics Club.",
+        "1. Use of funds. Funds support the robotics program and may be used for materials and activities that advance the club's educational mission.",
+        "2. Term. The grant begins on 2026-09-01 and runs for the school year.",
+        "3. Spending. We expect spending to stay modest and reasonable for a club of this size.",
+        "4. Claims. Please submit receipts promptly so the books stay current."
+      ],
+      "key": {
+        "programs": ["robotics"],
+        "allowedCategories": "UNSURE",
+        "periodStart": "2026-09-01",
+        "periodEnd": "UNSURE",
+        "caps": { "supplies": "UNSURE", "other": "UNSURE", "travel": "UNSURE", "equipment": "UNSURE", "contractual": "UNSURE" },
+        "thresholds": { "suppliesLimitCents": "UNSURE", "equipmentLimitCents": "UNSURE", "claimLimitCents": "UNSURE", "staleReceiptDays": "UNSURE", "duplicateWindowDays": "UNSURE", "splitWindowDays": "UNSURE" }
+      },
+      "keyEvidence": {
+        "programs": { "clause": "1. Use of funds. Funds support the robotics program and may be used for materials and activities that advance the club's educational mission.", "quote": "the robotics program" },
+        "periodStart": { "clause": "2. Term. The grant begins on 2026-09-01 and runs for the school year.", "quote": "begins on 2026-09-01" }
+      },
+      "keyNotes": "Deliberately vague. No category is listed, the end of the term is a school year with no date, no amount is stated and no review window is stated. Only the program and the start date are stated. Any value for another field is fabricated."
+    }
+  ]
+}

@@ -15,13 +15,13 @@ export default async function LedgerPage() {
     const view = await loadLedgerView(getDatabase(), user.id);
     return <main className="analytics-page reference-page ledger-page"><AppHeader user={user} />
       <div className="reference-screen">
-        <p className="kicker">{view.organization} / {view.fixture ? 'Sandbox fixture' : 'Sandbox accounting'}</p>
+        <p className="kicker">{view.organization}</p>
         <h1 className="screen-heading">Read the ledger, one posting at a time.</h1>
         <p className="reference-intro">A read-only view of every journal posting with its entry, fund, claim, approvals and PayPal reference. This page makes no payment, approval or balance request.</p>
         <p className="snapshot-time">View observed <time dateTime={view.observedAt}>{reviewTime(new Date(view.observedAt))}</time>. <a href="/ledger">Reload view</a></p>
         <LedgerClient view={view} userId={user.id} />
       </div>
-      <footer>Accounting-inspired sandbox model, pending nonprofit accountant review. This view shows local journal facts and does not verify current PayPal available funds.</footer>
+      <footer>Accounting-inspired model, pending nonprofit accountant review. This view shows local journal facts and does not verify current PayPal available funds.</footer>
     </main>;
   } catch (error) {
     if (!(error instanceof LedgerAccessError)) throw error;

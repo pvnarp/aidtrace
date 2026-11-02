@@ -68,7 +68,7 @@ test("HOME-08: the five locked mock screens render in the real app at 1440 and 3
     await expect(page.getByRole("link", { name: "View funding and cash" })).toHaveCount(0);
   });
   await page.getByRole("link", { name: "Start a $6 practice expense", exact: true }).click();
-  await page.getByLabel("This receipt is fictional sandbox data.").check(); await page.getByRole("button", { name: "Create receipt draft", exact: true }).click();
+  await page.getByLabel("This receipt is sample data with no real personal details.").check(); await page.getByRole("button", { name: "Create receipt draft", exact: true }).click();
   await expect(page.getByText(/Unpaid draft created/)).toBeVisible();
   const [claim] = await connection.db.select().from(s.claims).where(eq(s.claims.claimantId, "maria")).then(rows => rows.filter(row => row.id.startsWith("R-")));
   expect(claim).toBeDefined();
@@ -92,11 +92,17 @@ test("HOME-08: the five locked mock screens render in the real app at 1440 and 3
   await connection.db.update(s.claims).set({ status: "AWAITING_APPROVAL" }).where(eq(s.claims.id, claim!.id));
   await atEachSize(page, "/", async () => {
     await expect(page.getByRole("heading", { level: 1 })).toHaveText("One expense needs your review.");
-    const card = page.locator(`article[data-claim="${claim!.id}"]`);
-    await expect(card).toHaveCount(1); await expect(card.locator(".kicker")).toHaveText("Expenses awaiting your approval");
-    await expect(card.locator(".case-amount")).toHaveText(money(total)); await expect(card.locator(".case-status")).toHaveText("Awaiting approval");
-    await expect(card).toContainText("Review items, recipient and funding before approving.");
-    await expect(card.getByRole("link", { name: "Review this expense", exact: true })).toHaveAttribute("href", `/claims/${claim!.id}`);
+    // IAC-414 Q1: the awaiting claim is one row of the queue grid and no longer a card. It is listed once, with its amount and a Review link to the claim.
+    await expect(page.locator("article[data-claim]")).toHaveCount(0);
+    await expect(page.getByRole("heading", { name: "Awaiting your approval", level: 2 })).toBeVisible();
+    const queued = page.getByTestId("gx-approver-queue").locator(".ag-row:not(.ag-row-pinned)");
+    await expect(queued).toHaveCount(1);
+    await expect(queued.locator('[col-id="amountCents"]')).toHaveText(money(total));
+    await expect(queued.getByRole("link", { name: /^Review / })).toHaveAttribute("href", `/claims/${claim!.id}`);
+    await expect(page.getByText("Check the items, the recipient and the funding.", { exact: false })).toBeVisible();
+    // Wide shows the approval count in the Status column; a phone moves it to the details list under the grid.
+    if ((page.viewportSize()?.width ?? 0) > 639) { await expect(queued.locator('[col-id="approvals"]')).toHaveText("Approvals: 0 of 2"); await expect(page.getByTestId("gx-phone-extras")).toHaveCount(0); }
+    else await expect(page.getByTestId("gx-phone-extras")).toContainText("Approvals: 0 of 2");
     await expect(page.getByText("$430")).toHaveCount(0);
   });
 
@@ -116,7 +122,7 @@ test("HOME-08: the five locked mock screens render in the real app at 1440 and 3
     const stages = page.getByRole("group", { name: "Architecture stages", exact: true });
     const note = page.getByTestId("architecture-note");
     await stages.getByRole("button", { name: "AI suggests", exact: true }).click();
-    await expect(note).toContainText("AI is off in this session");
+    await expect(note).toContainText("A person chooses every category in this session");
     await stages.getByRole("button", { name: "Rules allocate", exact: true }).click();
     await expect(note.getByRole("heading", { level: 2 })).toHaveText("Rules allocate"); await expect(note).toContainText("A rule failure stops the allocation");
     await expect(stages.getByRole("button", { name: "Rules allocate", exact: true })).toHaveAttribute("aria-pressed", "true");

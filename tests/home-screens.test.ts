@@ -85,7 +85,7 @@ describe("HOME-05 the screens carry no mock scaffolding and no hardcoded mock fi
   it("builds home figures from loaded state rather than literals", () => {
     const page = readFileSync("src/app/page.tsx", "utf8");
     expect(page).not.toMatch(/\$\d[\d,]*\.\d\d/);
-    expect(page).toContain("claimTotals"); expect(page).toContain("loadClaimView"); expect(page).toContain("frozenSplit");
+    expect(page).toContain("claimTotals"); expect(page).toContain("loadApproverQueue"); expect(page).toContain("ApproverQueueClient");
   });
 });
 
@@ -93,16 +93,16 @@ describe("HOME-06 no local model wording survives under src/app", () => {
   it("has no Local, Qwen or 1.7B", () => {
     for (const path of sources) { const text = readFileSync(path, "utf8"); expect(/\bLocal\b/.test(text) || /qwen|1\.7b|local model|local ai/i.test(text), path).toBe(false); }
   });
-  it("names Claude over the Anthropic API when AI is on and says AI is off when it is not", () => {
-    const on = architectureStages({ on: true, shellName: "Claude Haiku" }); const off = architectureStages({ on: false });
-    expect(on[0]!.path).toBe("AidTrace app → Claude Haiku over the Anthropic API → validated quotes"); expect(on[0]!.nodes).toContain("model");
-    expect(off[0]!.path).toContain("AI is off in this session"); expect(off[0]!.nodes).not.toContain("model");
+  it("says AI over the Anthropic API when AI is on and claims no model when it is not", () => {
+    const on = architectureStages({ on: true }); const off = architectureStages({ on: false });
+    expect(on[0]!.path).toBe("AidTrace app → AI model over the Anthropic API → validated quotes"); expect(on[0]!.nodes).toContain("model");
+    expect(off[0]!.path).toBe("AidTrace app → a person chooses each category"); expect(off[0]!.nodes).not.toContain("model");
     for (const stage of [...on, ...off]) expect(/local|qwen|1\.7b/i.test(`${stage.title} ${stage.path} ${stage.text}`), stage.title).toBe(false);
   });
 });
 
 describe("HOME-07 the architecture stages keep the mock order and the documented boundaries", () => {
-  const stages = architectureStages({ on: true, shellName: "Claude Haiku" });
+  const stages = architectureStages({ on: true });
   it("has the four mock stages in order", () => expect(stages.map(stage => stage.title)).toEqual(["AI suggests", "Rules allocate", "People approve", "PayPal handoff"]));
   it("states each authority boundary", () => {
     expect(stages[0]!.text).toContain("no PayPal tools, approval authority or ledger access"); expect(stages[1]!.text).toContain("A rule failure stops the allocation");

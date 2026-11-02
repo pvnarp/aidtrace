@@ -74,7 +74,7 @@ async function login(page: Page, user: keyof typeof passwords) {
 }
 async function create(page: Page) {
   await login(page, "maria"); await page.goto("/"); await page.getByRole("link", { name: "Start a $6 practice expense", exact: true }).click();
-  await noOverflow(page); await page.getByLabel("This receipt is fictional sandbox data.").check();
+  await noOverflow(page); await page.getByLabel("This receipt is sample data with no real personal details.").check();
   await page.getByRole("button", { name: "Create receipt draft", exact: true }).click();
   await expect(page.getByRole("status")).toContainText("Unpaid draft created"); await noOverflow(page);
 }
@@ -84,8 +84,8 @@ test("GB-02: 375-pixel receipt quotes, explicit confirmation, allocation and edi
   await expect(page.locator(".receipt-evidence .muted")).toContainText("No AI suggestion is saved yet"); await expect(page.locator(".receipt-evidence")).not.toContainText("Claude Haiku 5.5");
   await page.getByRole("button", { name: "Request AI suggestions" }).click();
   await expect(page.locator(".notice")).toContainText("AI suggestions are ready"); expect(modelCalls).toBe(1);
-  await expect(page.locator(".receipt-evidence .muted")).toContainText("Claude Haiku 5.5. Text in, category suggestions out. No PayPal tools or approval access.");
-  await expect(page.locator(".ai-label").first()).toContainText("Claude Haiku 5.5 suggests:");
+  await expect(page.locator(".receipt-evidence .muted")).toContainText("AI (Haiku 5.5). Text in, category suggestions out. No PayPal tools or approval access.");
+  await expect(page.locator(".ai-label").first()).toContainText("AI suggests:");
   await expect(page.locator("blockquote")).toHaveCount(3); await noOverflow(page);
   await expect(page.locator(".ai-recommendation")).toContainText("A person confirms each category."); await expect(page.locator(".category-choice .ai-tag")).toHaveCount(3);
   // 44 px hit area for the confirmation checkbox, and a whole current-step label in the trace.
@@ -110,7 +110,7 @@ test("GB-02: 375-pixel receipt quotes, explicit confirmation, allocation and edi
   await expect(page.getByRole("heading", { name: "$5.00 restricted. $1.00 General.", exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: "Freeze allocation for approval" })).toBeVisible(); await noOverflow(page);
   await page.goto(receiptUrl); await page.getByText("Edit receipt or amounts", { exact: true }).click();
-  await page.getByLabel("Invented receipt text").fill("Edited fictional source"); await page.getByLabel("This receipt is fictional sandbox data.").check();
+  await page.getByLabel("Invented receipt text").fill("Edited fictional source"); await page.getByLabel("This receipt is sample data with no real personal details.").check();
   await page.getByRole("button", { name: "Save edits and require a new review" }).click();
   await expect(page.getByRole("status")).toContainText("Earlier suggestions and confirmation no longer apply"); await expect(page.locator("blockquote")).toHaveCount(0);
   await expect(page.getByLabel("Category for L1", { exact: true })).toHaveValue("");
@@ -152,10 +152,10 @@ test("CAI-35: the receipt page names the provider and model from the stored audi
     await expect(page.locator(".ai-recommendation .ai-model-line")).toContainText(recommendation);
   };
   // The idle strip names the configured Claude model: a key is set and no model variable is set, so the Haiku default.
-  await expect(page.locator(".ai-recommendation.ai-strip .ai-model-line")).toContainText("Claude Haiku 5.5 through the Claude API");
-  await check(1, claude("claude-haiku-5-5"), { provider: "claude", model: "claude-haiku-5-5" }, "Claude Haiku 5.5", "Claude Haiku 5.5", "Model: Claude Haiku 5.5 through the Claude API");
-  await check(2, claude("claude-sonnet-5-5"), { provider: "claude", model: "claude-sonnet-5-5" }, "Claude Sonnet 5.5", "Claude Sonnet 5.5", "Model: Claude Sonnet 5.5 through the Claude API");
-  await check(3, { sourceSha256: sha, requestSha256: hash("a"), responseSha256: hash("b"), modelSha256: hash("c"), modelRevision: "d".repeat(40), promptVersion: "receipt-category-v1" }, { provider: "local", model: "d".repeat(40) }, "Earlier AI model, since retired", "Earlier AI", "Model: Earlier AI model, since retired. This suggestion was saved before AidTrace moved to Claude.");
+  await expect(page.locator(".ai-recommendation.ai-strip .ai-model-line")).toContainText("Model: Claude Haiku 5.5. The receipt text goes to Anthropic.");
+  await check(1, claude("claude-haiku-5-5"), { provider: "claude", model: "claude-haiku-5-5" }, "AI (Haiku 5.5)", "AI", "Model: Claude Haiku 5.5. The receipt text was sent to Anthropic for these suggestions.");
+  await check(2, claude("claude-sonnet-5-5"), { provider: "claude", model: "claude-sonnet-5-5" }, "AI (Sonnet 5.5)", "AI", "Model: Claude Sonnet 5.5. The receipt text was sent to Anthropic for these suggestions.");
+  await check(3, { sourceSha256: sha, requestSha256: hash("a"), responseSha256: hash("b"), modelSha256: hash("c"), modelRevision: "d".repeat(40), promptVersion: "receipt-category-v1" }, { provider: "local", model: "d".repeat(40) }, "Earlier AI model, since retired", "Earlier AI", "Model: Earlier AI model, since retired. This suggestion was saved before AidTrace changed AI models.");
   // The database check refuses a provider the audit contradicts, so the unrecognized case is an audit the columns accept but the reader refuses (effort outside the stored contract).
   await check(4, { ...claude("claude-haiku-5-5"), effort: "high" }, { provider: "claude", model: "claude-haiku-5-5" }, "Unrecognized AI record", "AI", "the saved AI record is not recognized");
   expect(modelCalls).toBe(0); expect(await connection.db.select().from(s.disbursements)).toHaveLength(0);
@@ -215,7 +215,7 @@ test("PTG-22: a gift card mention shows the notice, needs the unticked acknowled
   await create(page); const receiptUrl = page.url().split("?")[0]!;
   await page.getByText("Edit receipt or amounts", { exact: true }).click();
   const source = await page.getByLabel("Invented receipt text").inputValue();
-  await page.getByLabel("Invented receipt text").fill(`${source}\nRaffle prize: gift card`); await page.getByLabel("This receipt is fictional sandbox data.").check();
+  await page.getByLabel("Invented receipt text").fill(`${source}\nRaffle prize: gift card`); await page.getByLabel("This receipt is sample data with no real personal details.").check();
   await page.getByRole("button", { name: "Save edits and require a new review" }).click();
   await expect(page.getByRole("status")).toContainText("Earlier suggestions and confirmation no longer apply");
   const choose = async () => { for (const [line, category] of [["L1", "robot_kits_parts"], ["L2", "classroom_supplies"], ["L3", "participant_meals"]]) {

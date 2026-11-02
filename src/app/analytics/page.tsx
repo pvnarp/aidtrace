@@ -17,13 +17,13 @@ export default async function AnalyticsPage() {
     const ai = claudeAiStatus(process.env, 'AI_ANALYTICS_ENABLED');
     return <><AppHeader user={user} /><main className="analytics-page reference-page">
       <div className="reference-screen">
-        <p className="kicker">{snapshot.organization} / {snapshot.fixture ? 'Sandbox fixture' : 'Sandbox accounting'}</p>
+        <p className="kicker">{snapshot.organization}</p>
         <h1 className="screen-heading">Follow funding and book cash.</h1>
         <p className="reference-intro">A read-only snapshot of fund balances and book cash. This page makes no payment, approval or balance request.</p>
         <p className="snapshot-time">Snapshot observed <time dateTime={snapshot.observedAt}>{reviewTime(new Date(snapshot.observedAt))}</time>. <a href="/analytics">Reload snapshot</a></p>
         <AnalyticsClient snapshot={snapshot} aiOff={ai.on ? null : AI_OFF_MESSAGES[ai.reason]}/>
       </div>
-      <footer>Accounting-inspired sandbox model, pending nonprofit accountant review. This dashboard uses local journal facts and does not verify current PayPal available funds.</footer>
+      <footer>Accounting-inspired model, pending nonprofit accountant review. This dashboard uses local journal facts and does not verify current PayPal available funds.</footer>
     </main></>;
   } catch (error) {
     if (!(error instanceof AnalyticsAccessError)) throw error;

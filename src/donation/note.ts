@@ -94,7 +94,7 @@ export function longDate(isoDate: string): string {
 }
 const compareText = (a: string, b: string) => a < b ? -1 : a > b ? 1 : 0;
 // Control characters, line and paragraph separators, and bidirectional controls become one space. Everything else is kept.
-const cleanText = (value: string) => value.replace(/[\p{Cc}\p{Zl}\p{Zp}\p{Bidi_Control}]+/gu, " ").trim();
+export const cleanText = (value: string) => value.replace(/[\p{Cc}\p{Zl}\p{Zp}\p{Bidi_Control}]+/gu, " ").trim();
 const sentence = (value: string) => /[.!?]$/.test(value) ? value : `${value}.`;
 const joinNames = (names: string[]) => names.length <= 2 ? names.join(" and ") : `${names.slice(0, -1).join(", ")} and ${names[names.length - 1]}`;
 

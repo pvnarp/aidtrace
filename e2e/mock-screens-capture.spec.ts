@@ -55,7 +55,7 @@ test("IAC-403: capture 1440 and 390 stills of the five mock screens", async ({ b
       await login(page, "maria", passwords.maria);
       await shot("claimant-home-empty", "/");
       await page.setViewportSize({ width: 1440, height: 900 }); await page.goto("/receipts/new");
-      await page.getByLabel("This receipt is fictional sandbox data.").check(); await page.getByRole("button", { name: "Create receipt draft", exact: true }).click();
+      await page.getByLabel("This receipt is sample data with no real personal details.").check(); await page.getByRole("button", { name: "Create receipt draft", exact: true }).click();
       await page.waitForURL(target => /\/receipt$/.test(target.pathname));
       await shot("claimant-home", "/");
       await shot("architecture", "/architecture");

@@ -1,11 +1,13 @@
 // IAC-405 step 1: runs the deterministic rules for one frozen decision and stores the result. Rules only. There is no model call,
-// no provider call and no import from the ledger, payout, retry or AI modules. This module writes only policy_check_runs and
-// policy_check_results. It never changes a claim, an approval, a reservation or a journal entry, and no flag blocks one.
+// no provider call and no import from the ledger, payout, retry or AI modules. This module writes only policy_check_runs (RULES) and
+// policy_check_results. It also reads the stored model check through model-read.ts, which is read-only. The model call itself lives in
+// model-run.ts. It never changes a claim, an approval, a reservation or a journal entry, and no flag blocks one.
 import { createHash } from "node:crypto";
 import { and, asc, eq, sql } from "drizzle-orm";
 import * as s from "../../db/schema";
 import type { AppDatabase } from "../server/db";
 import { loadPolicyFacts, type PolicyReader } from "./facts";
+import { readModelChecks, type StoredModelRun } from "./model-read";
 import { evaluatePolicy } from "./rules";
 import type { PolicyFacts } from "./types";
 
@@ -16,7 +18,7 @@ export type PolicyRunResult =
   | { status: "REFUSED"; reason: PolicyRefusal };
 
 const HASH = /^[a-f0-9]{64}$/;
-function sqlState(error: unknown): string | undefined {
+export function sqlState(error: unknown): string | undefined {
   let current = error;
   for (let depth = 0; depth < 8 && current && typeof current === "object"; depth++) {
     if ("code" in current && typeof current.code === "string") return current.code;
@@ -94,9 +96,12 @@ export type StoredPolicyRun = {
   id: string; startedAt: Date; startedByName: string; ruleSetVersion: string; settingsVersions: Record<string, number>;
   // True once the run-end row exists. A run written by runPolicyChecks always has one.
   complete: boolean; flags: StoredPolicyFlag[]; notChecked: { ruleId: string; flagText: string }[];
+  // The stored arm C model check of the same frozen decision, or null when none ran. Separate rows: it never changes a rule flag above.
+  // Optional so a caller that builds a rules-only run (a test or a preview) needs no model field.
+  model?: StoredModelRun | null;
 };
 // Read-only. Returns the stored rows exactly as written, in sequence order.
-export async function readPolicyChecks(tx: PolicyReader, decisionHash: string): Promise<StoredPolicyRun | null> {
+export async function readPolicyChecks(tx: PolicyReader, decisionHash: string, now?: Date): Promise<StoredPolicyRun | null> {
   const [run] = await tx.select({ id: s.policyCheckRuns.id, startedAt: s.policyCheckRuns.startedAt, startedByName: s.users.displayName, ruleSetVersion: s.policyCheckRuns.ruleSetVersion, settingsVersions: s.policyCheckRuns.settingsVersions })
     .from(s.policyCheckRuns).innerJoin(s.users, eq(s.users.id, s.policyCheckRuns.startedBy))
     .where(and(eq(s.policyCheckRuns.decisionHash, decisionHash), eq(s.policyCheckRuns.kind, "RULES")));
@@ -104,5 +109,6 @@ export async function readPolicyChecks(tx: PolicyReader, decisionHash: string): 
   const rows = await tx.select().from(s.policyCheckResults).where(eq(s.policyCheckResults.runId, run.id)).orderBy(asc(s.policyCheckResults.sequence));
   return { ...run, complete: rows.some(row => row.entry === "RUN_END"),
     flags: rows.filter(row => row.entry === "FLAG").map(row => ({ sequence: row.sequence, ruleId: row.ruleId!, severity: row.severity!, lineId: row.lineId, fundId: row.fundId, settingsVersion: row.settingsVersion, flagText: row.flagText! })),
-    notChecked: rows.filter(row => row.entry === "NOT_CHECKED").map(row => ({ ruleId: row.ruleId!, flagText: row.flagText! })) };
+    notChecked: rows.filter(row => row.entry === "NOT_CHECKED").map(row => ({ ruleId: row.ruleId!, flagText: row.flagText! })),
+    model: await readModelChecks(tx, decisionHash, now) };
 }

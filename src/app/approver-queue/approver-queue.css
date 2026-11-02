@@ -1,0 +1,29 @@
+/* IAC-414 Q1: the approver queue grid. Class names start with aq-. Colors and radii come from the Trust v2 tokens in style.css, with no new color. */
+.aq-queue { margin-top: 8px; min-width: 0; }
+.aq-queue h2 { margin: 0 0 4px; }
+.aq-note { margin: 0 0 4px; font-size: 14px; color: var(--muted); }
+/* The frame follows the row count (two to twelve rows plus the header and the filter row), so a short queue stays short. */
+.aq-queue .gx-frame { height: calc(44px * (var(--aq-rows, 2) + 2) + 18px); min-height: 0; max-height: min(70vh, 640px); }
+.aq-cell { display: flex; align-items: center; min-width: 0; line-height: 1.2; }
+.aq-vendor { display: flex; flex-direction: column; justify-content: center; min-width: 0; line-height: 1.2; }
+.aq-vendor-name, .aq-vendor small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.aq-vendor-name { font-weight: 600; }
+.aq-vendor small { font-size: 13px; color: var(--muted); }
+/* Six dots, one per trace step: a done step is filled, the current step has a thick ring, a step not reached is hollow. The words are in the label. */
+.aq-mini { display: inline-flex; align-items: center; }
+.aq-mini i { position: relative; display: block; flex: none; width: 10px; height: 10px; margin-right: 8px; border-radius: 50%; background: var(--paper); border: 2px solid var(--grey); }
+.aq-mini i:last-child { margin-right: 0; }
+.aq-mini i[data-state=done] { background: var(--navy); border-color: var(--navy); }
+.aq-mini i[data-state=current] { border: 3px solid var(--accent); }
+.aq-mini i[data-state=blocked] { border-color: var(--dot-block); }
+.aq-mini i:not(:last-child)::after { content: ""; position: absolute; left: calc(100% + 2px); top: 50%; width: 8px; height: 2px; margin-top: -1px; background: var(--connector); }
+.aq-mini i[data-state=done]:not(:last-child)::after { background: var(--navy); }
+.aq-mini i[data-state=current]:not(:last-child)::after { left: calc(100% + 3px); }
+.aq-review { display: inline-flex; align-items: center; min-width: 44px; min-height: 44px; font-weight: 600; color: var(--accent-ink); }
+/* The head text and the fund rail keep their places in the top row. The queue and the links below them take the full width, because seven columns do not fit the narrow left column. */
+@media (min-width: 901px) {
+  .reference-screen.home-grid.aq-home > .home-main { display: contents; }
+  .reference-screen.home-grid.aq-home .home-head-text { grid-column: 1; grid-row: 1; }
+  .reference-screen.home-grid.aq-home > .funds { grid-column: 2; grid-row: 1; }
+  .reference-screen.home-grid.aq-home .home-main > :not(.home-head-text) { grid-column: 1 / -1; }
+}

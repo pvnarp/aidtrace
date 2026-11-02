@@ -49,7 +49,7 @@ export default function AccountingDashboard({ snapshot, aiOff = null }: { snapsh
       <div className="analytics-questions">{(Object.keys(QUESTIONS) as Question[]).map(question => <button key={question} className="secondary" disabled={busy || Boolean(aiOff)} onClick={() => ask(question)}>{QUESTIONS[question]}</button>)}</div>
       <p role="status" data-testid="analytics-status">{busy ? 'Checking snapshot facts...' : notice || (answer ? 'Verified snapshot facts selected by AI.' : aiOff ? `${aiOff} Read the snapshot facts below.` : 'Choose a question, or read the facts without AI.')}</p>
       <output className="analytics-answer" data-testid="analytics-answer">{answer}</output>{selection && <p data-testid="analytics-selection">{selection}</p>}
-      <details data-testid="snapshot-facts"><summary>Read all snapshot facts without AI</summary><ul>{snapshot.facts.map(fact => <li key={fact.id}><p>{fact.text}</p><small>Source: {fact.source}</small></li>)}</ul></details>
+      <details data-testid="snapshot-facts"><summary>Read all snapshot facts without AI</summary><ul>{snapshot.facts.map(fact => <li key={fact.id}><p>{fact.text}</p><small className="fact-source">Source: {fact.source}</small></li>)}</ul></details>
     </section>
   </>;
 }

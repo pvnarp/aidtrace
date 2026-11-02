@@ -67,7 +67,7 @@ test("UX-01: 375-pixel allocation, both independent approvals and synthetic payo
     await noOverflow(page); await page.getByRole("button", { name: "Approve these terms" }).click(); await noOverflow(page);
     if (user === "tara") { await expect(page.getByRole("status")).toContainText("different approver"); await page.getByRole("button", { name: "Sign out" }).click(); }
   }
-  await expect(page.getByRole("status")).toContainText("Both approvals are complete"); await expect(page.getByRole("button", { name: "Send $500.00 in PayPal sandbox" })).toBeVisible();
+  await expect(page.getByRole("status")).toContainText("Both approvals are complete"); await expect(page.getByRole("button", { name: "Send $500.00 with PayPal" })).toBeVisible();
   const [decision] = await connection.db.select().from(s.allocationDecisions).where(eq(s.allocationDecisions.claimId, "C-104"));
   let sent: PersistedPayout | undefined;
   // Explicit local provider stubs. The isolated container has no internet route or credentials.
@@ -101,10 +101,11 @@ test("UI-348: a denied batch stays visible beside retry authority without sendin
 });
 test("UI-348: standard seed matches; a real mismatch is visible and draft guidance respects the role", async ({ page }) => {
   await login(page, "tara"); await expect(page).toHaveURL(/\/claims\/C-104$/);
-  await page.getByText("Claim and decision reference", { exact: true }).click();
+  await page.locator("details.reference > summary").click();
   await expect(page.getByText("Claim C-104. No frozen decision.", { exact: true })).toBeVisible();
-  await expect(page.getByText(/Waiting for the claimant to freeze/)).toBeVisible();
-  await expect(page.getByText("Ledger tie-out: Matches.", { exact: true })).toBeVisible();
+  // IAC-415 PR 4: the status-line paragraph is gone; the Next decision title states the same thing once.
+  await expect(page.getByText("The claimant must freeze the terms first.", { exact: true })).toBeVisible();
+  await page.locator("details.accounting > summary").click(); await expect(page.getByText("Ledger tie-out: Matches.", { exact: true })).toBeVisible();
   await connection.db.update(s.fundCredits).set({ amountCents: 29999n }).where(eq(s.fundCredits.fundId, "fund_a"));
   await page.reload(); await expect(page.locator(".notice.warning")).toHaveText("Ledger tie-out: Needs investigation.");
   await expect(page.getByText(/Opening journals have not been created yet/)).toHaveCount(0);
@@ -139,7 +140,7 @@ test("PC-23: the claimant sees no policy section, an approver runs it once and s
   await expect(section.locator("li").filter({ hasText: "Hold: Line L3 is a meal. Meals always go to a person." })).toHaveCount(1);
   await expect(section.locator("li").filter({ hasText: "Hold: Line L1 is USD 280.00 of supplies. Supplies over USD 250.00 go to a person." })).toHaveCount(1);
   await expect(section.getByRole("button", { name: "Run policy checks" })).toHaveCount(0);
-  await expect(section).toContainText("Flags do not block approval. Two approvers are still required.");
+  await expect(section).toContainText("Holds do not block approval. Two approvers are still required.");
   expect(await section.innerText()).not.toMatch(/\b(cleared|approved|passed)\b/i);
   await fits(page, 390);
   await page.setViewportSize({ width: 1440, height: 900 }); await fits(page, 1440);

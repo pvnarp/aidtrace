@@ -207,23 +207,30 @@ export async function rejectClaim(db: AppDatabase, claimId: string, actorId: str
 export async function advanceSolverPriority(db: AppDatabase, organizationId: string, actorId: string, expectedVersion: number) {
   return serializable(db, async tx => {
     await tx.execute(sql`select pg_advisory_xact_lock(hashtext(${organizationId})::bigint)`);
-    const [actor] = await tx.select().from(s.users).where(eq(s.users.id, actorId));
-    if (!actor || actor.organizationId !== organizationId || actor.role !== "APPROVER") throw new Error("Organization approver required for priority revision");
-    const [current] = await tx.select().from(s.solverPriorityVersions).where(eq(s.solverPriorityVersions.organizationId, organizationId)).orderBy(desc(s.solverPriorityVersions.version)).limit(1);
-    if (!current || current.version !== expectedVersion || current.version >= 2147483647) throw new Error("Priority version changed or cannot advance");
-    const funds = await tx.select().from(s.funds).where(eq(s.funds.organizationId, organizationId));
-    if (!funds.length) throw new Error("Priority revision requires funds");
-    const policies = await tx.select().from(s.fundPolicyVersions).where(inArray(s.fundPolicyVersions.fundId, funds.map(fund => fund.id)));
-    const approvers = await tx.select({ id: s.users.id }).from(s.users).where(and(eq(s.users.organizationId, organizationId), eq(s.users.role, "APPROVER")));
-    const costs = priorityCostsFor(funds.map(fund => {
-      const policy = policies.find(row => row.fundId === fund.id && row.version === fund.currentPolicyVersion);
-      if (!policy || !approvers.some(user => user.id === policy.approvedBy) || (fund.fundClass === "RESTRICTED" && (!policy.breadth || policy.breadth !== policy.allowedCategories?.length))) throw new Error("Current approved policy required for priority revision");
-      return { ...fund, policy };
-    }));
-    const version = current.version + 1;
-    await tx.insert(s.solverPriorityVersions).values({ organizationId, version, approvedBy: actor.id, costsPerCent: Object.fromEntries([...costs].map(([fund, cost]) => [fund, cost.toString()])) });
-    const stale = await tx.select().from(s.allocationDecisions).where(and(eq(s.allocationDecisions.organizationId, organizationId), isNull(s.allocationDecisions.invalidatedAt), isNull(s.allocationDecisions.recognizedAt)));
-    for (const decision of stale) await invalidate(tx, decision);
-    return { version, invalidatedDecisions: stale.length };
+    return advanceSolverPriorityInTransaction(tx, organizationId, actorId, expectedVersion);
   });
+}
+
+// The body of the revision, for a caller that already holds the organization advisory lock inside its own serializable
+// transaction (IAC-440: a rule bind that changes a fund's breadth re-applies the pay-order formula in the same step).
+// It does not take the lock itself and opens no transaction of its own.
+export async function advanceSolverPriorityInTransaction(tx: LedgerTransaction, organizationId: string, actorId: string, expectedVersion: number) {
+  const [actor] = await tx.select().from(s.users).where(eq(s.users.id, actorId));
+  if (!actor || actor.organizationId !== organizationId || actor.role !== "APPROVER") throw new Error("Organization approver required for priority revision");
+  const [current] = await tx.select().from(s.solverPriorityVersions).where(eq(s.solverPriorityVersions.organizationId, organizationId)).orderBy(desc(s.solverPriorityVersions.version)).limit(1);
+  if (!current || current.version !== expectedVersion || current.version >= 2147483647) throw new Error("Priority version changed or cannot advance");
+  const funds = await tx.select().from(s.funds).where(eq(s.funds.organizationId, organizationId));
+  if (!funds.length) throw new Error("Priority revision requires funds");
+  const policies = await tx.select().from(s.fundPolicyVersions).where(inArray(s.fundPolicyVersions.fundId, funds.map(fund => fund.id)));
+  const approvers = await tx.select({ id: s.users.id }).from(s.users).where(and(eq(s.users.organizationId, organizationId), eq(s.users.role, "APPROVER")));
+  const costs = priorityCostsFor(funds.map(fund => {
+    const policy = policies.find(row => row.fundId === fund.id && row.version === fund.currentPolicyVersion);
+    if (!policy || !approvers.some(user => user.id === policy.approvedBy) || (fund.fundClass === "RESTRICTED" && (!policy.breadth || policy.breadth !== policy.allowedCategories?.length))) throw new Error("Current approved policy required for priority revision");
+    return { ...fund, policy };
+  }));
+  const version = current.version + 1;
+  await tx.insert(s.solverPriorityVersions).values({ organizationId, version, approvedBy: actor.id, costsPerCent: Object.fromEntries([...costs].map(([fund, cost]) => [fund, cost.toString()])) });
+  const stale = await tx.select().from(s.allocationDecisions).where(and(eq(s.allocationDecisions.organizationId, organizationId), isNull(s.allocationDecisions.invalidatedAt), isNull(s.allocationDecisions.recognizedAt)));
+  for (const decision of stale) await invalidate(tx, decision);
+  return { version, invalidatedDecisions: stale.length };
 }

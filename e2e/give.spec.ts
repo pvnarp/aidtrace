@@ -282,3 +282,53 @@ test('DON-10 keyed (stubbed SDK, canned API): a create answer without the server
   expect(posts.map(post => post.action)).toEqual(['create']);
   expect(await orderRows()).toBe(0); expect(await violations(page)).toEqual([]); expect(watched.errors).toEqual([]); expect(watched.external).toEqual([]);
 });
+
+// IAC-413 PR A, thank-you part of GT-32 (docs/plans/DONOR_TRAIL_SCOPE.md section 3.7). The capture answer is CANNED here and carries the
+// one-time token the real route issues (tests/donation-routes.integration.test.ts proves the real route does). This is stubbed wiring
+// evidence for the panel, not a PayPal result.
+test('IAC-413: the one-time private link shows once, copies, sits in no storage, cookie or URL, and Give again clears it', async ({ page, context }) => {
+  await startServer(KEYED_ENV);
+  await context.grantPermissions(['clipboard-read', 'clipboard-write'], { origin: ORIGIN });
+  const { watched, api } = await keyedPage(page);
+  const TOKEN = `Zk3_-${'a'.repeat(38)}`;
+  let answer: Record<string, unknown> = { giftLinkState: 'ISSUED', giftToken: TOKEN };
+  api.create = () => ({ json: created() });
+  api.capture = () => ({ json: { id: ROW, status: 'COMPLETED', messageKey: 'COMPLETED', message: 'Thank you. Your gift is recorded.', captureTail: 'ABC123', ...answer } });
+  await page.locator('#stub-pay').click();
+  const panel = page.getByTestId('gift-link-panel');
+  await expect(page.getByTestId('give-done')).toContainText('Capture ID ending in ABC123.');
+  await expect(panel).toBeVisible();
+  await expect(panel.getByRole('heading', { name: 'Your private link', level: 2 })).toBeVisible();
+  await expect(panel).toContainText('It is shown only once and we do not keep it, so save it now.');
+  await expect(page.getByTestId('gift-link-field')).toHaveValue(`${ORIGIN}/gift/${TOKEN}`);
+  await expect(page.getByTestId('gift-link-field')).toHaveAttribute('readonly', '');
+  const open = page.getByTestId('gift-link-open');
+  await expect(open).toHaveAttribute('href', `${ORIGIN}/gift/${TOKEN}`); await expect(open).toHaveAttribute('target', '_blank'); await expect(open).toHaveAttribute('rel', 'noopener noreferrer');
+  for (const width of [375, 1280]) {
+    await page.setViewportSize({ width, height: 900 }); await contained(page);
+    const rect = (await open.boundingBox())!; expect(rect.x).toBeGreaterThanOrEqual(0); expect(rect.x + rect.width).toBeLessThanOrEqual(width + 0.5);
+  }
+  // Copy: the status line announces it and the clipboard holds exactly the link.
+  await expect(page.getByTestId('gift-link-status')).toHaveText('');
+  await page.getByTestId('gift-link-copy').click();
+  await expect(page.getByTestId('gift-link-status')).toHaveText('Link copied');
+  expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(`${ORIGIN}/gift/${TOKEN}`);
+  // The token lives in component state only: not in any storage, cookie or the page URL.
+  const holds = async () => ({
+    local: await page.evaluate(() => JSON.stringify({ ...localStorage })), session: await page.evaluate(() => JSON.stringify({ ...sessionStorage })),
+    cookie: await page.evaluate(() => document.cookie), jar: JSON.stringify(await context.cookies()), url: page.url(),
+  });
+  for (const [where, value] of Object.entries(await holds())) expect(value.includes(TOKEN), where).toBe(false);
+  // Give again clears it from the page.
+  await page.getByRole('button', { name: 'Give again' }).click();
+  await expect(panel).toHaveCount(0); await expect(page.getByTestId('gift-link-field')).toHaveCount(0);
+  expect((await page.content()).includes(TOKEN)).toBe(false);
+  for (const [where, value] of Object.entries(await holds())) expect(value.includes(TOKEN), where).toBe(false);
+  // A later completion that reports the link was shown before offers no link and no token.
+  answer = { giftLinkState: 'SHOWN_BEFORE' };
+  await page.locator('#stub-pay').click();
+  await expect(page.getByTestId('gift-link-shown-before')).toHaveText('A private link for this gift was shown earlier. It cannot be shown again.');
+  await expect(page.getByTestId('gift-link-field')).toHaveCount(0); await expect(page.getByTestId('gift-link-copy')).toHaveCount(0);
+  await contained(page);
+  expect(await orderRows()).toBe(0); expect(await violations(page)).toEqual([]); expect(watched.errors).toEqual([]); expect(watched.external).toEqual([]);
+});

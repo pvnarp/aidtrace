@@ -113,6 +113,27 @@
       "when": 1793450797853,
       "tag": "0015_policy-checks",
       "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1793456140655,
+      "tag": "0016_gift-links",
+      "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1793468456901,
+      "tag": "0017_model-check",
+      "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1793555016084,
+      "tag": "0018_ai-drafted-rules",
+      "breakpoints": true
     }
   ]
 }

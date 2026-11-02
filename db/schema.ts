@@ -1,6 +1,7 @@
 import { sql } from "drizzle-orm";
 import { bigint, boolean, check, date, foreignKey, integer, jsonb, pgEnum, pgTable, primaryKey, text, timestamp, unique, uniqueIndex, uuid } from "drizzle-orm/pg-core";
 import type { ProposalResult, ProposalState } from "../src/proposal/types";
+import type { RulesDraft } from "../src/rules-draft/draft-validate";
 
 const recordedAt = () => timestamp("recorded_at", { withTimezone: true }).notNull().defaultNow();
 const cents = (name = "amount_cents") => bigint(name, { mode: "bigint" }).notNull();
@@ -294,8 +295,8 @@ export const giftApplications = pgTable("gift_applications", {
 // IAC-405 step 1 (docs/plans/POLICY_CHECK_SCOPE.md sections 2, 4 and 5). Deterministic policy rule flags for approvers.
 // All three tables are append-only (migration 0015 guards): a run row is written once, every flag and the run end are later
 // result rows, and nothing is ever updated. None of them is part of the financial hash set, and nothing here moves money,
-// changes an approval or posts to the ledger. Only RULES runs are written in this release. The MODEL kind and its columns are
-// the seam for the later model check, which is not built.
+// changes an approval or posts to the ledger. RULES runs are written by the rules. The MODEL kind and its columns (migration 0017)
+// are written by the arm C model check, and its rows live in policy_model_results at the end of this file.
 export const policyCheckKinds = ["RULES", "MODEL"] as const;
 export type PolicyCheckKind = (typeof policyCheckKinds)[number];
 export const policyRuleIds = ["P1", "P2", "P3", "P4", "P5", "P6", "P7"] as const;
@@ -345,3 +346,112 @@ export const policyCheckResults = pgTable("policy_check_results", {
   check("policy_result_shape", sql`(${t.entry} = 'FLAG' and ${t.ruleId} in ('P1','P2','P3','P4','P5','P6','P7') and ${t.severity} in ('HOLD','NOTE') and ${t.flagText} is not null and ${t.reasonCode} is null)
     or (${t.entry} = 'NOT_CHECKED' and ${t.ruleId} in ('P1','P2','P3','P5','P6') and ${t.severity} is null and ${t.reasonCode} = 'NO_THRESHOLDS' and ${t.flagText} is not null and ${t.fundId} is null and ${t.lineId} is null)
     or (${t.entry} = 'RUN_END' and ${t.ruleId} is null and ${t.severity} is null and ${t.reasonCode} is null and ${t.flagText} is null and ${t.lineId} is null and ${t.fundId} is null)`)]);
+
+// IAC-413 PR A (docs/plans/DONOR_TRAIL_SCOPE.md sections 2 and 5). The private gift link. Only the SHA-256 of the bearer token is
+// stored, so nobody can recover or regenerate a link. The table is append-only (migration 0016 guards): one row per completed gift,
+// never updated or deleted. It holds no contact method and is outside the financial hash set.
+export const giftLinkPolicy = "GIFT_LINK_V1" as const;
+export const giftLinks = pgTable("gift_links", {
+  tokenHash: text("token_hash").primaryKey(), captureId: text("capture_id").notNull().unique().references(() => donationReceipts.captureId),
+  policyVersion: text("policy_version").notNull(), recordedAt: recordedAt(),
+}, t => [check("gift_link_hash", sql`${t.tokenHash} ~ '^[a-f0-9]{64}$'`), check("gift_link_policy", sql`${t.policyVersion} = 'GIFT_LINK_V1'`)]);
+
+// IAC-405 step 1 piece G and N1 (docs/plans/POLICY_CHECK_SCOPE.md sections 2.2, 3 and 4; docs/ASSUMPTIONS.md section 60). Migration 0017.
+// fund_policy_clauses is the clause text the model reads, append-only, one row per fund policy version and clause id. The model writes
+// no quote: the app looks the text up here by the validated clause id. policy_model_results holds the arm C rows of a MODEL run
+// (policy_check_results cannot: its shape checks and its guard are rules only, and migration 0015 stays unchanged). Both tables are
+// append-only (migration 0017 guards), outside the financial hash set, and move no money.
+export const policyModelEntries = ["CALL", "LINE", "NOT_CHECKED", "SKIPPED", "RUN_END"] as const;
+export type PolicyModelEntry = (typeof policyModelEntries)[number];
+export const modelVerdicts = ["OK", "CONFLICT", "UNSURE"] as const;
+export type ModelVerdict = (typeof modelVerdicts)[number];
+export const modelReasonCodes = ["TIMEOUT", "UNAVAILABLE", "INVALID", "LIMIT", "NO_CLAUSES", "GENERAL_FUND"] as const;
+export type ModelReasonCode = (typeof modelReasonCodes)[number];
+
+export const fundPolicyClauses = pgTable("fund_policy_clauses", {
+  fundId: text("fund_id").notNull(), policyVersion: integer("policy_version").notNull(), clauseId: text("clause_id").notNull(),
+  text: text().notNull(), createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+}, t => [primaryKey({ columns: [t.fundId, t.policyVersion, t.clauseId] }),
+  foreignKey({ columns: [t.fundId, t.policyVersion], foreignColumns: [fundPolicyVersions.fundId, fundPolicyVersions.version] }),
+  check("clause_id_shape", sql`${t.clauseId} ~ '^[0-9]{1,2}[.][0-9]{1,2}$'`),
+  check("clause_text_bounded", sql`char_length(${t.text}) between 1 and 600 and ${t.text} = btrim(${t.text})`)]);
+
+export const policyModelResults = pgTable("policy_model_results", {
+  runId: uuid("run_id").notNull().references(() => policyCheckRuns.id), sequence: integer().notNull(),
+  entry: text().$type<PolicyModelEntry>().notNull(), fundId: text("fund_id"), policyVersion: integer("policy_version"),
+  lineId: text("line_id"), verdict: text().$type<ModelVerdict>(), clauseId: text("clause_id"),
+  // The model id and effort that produced the row, or that failed to. Null only where no model was involved.
+  model: text(), effort: text(), reasonCode: text("reason_code").$type<ModelReasonCode>(),
+  // CALL rows only: the digest of the exact request, the stop reason and the token counts. Never the key, headers or raw model text.
+  requestDigest: text("request_digest"), stopReason: text("stop_reason"), inputTokens: integer("input_tokens"), outputTokens: integer("output_tokens"),
+  recordedAt: recordedAt(),
+}, t => [primaryKey({ columns: [t.runId, t.sequence] }),
+  foreignKey({ columns: [t.fundId, t.policyVersion], foreignColumns: [fundPolicyVersions.fundId, fundPolicyVersions.version] }),
+  foreignKey({ columns: [t.fundId, t.policyVersion, t.clauseId], foreignColumns: [fundPolicyClauses.fundId, fundPolicyClauses.policyVersion, fundPolicyClauses.clauseId] }),
+  check("model_result_sequence", sql`${t.sequence} > 0`),
+  check("model_result_entry", sql`${t.entry} in ('CALL','LINE','NOT_CHECKED','SKIPPED','RUN_END')`),
+  check("model_result_verdict", sql`${t.verdict} is null or ${t.verdict} in ('OK','CONFLICT','UNSURE')`),
+  check("model_result_reason", sql`${t.reasonCode} is null or ${t.reasonCode} in ('TIMEOUT','UNAVAILABLE','INVALID','LIMIT','NO_CLAUSES','GENERAL_FUND')`),
+  check("model_result_fund_version", sql`(${t.fundId} is null) = (${t.policyVersion} is null)`),
+  check("model_result_clause_scope", sql`${t.clauseId} is null or ${t.fundId} is not null`),
+  check("model_result_model_effort", sql`(${t.model} is null) = (${t.effort} is null)`),
+  check("model_result_digest", sql`${t.requestDigest} is null or ${t.requestDigest} ~ '^[a-f0-9]{64}$'`),
+  check("model_result_counts", sql`(${t.inputTokens} is null or ${t.inputTokens} >= 0) and (${t.outputTokens} is null or ${t.outputTokens} >= 0)`),
+  check("model_result_shape", sql`(${t.entry} = 'CALL' and ${t.fundId} is not null and ${t.model} is not null and ${t.requestDigest} is not null and ${t.lineId} is null and ${t.verdict} is null and ${t.clauseId} is null and (${t.reasonCode} is null or ${t.reasonCode} in ('TIMEOUT','UNAVAILABLE','INVALID')))
+    or (${t.entry} = 'LINE' and ${t.fundId} is not null and ${t.model} is not null and ${t.lineId} is not null and ${t.verdict} is not null and ${t.reasonCode} is null and ${t.requestDigest} is null and ${t.stopReason} is null and ${t.inputTokens} is null and ${t.outputTokens} is null
+      and ((${t.verdict} = 'OK' and ${t.clauseId} is null) or ${t.verdict} = 'UNSURE' or (${t.verdict} = 'CONFLICT' and ${t.clauseId} is not null)))
+    or (${t.entry} = 'NOT_CHECKED' and ${t.fundId} is not null and ${t.reasonCode} in ('TIMEOUT','UNAVAILABLE','INVALID','LIMIT','NO_CLAUSES') and ${t.lineId} is null and ${t.verdict} is null and ${t.clauseId} is null and ${t.requestDigest} is null and ${t.stopReason} is null and ${t.inputTokens} is null and ${t.outputTokens} is null and ((${t.reasonCode} = 'NO_CLAUSES') = (${t.model} is null)))
+    or (${t.entry} = 'SKIPPED' and ${t.fundId} is not null and ${t.reasonCode} = 'GENERAL_FUND' and ${t.model} is null and ${t.lineId} is null and ${t.verdict} is null and ${t.clauseId} is null and ${t.requestDigest} is null and ${t.stopReason} is null and ${t.inputTokens} is null and ${t.outputTokens} is null)
+    or (${t.entry} = 'RUN_END' and ${t.fundId} is null and ${t.model} is null and ${t.lineId} is null and ${t.verdict} is null and ${t.clauseId} is null and ${t.reasonCode} is null and ${t.requestDigest} is null and ${t.stopReason} is null and ${t.inputTokens} is null and ${t.outputTokens} is null)`)]);
+
+// IAC-440 Package A (docs/plans/AI_DRAFTED_RULES_SCOPE.md section 5; docs/ASSUMPTIONS.md section 70). Migration 0018.
+// policy_drafts is one immutable row per AI draft, refused AI draft or human edit. An edit is a new row that points at its parent, so the
+// model output and every human change stay separately visible. Status is never stored: it is derived from policy_draft_events, which is
+// append-only. Both tables are outside the financial hash set and move no money. Neither stores the key, headers or raw model text.
+export const draftOutcomes = ["DRAFTED", "REFUSED"] as const;
+export type DraftOutcome = (typeof draftOutcomes)[number];
+export const draftEventKinds = ["APPROVED", "BOUND", "WITHDRAWN"] as const;
+export type DraftEventKind = (typeof draftEventKinds)[number];
+
+export const policyDrafts = pgTable("policy_drafts", {
+  id: uuid().primaryKey().defaultRandom(), fundId: text("fund_id").notNull(), basePolicyVersion: integer("base_policy_version").notNull(),
+  // Null for a model draft. An edit names the row it changed.
+  parentDraftId: uuid("parent_draft_id"),
+  inputSha256: text("input_sha256").notNull(), inputText: text("input_text").notNull(),
+  outcome: text().$type<DraftOutcome>().notNull(),
+  // The validated draft for DRAFTED rows. REFUSED rows hold the refusal code and the path of the first rule that failed instead.
+  draft: jsonb().$type<RulesDraft | null>(), refusalReason: text("refusal_reason"), refusalPath: text("refusal_path"),
+  // Edit rows only: the field names a person changed against the parent.
+  changedFields: jsonb("changed_fields").$type<string[] | null>(),
+  // Model rows only (a human edit involved no model). Never the key, headers or raw model text.
+  model: text(), effort: text(), promptVersion: text("prompt_version"), schemaVersion: text("schema_version"), requestDigest: text("request_digest"),
+  stopReason: text("stop_reason"), inputTokens: integer("input_tokens"), outputTokens: integer("output_tokens"),
+  draftedBy: text("drafted_by").notNull().references(() => users.id), createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+}, t => [
+  foreignKey({ columns: [t.fundId, t.basePolicyVersion], foreignColumns: [fundPolicyVersions.fundId, fundPolicyVersions.version] }),
+  foreignKey({ columns: [t.parentDraftId], foreignColumns: [t.id] }),
+  check("draft_input_bounded", sql`char_length(${t.inputText}) between 1 and 20000 and btrim(${t.inputText}, E' \\n\\r\\t') <> ''`),
+  check("draft_input_hash", sql`${t.inputSha256} = encode(sha256(convert_to(${t.inputText}, 'UTF8')), 'hex')`),
+  check("draft_outcome", sql`${t.outcome} in ('DRAFTED','REFUSED')`),
+  check("draft_outcome_shape", sql`(${t.outcome} = 'DRAFTED' and ${t.draft} is not null and jsonb_typeof(${t.draft}) = 'object' and ${t.refusalReason} is null and ${t.refusalPath} is null)
+    or (${t.outcome} = 'REFUSED' and ${t.draft} is null and ${t.refusalReason} ~ '^[A-Z_]{1,40}$' and ${t.refusalPath} ~ '^[A-Za-z0-9_.]{1,80}$' and ${t.parentDraftId} is null and ${t.changedFields} is null)`),
+  check("draft_edit_shape", sql`(${t.parentDraftId} is null and ${t.changedFields} is null
+      and ${t.model} is not null and ${t.effort} is not null and ${t.promptVersion} is not null and ${t.schemaVersion} is not null and ${t.requestDigest} is not null)
+    or (${t.parentDraftId} is not null and ${t.outcome} = 'DRAFTED' and ${t.changedFields} is not null and jsonb_typeof(${t.changedFields}) = 'array' and jsonb_array_length(${t.changedFields}) > 0
+      and ${t.model} is null and ${t.effort} is null and ${t.promptVersion} is null and ${t.schemaVersion} is null and ${t.requestDigest} is null and ${t.stopReason} is null and ${t.inputTokens} is null and ${t.outputTokens} is null)`),
+  check("draft_digest", sql`${t.requestDigest} is null or ${t.requestDigest} ~ '^[a-f0-9]{64}$'`),
+  check("draft_stop_reason", sql`${t.stopReason} is null or ${t.stopReason} ~ '^[a-z_]{1,40}$'`),
+  check("draft_counts", sql`(${t.inputTokens} is null or ${t.inputTokens} >= 0) and (${t.outputTokens} is null or ${t.outputTokens} >= 0)`)]);
+
+export const policyDraftEvents = pgTable("policy_draft_events", {
+  id: uuid().primaryKey().defaultRandom(), draftId: uuid("draft_id").notNull().references(() => policyDrafts.id),
+  kind: text().$type<DraftEventKind>().notNull(), actorId: text("actor_id").notNull().references(() => users.id),
+  // BOUND only: the fund_policy_versions version this draft created.
+  boundPolicyVersion: integer("bound_policy_version"), recordedAt: recordedAt(),
+}, t => [
+  check("draft_event_kind", sql`${t.kind} in ('APPROVED','BOUND','WITHDRAWN')`),
+  check("draft_event_bound_version", sql`(${t.kind} = 'BOUND') = (${t.boundPolicyVersion} is not null) and (${t.boundPolicyVersion} is null or ${t.boundPolicyVersion} > 1)`),
+  // One approval per person per draft, one binding, one withdrawal. The service checks first, the database backs it.
+  uniqueIndex("draft_event_one_approval_per_person").on(t.draftId, t.actorId).where(sql`${t.kind} = 'APPROVED'`),
+  uniqueIndex("draft_event_one_bound").on(t.draftId).where(sql`${t.kind} = 'BOUND'`),
+  uniqueIndex("draft_event_one_withdrawn").on(t.draftId).where(sql`${t.kind} = 'WITHDRAWN'`)]);

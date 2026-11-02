@@ -1,0 +1,6 @@
+/* Server totals strip above the donations grid. Class names start with donations- and colors come from the grid aliases in grid.css. */
+.donations-totals { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; margin: 16px 0 0; }
+.donations-totals > div { min-width: 0; border: 1px solid var(--gx-line); border-radius: 10px; padding: 10px 14px; background: var(--gx-paper); }
+.donations-totals dt { font-size: 14px; color: var(--gx-muted); }
+.donations-totals dd { margin: 2px 0 0; font-size: 20px; font-weight: 700; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.donations-cap { margin: 12px 0 0; font-size: 14px; color: var(--gx-muted); }
