@@ -56,7 +56,8 @@ export const AI_OFF_MESSAGES: Record<AiOffReason, string> = {
 export type AiStatus = { on: true; model: ClaudeModel; name: string; shellName: string } | { on: false; reason: AiOffReason };
 // AI_COMPLIANCE_ENABLED (IAC-405 piece G) gates the approver's model compliance check. Off by default like the others.
 // AI_RULE_DRAFTS_ENABLED (IAC-440 Package A) gates the approver's AI-drafted fund rules request. Off by default and in every compose file.
-export type AiFlag = "AI_RECEIPT_ENABLED" | "AI_ANALYTICS_ENABLED" | "AI_EXPENSE_PROPOSALS_ENABLED" | "AI_COMPLIANCE_ENABLED" | "AI_RULE_DRAFTS_ENABLED";
+// AI_RECEIPT_PHOTO_ENABLED (IAC-384) gates the claimant receipt photo reader: on only when exactly "true" and only when AI_RECEIPT_ENABLED is also on. Off by default and in every compose file.
+export type AiFlag = "AI_RECEIPT_ENABLED" | "AI_ANALYTICS_ENABLED" | "AI_EXPENSE_PROPOSALS_ENABLED" | "AI_COMPLIANCE_ENABLED" | "AI_RULE_DRAFTS_ENABLED" | "AI_RECEIPT_PHOTO_ENABLED";
 
 // Display and gating: is Claude usable for this surface right now? On only with the surface's flag, a valid configuration, a
 // key present in this process and request budget left. It reads the key's presence only, never its value.
@@ -77,3 +78,9 @@ export function configuredReceiptAiName(env: Env = process.env): { name: string;
   const status = receiptAiStatus(env);
   return status.on ? { name: status.name, shellName: status.shellName } : null;
 }
+
+// The one place the photo flag is read (IAC-384, docs/ASSUMPTIONS.md section 83). Exactly "true" for both flags: the photo reader never runs when receipt AI is off.
+export const receiptPhotoEnabled = (env: Env = process.env): boolean => env.AI_RECEIPT_PHOTO_ENABLED === "true" && env.AI_RECEIPT_ENABLED === "true";
+// Key, valid configuration and request budget for one photo read. The same process-wide Claude budget as every other surface.
+export const receiptPhotoStatus = (env: Env = process.env, budget: ClaudeBudget = processClaudeBudget): AiStatus =>
+  receiptPhotoEnabled(env) ? claudeAiStatus(env, "AI_RECEIPT_PHOTO_ENABLED", budget) : { on: false, reason: "SWITCHED_OFF" };

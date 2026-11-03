@@ -174,6 +174,14 @@ test("AU-33: an auto-recognized and sent claim reads Autopilot only, a blocked o
   expect((await connection.client`select count(*)::int as n from automated_decisions where decision_hash = ${stuck.hash} and kind = 'AUTO_RECOGNIZED'`)[0]!.n).toBe(1);
   const shot = (name: string) => page.screenshot({ path: `local/rules-ui-artifacts/${name}.png`, fullPage: true });
   const body = async () => (await page.locator("body").innerText()).replace(/\s+/g, " ");
+  // IAC-405 takeover wording: while fewer than two takeover approvals exist, neither the trace rail nor the PayPal card may say the payment is ready.
+  const NOT_READY = "Not ready: two approvers must take over"; const READY_WORDS = ["Ready, unpaid", "Ready, not sent", "Unpaid in this keyless session", "No payment has been sent yet"];
+  const expectTakeoverNotReady = async () => {
+    const t = await body();
+    expect(t, NOT_READY).toContain(NOT_READY);
+    for (const word of READY_WORDS) expect(t, word).not.toContain(word);
+    await expect(page.locator("nav.trace-nav li", { hasText: "PayPal" })).toContainText("Not ready");
+  };
 
   await login(page, "tara"); await page.goto(`/claims/${sent.id}`);
   await expect(page.getByTestId("autopilot-trail")).toBeVisible();
@@ -187,9 +195,11 @@ test("AU-33: an auto-recognized and sent claim reads Autopilot only, a blocked o
 
   await page.goto(`/claims/${stuck.id}`);
   await expect(page.getByTestId("autopilot-people")).toHaveText("People: 0 of 2");
+  await expectTakeoverNotReady();
   await page.getByRole("button", { name: "Approve to finish this claim" }).click();
   await page.waitForURL(url => url.pathname === `/claims/${stuck.id}`);
   await expect(page.getByTestId("autopilot-people")).toHaveText("People: 1 of 2");
+  await expectTakeoverNotReady();
   text = await body();
   for (const needle of ["Automatic payment did not go out. Two approvers can finish this claim.", "People: 1 of 2", "Two independent approvals", "Human reviews: 1 of 2"]) expect(text, needle).toContain(needle);
   for (const banned of ["Autopilot review", "none required", "The guardrail record binds this reference"]) expect(text, banned).not.toContain(banned);
@@ -200,6 +210,7 @@ test("AU-33: an auto-recognized and sent claim reads Autopilot only, a blocked o
   await signOut(page); await login(page, "ben"); await page.goto(`/claims/${stuck.id}`);
   await page.getByRole("button", { name: "Approve to finish this claim" }).click();
   await expect(page.getByTestId("autopilot-people")).toHaveText("People: 2 of 2");
+  { const t = await body(); expect(t).not.toContain(NOT_READY); expect(READY_WORDS.some(word => t.includes(word)), "the ready words return after two approvals").toBe(true); }
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("$69.00 approved. PayPal handoff ready. Unpaid.");
   await shot("au33-takeover-two");
   await signOut(page); await login(page, "tara");

@@ -11,7 +11,7 @@ export type SummaryData = {
   details: readonly (readonly [string, string])[]; note: string;
 };
 /** Loaded state behind the two status cards and the trace lines. Built by each page from what it already read. */
-export type ShellState = { ai: AiCard; paypal: PayPalCard; typedReceipt: boolean };
+export type ShellState = { ai: AiCard; paypal: PayPalCard; typedReceipt: boolean; photoReceipt?: boolean };
 
 export type RailLinks = TraceLinks;
 

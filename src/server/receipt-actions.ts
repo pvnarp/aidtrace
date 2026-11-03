@@ -18,7 +18,7 @@ export async function handleReceiptAction(request: Request, id: string | null, d
   for (;;) { const { done, value } = await reader.read(); if (done) break; length += value.length; if (length > 131072) { await reader.cancel(); return new Response("Form too large", { status: 413, headers }); } chunks.push(value); }
   const form = new URLSearchParams(Buffer.concat(chunks).toString("utf8"));
   const action = form.get("action");
-  const fields = action === "create" || action === "edit" ? ["vendor", "program", "incurredOn", "source", "total", "syntheticReceipt", ...Array.from({ length: 12 }, (_, i) => [`description${i + 1}`, `amount${i + 1}`]).flat()] : action === "confirm" ? ["suggestionId", "suggestionHash", "confirm", "acknowledgeProhibited", ...Array.from({ length: 12 }, (_, i) => [`categoryL${i + 1}`, `reasonL${i + 1}`]).flat()] : action === "suggest" ? ["suggestionHash"] : [];
+  const fields = action === "create" || action === "edit" ? ["vendor", "program", "incurredOn", "source", "total", "syntheticReceipt", ...(action === "create" ? ["photoReadId"] : []), ...Array.from({ length: 12 }, (_, i) => [`description${i + 1}`, `amount${i + 1}`]).flat()] : action === "confirm" ? ["suggestionId", "suggestionHash", "confirm", "acknowledgeProhibited", ...Array.from({ length: 12 }, (_, i) => [`categoryL${i + 1}`, `reasonL${i + 1}`]).flat()] : action === "suggest" ? ["suggestionHash"] : [];
   const allowed = new Set(["action", "reviewId", "draftHash", ...fields]);
   if ([...form.keys()].some(key => !allowed.has(key) || form.getAll(key).length !== 1)) return new Response("Unexpected or repeated field", { status: 400, headers });
   const destination = (claimId: string, notice: string) => new Response(null, { status: 303, headers: { ...headers, Location: `/claims/${claimId}/receipt?notice=${notice}` } });
@@ -27,7 +27,7 @@ export async function handleReceiptAction(request: Request, id: string | null, d
       if (form.get("syntheticReceipt") !== "yes") throw new Error("Synthetic receipt confirmation required");
       const input: DraftInput = { vendor: form.get("vendor") ?? "", program: form.get("program") ?? "", incurredOn: form.get("incurredOn") ?? "", source: form.get("source") ?? "", total: form.get("total") ?? "", lines: [] };
       for (let i = 1; i <= 12; i++) { const description = form.get(`description${i}`) ?? ""; const amount = form.get(`amount${i}`) ?? ""; if (description || amount) input.lines.push({ description, amount }); }
-      if (!id && action === "create") return destination(await createReceiptDraft(deps.db, user.id, input, configuredReceiptPayee(deps.env ?? process.env), judgeSession(deps.env ?? process.env)), "created");
+      if (!id && action === "create") return destination(await createReceiptDraft(deps.db, user.id, input, configuredReceiptPayee(deps.env ?? process.env), judgeSession(deps.env ?? process.env), form.get("photoReadId") || null), "created");
       if (id && action === "edit") { await editReceiptDraft(deps.db, id, user.id, form.get("reviewId") ?? "", form.get("draftHash") ?? "", input); return destination(id, "edited"); }
       throw new Error("Wrong action");
     }

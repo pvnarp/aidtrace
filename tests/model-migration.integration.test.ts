@@ -13,7 +13,7 @@ import { runModelCheck } from "../src/policy/model-run";
 import { readModelChecks } from "../src/policy/model-read";
 import { runPolicyChecks } from "../src/policy/service";
 import { COMPLIANCE_ARM, sha256 } from "../src/policy/compliance";
-import { createPolicyDatabase, financialHash, receiptClaim, tableHash, type PolicyDatabase } from "./support/policy-db";
+import { addLegacyPhotoColumn, createPolicyDatabase, financialHash, receiptClaim, tableHash, type PolicyDatabase } from "./support/policy-db";
 
 // IAC-405 step 1 piece G and N1, migration 0017 (docs/ASSUMPTIONS.md section 60): the same method as PC-24 for 0015 and GT-33 for 0016. Real Postgres in the
 // isolated check project. No network, no key. Every model call here is a stub that throws if it is ever reached.
@@ -50,7 +50,7 @@ describe("migration 0017 on a database that already holds retained data", () => 
     const tables = async () => (await old.client`select table_name from information_schema.tables where table_schema = 'public' and table_type = 'BASE TABLE' order by 1`).map(row => String(row.table_name));
     expect(await tables()).not.toContain("fund_policy_clauses");
     expect(await tables()).not.toContain("policy_model_results");
-    const claim = await receiptClaim(old.db);
+    await addLegacyPhotoColumn(old.client); const claim = await receiptClaim(old.db);
     expect((await approveDecision(old.db, claim.decisionId, "tara", claim.hash)).status).toBe("AWAITING_APPROVAL");
     // The service now writes the migration 0019 trigger column, which a database at 0016 lacks, so the retained rules run is inserted in its 0016 shape.
     const [rulesRun] = await old.client`insert into policy_check_runs (decision_hash, claim_id, claim_version, organization_id, kind, started_by, settings_versions, rule_set_version, facts_digest)

@@ -13,7 +13,7 @@ import { runPolicyChecks } from "../src/policy/service";
 import { noHoldsFor, type HoldReason } from "../src/fund-modes/no-holds";
 import { approveFundMode, proposeFundMode, readFundMode } from "../src/fund-modes/change";
 import { handleFundMode } from "../src/server/fund-mode-actions";
-import { FINANCIAL_TABLES, STANDARD_RECEIPT_LINES, createPolicyDatabase, financialHash, receiptClaim, tableHash, type PolicyDatabase, type ReceiptLineSpec } from "./support/policy-db";
+import { FINANCIAL_TABLES, STANDARD_RECEIPT_LINES, addLegacyPhotoColumn, createPolicyDatabase, financialHash, receiptClaim, tableHash, type PolicyDatabase, type ReceiptLineSpec } from "./support/policy-db";
 import { AI_ENV, ALL_ASSISTED, ALL_AUTOPILOT, FLAG_ON, HAIKU, SONNET, allOk, conflictAll, dbError, isAshmere, notJson, otherOrganization, setMode, setModes, stub, unsureAll, type Handler } from "./support/fund-modes";
 
 // IAC-405 step 2 PR F (docs/plans/FUND_MODES_SCOPE.md sections 2 and 3, docs/ASSUMPTIONS.md section 76), FM-01 to FM-12 and FM-21 to FM-24 on real Postgres in the isolated check
@@ -499,7 +499,7 @@ describe("FM-21 to FM-24 database guards, append-only tables, the freeze-only mo
     const old = await createPolicyDatabase("aidtrace_fm", { migrationsFolder: folderThrough(18, "0018_ai-drafted-rules") }); open.push(old);
     const tables = async () => (await old.client`select table_name from information_schema.tables where table_schema = 'public' and table_type = 'BASE TABLE' order by 1`).map(row => String(row.table_name));
     expect(await tables()).not.toContain("fund_modes");
-    const claim = await receiptClaim(old.db);
+    await addLegacyPhotoColumn(old.client); const claim = await receiptClaim(old.db);
     expect((await approveDecision(old.db, claim.decisionId, "tara", claim.hash)).status).toBe("AWAITING_APPROVAL");
     // The retained rules run is inserted in its 0018 shape, which has no trigger column.
     const [rulesRun] = await old.client`insert into policy_check_runs (decision_hash, claim_id, claim_version, organization_id, kind, started_by, settings_versions, rule_set_version, facts_digest)
@@ -516,9 +516,9 @@ describe("FM-21 to FM-24 database guards, append-only tables, the freeze-only mo
 
     await migrate(old.db, { migrationsFolder: "db/migrations" });
     expect(await hashes()).toEqual(retained);
-    // The test migrates the whole folder, so the three tables of migration 0020 (IAC-405 PR P) are added beside the four of 0019. Neither migration writes a row.
-    expect((await tables()).filter(name => !existing.includes(name) && name !== "__drizzle_migrations")).toEqual(["automated_decisions", "automation_switch_events", "decision_modes", "disbursement_origins", "fund_mode_proposals", "fund_modes", "payee_email_history"]);
-    for (const table of ["automated_decisions", "automation_switch_events", "decision_modes", "disbursement_origins", "fund_mode_proposals", "fund_modes", "payee_email_history"]) expect((await old.client`select count(*)::int as n from ${old.client(table)}`)[0]!.n, table).toBe(0);
+    // The test migrates the whole folder, so the three tables of migration 0020 (IAC-405 PR P) are added beside the four of 0019, and the receipt_photo_reads table of 0021 (IAC-384). Neither migration writes a row.
+    expect((await tables()).filter(name => !existing.includes(name) && name !== "__drizzle_migrations")).toEqual(["automated_decisions", "automation_switch_events", "decision_modes", "disbursement_origins", "fund_mode_proposals", "fund_modes", "payee_email_history", "receipt_photo_reads"]);
+    for (const table of ["automated_decisions", "automation_switch_events", "decision_modes", "disbursement_origins", "fund_mode_proposals", "fund_modes", "payee_email_history", "receipt_photo_reads"]) expect((await old.client`select count(*)::int as n from ${old.client(table)}`)[0]!.n, table).toBe(0);
     expect(await financialHash(old.client)).toBe(financialBefore);
     // The retained run reads as an approver run, the column that took its new default is nullable and a retained claim still takes its second approval as before.
     expect(await old.client`select trigger, started_by from policy_check_runs`).toMatchObject([{ trigger: "APPROVER", started_by: "tara" }]);

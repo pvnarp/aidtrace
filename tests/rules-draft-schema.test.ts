@@ -2,6 +2,7 @@ import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { claudeCategoryRequest } from "../src/ai/claude-receipt";
+import { photoRequest } from "../src/ai/claude-photo";
 import { analyticsRequest } from "../src/analytics/explain";
 import type { AnalyticsSnapshot } from "../src/analytics/model";
 import { complianceRequest } from "../src/policy/compliance";
@@ -196,6 +197,7 @@ describe("DR-62 every other Claude output schema stays within the documented uni
   const schemas: [string, unknown][] = [
     ["receipt categorizer (src/ai/claude-receipt.ts)", schemaOf(claudeCategoryRequest("claude-haiku-5-5", { source: "RECEIPT\nRobot kit", lines: [{ id: "L1", description: "Robot kit" }] }).output_config)],
     ["compliance check (src/policy/compliance.ts)", complianceRequest("claude-sonnet-5-5", { fundName: "Robotics", clauses: [{ id: "1.1", text: "Funds pay robot kits." }], vendor: "Shop", date: "2026-11-01", lines: [{ id: "L1", description: "Robot kit", amountCents: 1000 }] }).output_config.format.schema],
+    ["receipt photo reader (src/ai/claude-photo.ts)", schemaOf(photoRequest("claude-haiku-5-5", "image/png", "AAAA").output_config)],
     ["analytics selector (src/analytics/explain.ts)", schemaOf(analyticsRequest("claude-haiku-5-5", snapshot, "cash").output_config)],
     ["donor note reason (scripts/support/donor-note-reason.ts)", REASON_SCHEMA],
     ["donor note selection (scripts/support/donor-note-eval.ts)", SELECTION_SCHEMA],
@@ -208,12 +210,12 @@ describe("DR-62 every other Claude output schema stays within the documented uni
   });
   it("pins today's counts so a new union in any of them is noticed: only the compliance clauseId is nullable", () => {
     expect(Object.fromEntries(schemas.map(([name, schema]) => [name.split(" (")[0], unionCount(schema)]))).toEqual({
-      "receipt categorizer": 0, "compliance check": 1, "analytics selector": 0, "donor note reason": 0, "donor note selection": 0, "donor note grading": 0, "donor note selection 3c": 0, "donor note grading 3c": 0,
+      "receipt categorizer": 0, "receipt photo reader": 0, "compliance check": 1, "analytics selector": 0, "donor note reason": 0, "donor note selection": 0, "donor note grading": 0, "donor note selection 3c": 0, "donor note grading 3c": 0,
     });
   });
   it("finds every json_schema request builder in src, so a new Claude schema cannot be added without being counted here", () => {
     const walk = (dir: string): string[] => readdirSync(dir).flatMap(name => { const path = join(dir, name); return statSync(path).isDirectory() ? walk(path) : [path]; });
     const builders = walk("src").filter(file => file.endsWith(".ts") && /type:\s*["']json_schema["']/.test(readFileSync(file, "utf8"))).sort();
-    expect(builders).toEqual(["src/ai/claude-receipt.ts", "src/analytics/explain.ts", "src/policy/compliance.ts", "src/rules-draft/draft-request.ts"]);
+    expect(builders).toEqual(["src/ai/claude-photo.ts", "src/ai/claude-receipt.ts", "src/analytics/explain.ts", "src/policy/compliance.ts", "src/rules-draft/draft-request.ts"]);
   });
 });

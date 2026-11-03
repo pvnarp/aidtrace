@@ -182,13 +182,36 @@ export const loginWindows = pgTable("login_windows", {
   username: text().primaryKey(), attempts: integer().notNull(), resetsAt: timestamp("resets_at", { withTimezone: true }).notNull(),
 }, t => [check("login_attempts_positive", sql`${t.attempts} > 0`)]);
 
+// IAC-384 (docs/ASSUMPTIONS.md section 83): one append-only row per receipt photo read call. It holds the SHA-256 of the photo and the call facts,
+// never the photo, its base64, the transcript or an error message. Migration 0021 refuses UPDATE, DELETE and TRUNCATE.
+export const photoReadOutcomes = ["READ", "UNREADABLE", "REFUSED", "FAILED"] as const;
+export type PhotoReadOutcome = (typeof photoReadOutcomes)[number];
+export const receiptPhotoReads = pgTable("receipt_photo_reads", {
+  id: uuid().primaryKey().defaultRandom(), organizationId: text("organization_id").notNull().references(() => organizations.id), userId: text("user_id").notNull().references(() => users.id),
+  photoSha256: text("photo_sha256").notNull(), model: text().notNull(), promptVersion: text("prompt_version").notNull(), schemaVersion: text("schema_version").notNull(),
+  outcome: text().$type<PhotoReadOutcome>().notNull(), stopReason: text("stop_reason"), inputTokens: integer("input_tokens").notNull(), outputTokens: integer("output_tokens").notNull(),
+  arithmeticOk: boolean("arithmetic_ok"), prefillSha256: text("prefill_sha256"), createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+}, t => [check("photo_read_sha256", sql`${t.photoSha256} ~ '^[a-f0-9]{64}$'`), check("photo_read_model", sql`${t.model} in ('claude-haiku-5-5','claude-sonnet-5-5')`),
+  check("photo_read_versions", sql`${t.promptVersion} = 'receipt-photo-v1' and ${t.schemaVersion} = 'receipt-transcript-v1'`),
+  check("photo_read_outcome", sql`${t.outcome} in ('READ','UNREADABLE','REFUSED','FAILED')`),
+  check("photo_read_stop_reason", sql`${t.stopReason} is null or ${t.stopReason} ~ '^[a-z_]{1,32}$'`),
+  check("photo_read_tokens", sql`${t.inputTokens} between 0 and 10000000 and ${t.outputTokens} between 0 and 10000000`),
+  check("photo_read_arithmetic", sql`(${t.outcome} = 'READ') = (${t.arithmeticOk} is not null)`),
+  check("photo_read_prefill", sql`(${t.outcome} = 'READ') = (${t.prefillSha256} is not null) and (${t.prefillSha256} is null or ${t.prefillSha256} ~ '^[a-f0-9]{64}$')`)]);
+
 export const receiptReviews = pgTable("receipt_reviews", {
   id: uuid().primaryKey().defaultRandom(), claimId: text("claim_id").notNull(), claimVersion: integer("claim_version").notNull(), revision: integer().notNull(),
   source: text().notNull(), sourceHash: text("source_hash").notNull(), draftHash: text("draft_hash").notNull(), createdBy: text("created_by").notNull().references(() => users.id), createdAt: recordedAt(),
+  // IAC-384: the photo read that pre-filled this draft, when one did. Set only by the receipt service after it checks the read belongs to the same user and organization and was READ.
+  photoReadId: uuid("photo_read_id").references(() => receiptPhotoReads.id),
+  // True only when the submitted values digest equals the linked read prefill digest. Set by the server on every revision, never taken from the client.
+  photoUnchanged: boolean("photo_unchanged").notNull().default(false),
 }, t => [foreignKey({ columns: [t.claimId, t.claimVersion], foreignColumns: [claims.id, claims.version] }),
   unique().on(t.claimId, t.claimVersion, t.revision), check("receipt_claim_namespace", sql`${t.claimId} ~ '^R-[a-f0-9-]{36}$'`),
   check("receipt_revision_positive", sql`${t.revision} > 0`), check("receipt_source_bounded", sql`octet_length(${t.source}) between 1 and 16384`),
-  check("receipt_hashes", sql`${t.sourceHash} ~ '^[a-f0-9]{64}$' and ${t.draftHash} ~ '^[a-f0-9]{64}$'`)]);
+  check("receipt_hashes", sql`${t.sourceHash} ~ '^[a-f0-9]{64}$' and ${t.draftHash} ~ '^[a-f0-9]{64}$'`),
+  check("receipt_photo_unchanged_needs_link", sql`not ${t.photoUnchanged} or ${t.photoReadId} is not null`),
+  uniqueIndex("receipt_review_photo_read_first").on(t.photoReadId).where(sql`${t.revision} = 1`)]);
 export const receiptSuggestions = pgTable("receipt_suggestions", {
   id: uuid().primaryKey().defaultRandom(), reviewId: uuid("review_id").notNull().references(() => receiptReviews.id),
   attempt: integer().notNull(), status: text().notNull(), proposals: jsonb().$type<{ lineId: string; category: string; quote: string; start: number | null; end: number | null }[]>(),

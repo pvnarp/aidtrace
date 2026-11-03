@@ -148,6 +148,13 @@
       "when": 1793670404567,
       "tag": "0020_autopilot",
       "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1793712962245,
+      "tag": "0021_receipt-photo",
+      "breakpoints": true
     }
   ]
 }

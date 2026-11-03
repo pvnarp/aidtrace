@@ -87,3 +87,7 @@ export async function receiptClaim(db: AppDatabase, spec: { vendor?: string; sou
   if (frozen.status !== "AWAITING_APPROVAL") throw new Error("Expected a funded frozen decision");
   return { id, hash: frozen.decisionHash, decisionId: frozen.decisionId };
 }
+
+// IAC-384: the application schema names receipt_reviews.photo_read_id, so a test that writes a receipt through the services while the database is still at an
+// older migration needs the nullable column first. Migration 0021 adds it with IF NOT EXISTS, so applying it afterwards is a no-op for the column.
+export const addLegacyPhotoColumn = async (client: postgres.Sql) => { await client`alter table receipt_reviews add column if not exists photo_read_id uuid`; await client`alter table receipt_reviews add column if not exists photo_unchanged boolean not null default false`; };

@@ -16,8 +16,11 @@ import { Workspace, type ShellState, type SummaryData } from "../../../workspace
 import { STATUS_LABELS, aiCard, aiModelLabel, aiSuggesterName, claimStage, claimantLabel, knownReviews, currentNote, paypalCard, suggestionKind } from "../../../shell-copy";
 import { quoteEvidence } from "../../../receipts/quote-evidence";
 import { ReceiptEvidence } from "../../../receipts/receipt-evidence";
+import { photoReadModel } from "../../../../receipt/photo-reads";
+import { photoEvidenceLine } from "../../../receipts/photo-copy";
+import { CLAUDE_MODELS } from "../../../../ai/claude-receipt";
 import { AiRecommendation, aiModelLine } from "../../../receipts/ai-recommendation";
-import { readReceiptAudit, receiptAuditLabel } from "../../../../ai/audit";
+import { CLAUDE_NAMES, readReceiptAudit, receiptAuditLabel } from "../../../../ai/audit";
 import { AI_OFF_MESSAGES, configuredReceiptAiName, receiptAiStatus } from "../../../../ai/provider";
 import { CATEGORY_NAMES } from "../../../../ai/categories";
 import { screenReceiptText } from "../../../../receipt/prohibited-screen";
@@ -32,6 +35,10 @@ export default async function ReceiptPage({ params, searchParams }: { params: Pr
   const view = preparationEnabled ? combined?.receipt : await readReceiptView(getDatabase(), id, user.id).catch(() => null); if (!view) notFound();
   const { claim, lines, review, suggestion, confirmation } = view;
   const evidence = quoteEvidence(review, claim.version, lines.map(line => line.id), suggestion);
+  // IAC-384: a draft pre-filled from a photo read says so, with the model named from the stored read row. The table only allows the two known models.
+  const photoModel = review.photoReadId ? await photoReadModel(getDatabase(), review.photoReadId) : null;
+  const photoModelName = photoModel ? CLAUDE_MODELS.find(name => name === photoModel) : undefined;
+  const photoLine = photoModelName ? photoEvidenceLine(aiModelLabel(CLAUDE_NAMES[photoModelName]), review.photoUnchanged) : null;
   // Provider and model come from the stored audit of the READY suggestion, never from the environment.
   const aiLabel = suggestion?.status === "READY" ? receiptAuditLabel(suggestion) : null;
   const aiName = aiLabel ? aiSuggesterName(aiLabel.short) : "AI";
@@ -53,7 +60,7 @@ export default async function ReceiptPage({ params, searchParams }: { params: Pr
   // IAC-373 shell cards: the same saved suggestion, run state and confirmation this page already reads. No new query.
   const aiAccepted = Boolean(confirmation?.selections.some(line => line.provenance === "AI_ACCEPTED"));
   const reviews = knownReviews(claim.status);
-  const shellState: ShellState = { typedReceipt: true,
+  const shellState: ShellState = { typedReceipt: true, ...(review.photoReadId ? { photoReceipt: true } : {}),
     ai: aiCard({ applicable: true, suggestion: confirmation ? aiAccepted ? "READY" : "NONE" : suggestionKind(suggestion?.status, running, evidence.grounded), confirmed: Boolean(confirmation), aiAccepted, savedModel: aiLabel?.model ?? null, configured: configuredReceiptAiName() }),
     paypal: paypalCard({ claimStatus: claim.status, approvals: reviews, payout: null }) };
   const summary: SummaryData = { claimant: claimantLabel(user, claim.claimantId), program: claim.program.charAt(0).toUpperCase() + claim.program.slice(1), amount: total,
@@ -68,7 +75,7 @@ export default async function ReceiptPage({ params, searchParams }: { params: Pr
     {!confirmation && <AiRecommendation ready={evidence.grounded} running={running} audit={suggestion?.status === "READY" ? readReceiptAudit(suggestion) : null} configured={configuredReceiptAiName()} aiOff={aiOff} prepareHref={combined && editable && !aiOff ? "#prepare-proposal" : null} editable={editable}
       lines={lines.map(line => ({ id: line.id, description: line.description, amount: `$${money(line.amountCents)}`, proposal: evidence.grounded ? suggestion?.proposals?.find(p => p.lineId === line.id) ?? null : null }))} />}
     {notice && notices[notice] && <p role="status" className="notice">{notices[notice]}</p>}
-    <div className="receipt-review-layout"><ReceiptEvidence evidence={evidence} modelLabel={suggestion?.status === "READY" ? aiLabel ? aiModelLabel(aiLabel.model) : "Unrecognized AI record" : null} /><div className="receipt-review-work">
+    <div className="receipt-review-layout"><ReceiptEvidence evidence={evidence} photoLine={photoLine} modelLabel={suggestion?.status === "READY" ? aiLabel ? aiModelLabel(aiLabel.model) : "Unrecognized AI record" : null} /><div className="receipt-review-work">
     {confirmation ? <section><h2>Human confirmation recorded</h2><p>Every category was confirmed by the claimant. Changing this draft requires a new review.</p>{aiAccepted && <p className="ai-model-line">{aiModelLine(suggestion?.status === "READY" ? readReceiptAudit(suggestion) : null)}</p>}
       <ul>{confirmation.selections.map(line => <li key={line.lineId}>{line.lineId}: {names[line.category]} · {line.provenance === "AI_ACCEPTED" ? "Human accepted an AI suggestion" : `Human choice: ${line.reason}`}</li>)}</ul>{stored?.matches.length ? <p className="notice prohibited-flag">Receipt text flag ({stored.version}): mentions {describeMatches(stored.matches)}. {stored.unresolved.length ? "You acknowledged it is not claimed under another category." : "A confirmed line carries that category."}</p> : null}<Link className="button-link" href={`/claims/${id}`}>View allocation</Link><p className="muted">{claim.status === "DRAFT" ? user.role === "CLAIMANT" ? "Next: review funding and freeze the terms for two separate approvers." : "Review funding. The claimant must freeze the terms before approval." : "View the claim for its current approval and payment status."}</p></section> : <>
       {combined ? <ProposalReview key={`${review.id}:${suggestionHash(suggestion)}`} id={id} reviewId={review.id} draftHash={review.draftHash} suggestionHash={suggestionHash(suggestion)} suggestionId={suggestion?.id ?? null} runHash={combined.preparation.runHash} aiName={aiName} aiOff={aiOff}

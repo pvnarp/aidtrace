@@ -11,6 +11,7 @@ import { connectDatabase } from "../src/server/db";
 import { seedFixture } from "../db/fixture";
 import * as s from "../db/schema";
 import { RETIRED_MODEL_REVISION, RETIRED_MODEL_SHA256 } from "./support/claude-stub";
+import { addLegacyPhotoColumn } from "./support/policy-db";
 import { createReceiptDraft, readReceiptView, suggestReceipt, suggestionHash } from "../src/receipt/service";
 import type { DraftInput } from "../src/receipt/terms";
 import { createClaudeReceiptCategorizer, type ClaudeMessagesClient } from "../src/ai/claude-receipt";
@@ -179,7 +180,7 @@ describe("provider and model columns", () => {
 });
 
 describe("migration 0011 backfill", () => {
-  const draftNow = async () => createReceiptDraft(connection.db, "maria", input, payee);
+  const draftNow = async () => { await addLegacyPhotoColumn(connection.client); return createReceiptDraft(connection.db, "maria", input, payee); };
   const reviewOf = async (id: string) => { const [row] = await connection.client`select id from receipt_reviews where claim_id = ${id}`; return row!.id as string; };
   // Raw SQL only while the database is at 0010: the application schema already names the new columns.
   const insertRaw = (reviewId: string, attempt: number, status: string, fields: { id?: string; proposals?: unknown; audit?: unknown; errorCode?: string }) =>

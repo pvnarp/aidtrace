@@ -7,6 +7,8 @@ import { serializable } from "../ledger/service";
 import { ReceiptAiError, validateProposals } from "../ai/receipt";
 import { receiptAuditColumns, storedReceiptAudit, type AnyReceiptCategorizer, type StoredReceiptAudit } from "../ai/audit";
 import { screenReceiptText, unresolvedMatches } from "./prohibited-screen";
+import { linkablePhotoRead, photoReadDigest } from "./photo-reads";
+import { photoContentDigest } from "./photo-digest";
 import { CLAIM_ID, digest, draftHash, budgetFor, normalizeDraft, type DraftInput } from "./terms";
 
 async function actorFor(tx: LedgerTransaction, id: string) {
@@ -47,7 +49,23 @@ export function configuredReceiptPayee(env: Record<string, string | undefined>) 
   if (!payee || !/^[^\s@]+@(?:personal\.example\.com|example\.invalid)$/.test(payee) || !allowed.includes(payee)) throw new Error("Configured sandbox recipient required");
   return payee;
 }
-export async function createReceiptDraft(db: AppDatabase, actorId: string, input: DraftInput, payee: string, singleSession = false) {
+// IAC-384: whether the saved values are still exactly what the linked photo read pre-filled. Computed here on every revision, never taken from the client.
+const unchangedFromPhoto = (parsed: ReturnType<typeof normalizeDraft>, prefillSha256: string | null) => prefillSha256 !== null && photoContentDigest({ vendor: parsed.vendor,
+  lines: parsed.lines.map(line => ({ description: line.description, amountCents: line.amountCents })), totalCents: parsed.lines.reduce((sum, line) => sum + line.amountCents, 0n), source: parsed.source }) === prefillSha256;
+function isPhotoLinkRace(error: unknown): boolean {
+  let current = error;
+  for (let depth = 0; depth < 8 && current && typeof current === "object"; depth++) {
+    if ("constraint_name" in current && current.constraint_name === "receipt_review_photo_read_first") return true;
+    current = "cause" in current ? current.cause : undefined;
+  }
+  return false;
+}
+export async function createReceiptDraft(db: AppDatabase, actorId: string, input: DraftInput, payee: string, singleSession = false, photoReadId: string | null = null): Promise<string> {
+  // Two creates with one read id: the partial unique index lets one keep the link. The loser is rerun once, sees the link taken and saves its receipt without one.
+  try { return await createReceiptDraftOnce(db, actorId, input, payee, singleSession, photoReadId); }
+  catch (error) { if (photoReadId === null || !isPhotoLinkRace(error)) throw error; return createReceiptDraftOnce(db, actorId, input, payee, singleSession, photoReadId); }
+}
+async function createReceiptDraftOnce(db: AppDatabase, actorId: string, input: DraftInput, payee: string, singleSession: boolean, photoReadId: string | null) {
   const parsed = normalizeDraft(input); const id = `R-${randomUUID()}`;
   if (!/^[^\s@]+@(?:personal\.example\.com|example\.invalid)$/.test(payee)) throw new Error("Sandbox fixture recipient required");
   return serializable(db, async tx => {
@@ -60,8 +78,9 @@ export async function createReceiptDraft(db: AppDatabase, actorId: string, input
       vendor: parsed.vendor, program: parsed.program, incurredOn: parsed.incurredOn, payeeEmail: payee, payeeIsPlaceholder: payee.endsWith(".invalid"), isFixture: true }).returning();
     const lines = parsed.lines.map(line => ({ ...line, claimId: id, claimVersion: 1, category: "UNKNOWN", budgetLine: "unconfirmed" }));
     await tx.insert(s.claimLines).values(lines);
+    const link = await linkablePhotoRead(tx, photoReadId, actor);
     await tx.insert(s.receiptReviews).values({ claimId: id, claimVersion: 1, revision: 1, source: parsed.source,
-      sourceHash: digest(parsed.source), draftHash: draftHash(claim!, lines), createdBy: actor.id });
+      sourceHash: digest(parsed.source), draftHash: draftHash(claim!, lines), createdBy: actor.id, photoReadId: link?.id ?? null, photoUnchanged: link ? unchangedFromPhoto(parsed, link.prefillSha256) : false });
     return id;
   });
 }
@@ -78,7 +97,8 @@ export async function editReceiptDraft(db: AppDatabase, id: string, actor: strin
     const lines = parsed.lines.map(line => ({ ...line, claimId: id, claimVersion: claim!.version, category: "UNKNOWN", budgetLine: "unconfirmed" }));
     await tx.insert(s.claimLines).values(lines);
     await tx.insert(s.receiptReviews).values({ claimId: id, claimVersion: claim!.version, revision: value.review.revision + 1, source: parsed.source,
-      sourceHash: digest(parsed.source), draftHash: draftHash(claim!, lines), createdBy: actor });
+      sourceHash: digest(parsed.source), draftHash: draftHash(claim!, lines), createdBy: actor, photoReadId: value.review.photoReadId,
+      photoUnchanged: value.review.photoReadId ? unchangedFromPhoto(parsed, await photoReadDigest(tx, value.review.photoReadId)) : false });
   });
 }
 export async function suggestReceipt(db: AppDatabase, id: string, actor: string, reviewId: string, expectedHash: string, categorize: AnyReceiptCategorizer, expectedSuggestionHash: string) {

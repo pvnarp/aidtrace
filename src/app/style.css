@@ -712,3 +712,17 @@ fieldset.rules-field-group { padding: 0; }
 @media (max-width: 1320px) {
   .product-org { display: none; }
 }
+/* IAC-384: the receipt photo reader sits beside the draft form on a wide screen and above it on a narrow one. */
+.receipt-line[hidden] { display: none; }
+.photo-layout { display: grid; gap: 24px; align-items: start; }
+.photo-layout.with-photo { grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); }
+.photo-layout .photo-reader { grid-column: 2; grid-row: 1; position: sticky; top: 16px; display: grid; gap: 10px; }
+.photo-layout #receipt-entry { grid-column: 1; grid-row: 1; }
+.photo-preview { margin: 0; }
+.photo-preview img { display: block; max-width: 100%; width: auto; height: auto; max-height: 70vh; object-fit: contain; }
+@media (max-width: 900px) {
+  .photo-layout.with-photo { grid-template-columns: minmax(0, 1fr); }
+  .photo-layout .photo-reader, .photo-layout #receipt-entry { grid-column: 1; position: static; }
+  .photo-layout .photo-reader { grid-row: 1; }
+  .photo-layout #receipt-entry { grid-row: 2; }
+}

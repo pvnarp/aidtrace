@@ -8,6 +8,7 @@ import { ActionForm } from "./action-form";
 import { isRetryableAttempt } from "../../../ledger/retry";
 import { CLAIM_ID } from "../../../receipt/terms";
 import { readReceiptView } from "../../../receipt/service";
+import { currentPhotoLink } from "../../../receipt/photo-reads";
 import { requireReceiptConfirmation } from "../../../receipt/guard";
 import { claimFailureNotices } from "../../../server/claim-notices";
 import { categoryNames as categories, reviewTime } from "../../../server/display";
@@ -119,9 +120,11 @@ export default async function ClaimPage({ params, searchParams }: { params: Prom
   // IAC-373 shell cards: only facts this page already loaded. C-104 is a preclassified example with no receipt review.
   const aiAccepted = Boolean(view.receiptReview?.lines.some(line => line.provenance === "AI_ACCEPTED"));
   const savedSuggestion = receipt?.suggestion?.status === "READY" ? receiptAuditLabel(receipt.suggestion) : null;
-  const shellState: ShellState = { typedReceipt: CLAIM_ID.test(claimId),
+  // IAC-384: the Receipt rail step says so when the newest revision links a photo read. One read of the review row, only for a receipt claim; no other page changes.
+  const photoLinked = CLAIM_ID.test(claimId) ? (await currentPhotoLink(db, claimId)).linked : false;
+  const shellState: ShellState = { typedReceipt: CLAIM_ID.test(claimId), ...(photoLinked ? { photoReceipt: true } : {}),
     ai: aiCard({ applicable: CLAIM_ID.test(claimId), suggestion: aiAccepted ? "READY" : "NONE", confirmed: true, aiAccepted, savedModel: savedSuggestion?.model ?? null, configured: configuredReceiptAiName() }),
-    paypal: paypalCard({ claimStatus: claim.status, approvals: approvals.length, amount: usd(total), payout: { attempt: attempt ? { state: attempt.state, itemStatus: attempt.itemStatus, payoutBatchId: attempt.payoutBatchId } : null, keyless: !canPay } }) };
+    paypal: paypalCard({ claimStatus: claim.status, approvals: approvals.length, amount: usd(total), takeoverWaiting: autoWaiting, payout: { attempt: attempt ? { state: attempt.state, itemStatus: attempt.itemStatus, payoutBatchId: attempt.payoutBatchId } : null, keyless: !canPay } }) };
   const receiptLink = CLAIM_ID.test(claimId) ? `/claims/${claimId}/receipt` : undefined;
   // Trust v2 (IAC-415) Rule checks rows. Only checks the server evaluated and this page loaded: the stored categories against the
   // organization's prohibited list, the stored receipt text screen (absent for a seeded fixture), and the funding result. Layout only.

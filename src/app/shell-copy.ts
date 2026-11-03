@@ -111,6 +111,8 @@ export const PAYOUT_LABELS: Record<PayoutNoteStatus, string> = {
 };
 export const PAYPAL_NOTE = "Approved does not mean paid.";
 export const PAYPAL_PAID_NOTE = "Paid appears only after PayPal's own item reports success.";
+// IAC-405 takeover wording (ASSUMPTIONS section 82): shown while an auto-recognized claim whose automatic send did not go out has fewer than two takeover approvals.
+export const PAYPAL_TAKEOVER_WAITING = "Not ready: two approvers must take over";
 export type PayPalInput = {
   /** Null on the new-receipt page, where no claim exists yet. */
   claimStatus: string | null;
@@ -119,6 +121,8 @@ export type PayPalInput = {
   /** Payment facts, or null when the page did not load them. attempt null means no attempt row exists. */
   payout: { attempt: PayoutAttemptView | null; keyless: boolean } | null;
   amount?: string;
+  /** True only when the claim page read an auto-recognized claim waiting for two takeover approvals (stored records). Absent or false changes nothing. */
+  takeoverWaiting?: boolean;
 };
 export type PayPalKey = "not-ready" | "rejected" | "ready-keyless" | "ready" | "processing" | "verifying" | "needs-attention" | "paid" | "see-claim";
 export type PayPalCard = { key: PayPalKey; state: string; rail: string; note: string; batchId: string | null };
@@ -135,6 +139,7 @@ export function paypalCard(input: PayPalInput): PayPalCard {
   if (status === "REJECTED") return { key: "rejected", state: "Rejected. Nothing will be sent", rail: "Rejected", note: PAYPAL_NOTE, batchId: null };
   if (!input.payout) return { key: "see-claim", state: "See the claim for payment status", rail: "See the claim", note: PAYPAL_NOTE, batchId: null };
   const { attempt, keyless } = input.payout;
+  if (!attempt && status === "APPROVED" && input.takeoverWaiting === true) return { key: "not-ready", state: PAYPAL_TAKEOVER_WAITING, rail: "Not ready", note: PAYPAL_NOTE, batchId: null };
   if (!attempt && status === "APPROVED") {
     return keyless ? { key: "ready-keyless", state: `Ready${input.amount ? `: ${input.amount}` : ""}. Unpaid in this keyless session, no request is made`, rail: "Ready, unpaid", note: PAYPAL_NOTE, batchId: null }
       : { key: "ready", state: `Approved${input.amount ? `: ${input.amount}` : ""}. No payment has been sent yet`, rail: "Ready, not sent", note: PAYPAL_NOTE, batchId: null };
@@ -153,12 +158,14 @@ export function paypalCard(input: PayPalInput): PayPalCard {
 }
 
 // ---- Rail lines ----
+// IAC-384: the Receipt step when the current revision of the receipt links a photo read. Every other page keeps its old words.
+export const RAIL_RECEIPT_PHOTO = "Read from a photo";
 export type RailLine = { name: (typeof STAGES)[number]; tag?: "AI" | "PayPal"; state: string };
-export function railLines(input: { stage: Stage; typedReceipt: boolean; ai: AiCard; approvals: number | null; paypal: PayPalCard; required?: 1 | "auto" }): RailLine[] {
+export function railLines(input: { stage: Stage; typedReceipt: boolean; photoReceipt?: boolean; ai: AiCard; approvals: number | null; paypal: PayPalCard; required?: 1 | "auto" }): RailLine[] {
   // IAC-405 PR A (docs/ASSUMPTIONS.md section 77 item 13): required is 1 only for a decision that needs one approval (no holds found), read by the server from the stored decision. Absent, every line is as it always was.
   const one = input.required === 1;
   const lines: RailLine[] = [
-    { name: "Receipt", state: input.typedReceipt ? "Typed text and amounts" : "Preclassified example" },
+    { name: "Receipt", state: input.photoReceipt ? RAIL_RECEIPT_PHOTO : input.typedReceipt ? "Typed text and amounts" : "Preclassified example" },
     { name: "AI review", tag: "AI", state: input.ai.rail },
     { name: "Funding", state: "Rules, not AI" },
     // Say it once (IAC-415 PR 4, PR 5): while a claim awaits approval (stage 4) the count lives in the title and the approvals section, and before the freeze (stages 1 to 3)
