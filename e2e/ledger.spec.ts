@@ -1,5 +1,6 @@
 import { createHash, randomBytes } from 'node:crypto';
 import { spawn, type ChildProcess } from 'node:child_process';
+import { mkdirSync } from 'node:fs';
 import { test, expect, type Page } from '@playwright/test';
 import postgres from 'postgres';
 import { migrate } from 'drizzle-orm/postgres-js/migrator';
@@ -8,8 +9,9 @@ import { seedFixture } from '../db/fixture';
 import { ensureFixtureOpening } from '../src/ledger/opening';
 import { postJournal } from '../src/ledger/journal';
 import { recordDesignatedDonation } from '../src/ledger/donation';
-import { loadLedgerView, type LedgerRow } from '../src/ledger/view';
+import { entryTypeOf, loadLedgerView, type LedgerRow } from '../src/ledger/view';
 import { usd } from '../src/analytics/model';
+import { centerOverflow, EDGE_TOLERANCE, measureEdge, measureFilters, MIN_FILTER_INPUT, scrollSideways } from './grid-edge';
 import type { DonationObservation, DonationReader } from '../src/paypal/adapter';
 
 // IAC-380 step 2, the read-only /ledger view in a real browser against a real isolated PostgreSQL and a production build.
@@ -190,12 +192,10 @@ test('LG-04, LG-06, LG-07, GS-14 and GS-15: the contract holds at 1280 and at 39
     await page.keyboard.press('ArrowDown'); expect(await where()).toBe('gridcell:recordedAt:filter');
     await page.keyboard.press('ArrowDown'); expect(await where()).toBe('gridcell:recordedAt:row');
     await page.keyboard.press('ArrowRight'); expect(await where()).toBe(`gridcell:${width === 390 ? 'entryType' : 'effectiveOn'}:row`);
-    // GS-14 keyboard: a header filter opens from the keyboard. Tab from a filter input reaches its menu button, and Enter opens the menu.
-    await page.getByLabel('Type Filter Input').focus();
-    let button = false;
-    for (let step = 0; step < 4 && !button; step++) { await page.keyboard.press('Tab'); button = await page.evaluate(() => document.activeElement?.getAttribute('aria-label') === 'Open Filter Menu'); }
-    expect(button).toBe(true);
-    await page.keyboard.press('Enter'); await expect(page.getByLabel('Column Filter')).toBeVisible();
+    // GS-14 keyboard: a header filter opens from the keyboard. The floating filter has no menu button now (GE-06), so Control and Enter
+    // on the focused header open the full filter, and Escape closes it.
+    await page.locator('[role="columnheader"][col-id="entryType"]').focus();
+    await page.keyboard.press('Control+Enter'); await expect(page.getByLabel('Column Filter')).toBeVisible();
     await page.keyboard.press('Escape');
   }
   expect(seen.errors).toEqual([]); expect(seen.external).toBe(0);
@@ -275,7 +275,8 @@ test('GS-13: an amount of 2^53 plus one cents is exact in the cell, the filters,
   await debit.fill('90071992547409.92'); await expect(status(page)).toHaveText(`Showing 0 of ${all}`);
   await debit.fill(''); await expect(status(page)).toHaveText(`Showing ${all} of ${all}`);
   // Greater than and less than split at the boundary through the filter menu.
-  await page.locator('.ag-floating-filter[col-id="debitCents"] button[aria-label="Open Filter Menu"]').click();
+  // The header's own funnel opens the full filter (GE-06); the floating filter carries no menu button.
+  await page.locator('[role="columnheader"][col-id="debitCents"] .ag-header-cell-filter-button').click();
   // A second condition row appears once the first holds a value, so every locator names the first condition of the open popup.
   const popup = page.getByLabel('Column Filter');
   const operator = popup.getByRole('combobox', { name: 'Filtering operator' }).first(); const value = popup.getByRole('textbox', { name: 'Filter Value', exact: true }).first();
@@ -311,6 +312,152 @@ test('GS-16: double click, Enter and F2 on a data cell open no editor', async ({
   await cell.click(); await page.keyboard.press('Enter'); await expect(editors).toHaveCount(0);
   await page.keyboard.press('Escape'); await page.keyboard.press('F2'); await expect(editors).toHaveCount(0);
   await expect(cell).toContainText('1010');
+});
+
+// IAC-440 grid report polish, GE-01 to GE-06 on /ledger: real rows from this spec's database, a production build, no provider request.
+const LEDGER_LEAVES = ['recordedAt', 'effectiveOn', 'entryType', 'account', 'fund', 'debitCents', 'creditCents', 'claim', 'approvals', 'paypalReference'];
+const SIZES = [{ width: 1280, height: 800 }, { width: 1440, height: 900 }];
+// Every label in ENTRY_TYPES of src/ledger/view.ts, by its source type and purpose. The map itself is not exported.
+const ENTRY_TYPE_KEYS: [string, string][] = [
+  ['fixture_opening_balance', 'opening'], ['claim_recognition', 'recognition'], ['claim_recognition', 'restriction_release'], ['paypal_capture', 'donation'],
+  ['paypal_capture', 'donation_fee'], ['paypal_payout_item', 'settlement'], ['paypal_payout_item', 'payout_fee'],
+];
+async function openAt(page: Page, size: { width: number; height: number }) {
+  await page.setViewportSize(size); await page.goto('/ledger'); await page.waitForSelector('[role="grid"]'); await page.waitForSelector('.ag-row[row-id]:not(.ag-row-pinned)');
+}
+const cueText = 'Scroll sideways for more columns: Claim, Approvals, PayPal reference.';
+// GE_STILLS names a directory for the review stills, as AQ_STILLS and DONATIONS_STILLS do. Unset, nothing is written.
+const geStill = async (page: Page, name: string) => { if (process.env.GE_STILLS) { mkdirSync(process.env.GE_STILLS, { recursive: true }); await page.screenshot({ path: `${process.env.GE_STILLS}/${name}.png`, fullPage: true }); } };
+
+test('GE-01: at 1280 x 800 and 1440 x 900 no ledger header, group label, filter cell or cell crosses the grid right edge at scroll 0', async ({ page }) => {
+  await login(page, 'tara');
+  for (const size of SIZES) {
+    await openAt(page, size);
+    const rows = await dataRows(page).count(); expect(rows, 'real rows are on screen').toBeGreaterThanOrEqual(4);
+    const report = await measureEdge(page, LEDGER_LEAVES);
+    await geStill(page, `ledger-${size.width}`);
+    expect(report.crossing, `${size.width} px`).toEqual([]);
+    // The check is not vacuous: it looked at the headers, both group labels that start inside the edge, the filter row and the cells.
+    expect(report.checked.headers).toBe(7); expect(report.checked.groupLabels).toBe(2); expect(report.checked.filterCells).toBe(7); expect(report.checked.cells).toBeGreaterThanOrEqual(rows * 7);
+    // The frame's right edge falls on the Credit and Source boundary. Debit and Credit end inside it.
+    expect(Math.abs(report.gap.creditCents!), 'Credit ends on the edge').toBeLessThanOrEqual(EDGE_TOLERANCE);
+    expect(report.gap.debitCents!).toBeLessThan(-100);
+    expect(report.edge).toBeGreaterThan(1100);
+  }
+});
+
+test('GE-02: every entry type label shows whole in the Type column at 1280 and 1440, and the money cells are not cut', async ({ page }) => {
+  await login(page, 'tara');
+  const labels = ENTRY_TYPE_KEYS.map(([source, purpose]) => entryTypeOf(source, purpose).label);
+  expect(new Set(labels).size).toBe(7);
+  for (const size of SIZES) {
+    await openAt(page, size);
+    // Each label, set in the Type cell's own font, against the room the cell leaves it after its padding.
+    const room = await page.evaluate(names => {
+      const cell = document.querySelector('.ag-row:not(.ag-row-pinned) .ag-cell[col-id="entryType"]') as HTMLElement; const style = getComputedStyle(cell);
+      const probe = document.createElement('span');
+      Object.assign(probe.style, { position: 'absolute', visibility: 'hidden', whiteSpace: 'nowrap', fontFamily: style.fontFamily, fontSize: style.fontSize, fontWeight: style.fontWeight, letterSpacing: style.letterSpacing });
+      cell.appendChild(probe);
+      const widths = Object.fromEntries(names.map(name => { probe.textContent = name; return [name, probe.getBoundingClientRect().width]; })); probe.remove();
+      return { room: cell.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight), widths, fontSize: style.fontSize };
+    }, labels);
+    expect(room.fontSize).toBe('14px');
+    for (const name of labels) expect(room.widths[name]!, `${name} at ${size.width}`).toBeLessThanOrEqual(room.room);
+    // The rows on screen: no Type cell is truncated, and no Debit or Credit cell is, except the 2^53 + 1 boundary amount of GS-13 (a 22 character value).
+    const truncated = await page.evaluate(() => [...document.querySelectorAll('.ag-row:not(.ag-row-pinned) .ag-cell[col-id="entryType"], .ag-row:not(.ag-row-pinned) .ag-cell[col-id="debitCents"], .ag-row:not(.ag-row-pinned) .ag-cell[col-id="creditCents"]')]
+      .filter(cell => (cell.textContent ?? '') !== '$90,071,992,547,409.93')
+      .filter(cell => [cell, ...cell.querySelectorAll('*')].some(node => node.clientWidth > 0 && node.scrollWidth > node.clientWidth)).map(cell => `${cell.getAttribute('col-id')}: ${cell.textContent}`));
+    expect(truncated, `${size.width} px`).toEqual([]);
+    const typeTexts = await dataRows(page).locator('[col-id="entryType"]').allTextContents();
+    expect(typeTexts.length).toBeGreaterThanOrEqual(4); for (const text of typeTexts) expect(labels, text).toContain(text);
+  }
+});
+
+test('GE-03: every ledger date floating filter shows its whole mm/dd/yyyy and every text and money filter input is at least 64 px wide', async ({ page }) => {
+  await login(page, 'tara');
+  for (const size of SIZES) {
+    await openAt(page, size);
+    // The floating filter carries no menu button now, so the input fills its cell. The full filter opens from the header (GE-06).
+    await expect(page.locator('.ag-floating-filter button[aria-label="Open Filter Menu"]:visible')).toHaveCount(0);
+    const seen = new Map<string, Awaited<ReturnType<typeof measureFilters>>['inputs'][number]>();
+    for (const side of ['left', 'right'] as const) { await scrollSideways(page, side); for (const item of (await measureFilters(page)).inputs) seen.set(item.id, item); }
+    await scrollSideways(page, 'left');
+    expect([...seen.keys()].sort(), 'every column was measured').toEqual([...LEDGER_LEAVES].sort());
+    for (const item of seen.values()) {
+      if (item.kind === 'date') { expect(item.needs, `${item.id} copy measured`).toBeGreaterThan(150); expect(item.width, `${item.id} date input ${item.width} of ${item.needs}`).toBeGreaterThanOrEqual(item.needs); }
+      else expect(item.width, `${item.id} ${item.kind} input`).toBeGreaterThanOrEqual(MIN_FILTER_INPUT);
+    }
+    expect([...seen.values()].filter(item => item.kind === 'date').map(item => item.id).sort()).toEqual(['effectiveOn', 'recordedAt']);
+  }
+});
+
+test('GE-04: the status line names the columns past the edge exactly when the center viewport scrolls sideways, and never on the phone layout', async ({ page }) => {
+  await login(page, 'tara');
+  const cue = page.getByTestId('gx-more-columns');
+  for (const size of SIZES) {
+    await openAt(page, size);
+    const overflow = await centerOverflow(page);
+    expect(overflow.scrollWidth, `${size.width} px: the three Source columns are past the edge`).toBeGreaterThan(overflow.clientWidth);
+    await expect(cue).toHaveCount(overflow.overflows ? 1 : 0); await expect(cue).toHaveText(cueText);
+    // The count line keeps its exact text, and the cue sits beside it, in the page's own small muted type.
+    await expect(status(page)).toHaveText(/^Showing \d+ of \d+$/);
+    const style = await cue.evaluate(element => ({ size: getComputedStyle(element).fontSize, bar: getComputedStyle(element.parentElement!).display, same: Math.abs(element.getBoundingClientRect().top - (document.querySelector('[data-testid="gx-status"]') as HTMLElement).getBoundingClientRect().top) < 4 }));
+    expect(style).toEqual({ size: '14px', bar: 'flex', same: true });
+    // It does not depend on the scroll position: at the far right it is still there and still true.
+    await scrollSideways(page, 'right'); await expect(cue).toHaveText(cueText);
+    if (size.width === 1440) await geStill(page, 'ledger-1440-scrolled-right');
+    await scrollSideways(page, 'left');
+  }
+  // Nothing overflows: with the grid zoomed out the frame is wider than every column, and the cue is gone with the overflow.
+  await page.addStyleTag({ content: '.gx-root { zoom: 0.5; }' });
+  await expect.poll(async () => (await centerOverflow(page)).overflows).toBe(false);
+  await expect(cue).toHaveCount(0);
+  // The phone layout moves those fields to the details list, so it never shows the cue.
+  await openLedger(page, 390); await expect(page.getByTestId('gx-phone-extras')).toBeVisible(); await expect(cue).toHaveCount(0);
+});
+
+test('GE-05: a search or a column filter that hides every posting shows the ledger copy, and clearing it brings the rows back', async ({ page }) => {
+  await login(page, 'tara'); await openLedger(page, 1440);
+  const all = (await loadLedgerView(connection.db, 'tara')).rows.length;
+  const overlay = page.locator('.ag-overlay-no-matching-rows-center');
+  await expect(overlay).toHaveCount(0);
+  // The same locator must see rows first, or the wait below would pass on a selector that matches nothing.
+  const rows = dataRows(page); await expect(rows).not.toHaveCount(0);
+  await page.getByLabel('Search this table').fill('zzzz-no-such-posting');
+  await expect(status(page)).toHaveText(`Showing 0 of ${all}`);
+  await expect(overlay).toHaveText('No postings match this search or filter.');
+  // The filtered rows fade out before the grid removes them; wait for that so the overlay never sits over stale rows.
+  await expect(rows).toHaveCount(0);
+  await geStill(page, 'ledger-filtered-1440');
+  await page.getByLabel('Search this table').fill(''); await expect(status(page)).toHaveText(`Showing ${all} of ${all}`); await expect(overlay).toHaveCount(0);
+  await page.getByLabel('Type Filter Input').fill('zzzz-no-such-type');
+  await expect(status(page)).toHaveText(`Showing 0 of ${all}`);
+  await expect(overlay).toHaveText('No postings match this search or filter.');
+  await page.getByLabel('Type Filter Input').fill(''); await expect(status(page)).toHaveText(`Showing ${all} of ${all}`); await expect(overlay).toHaveCount(0);
+});
+
+test('GE-06: the full filter for a text column and a money column opens from the header by keyboard, and from the header funnel with a mouse', async ({ page }) => {
+  await login(page, 'tara'); await openLedger(page, 1440);
+  const view = await loadLedgerView(connection.db, 'tara'); const all = view.rows.length;
+  const popup = page.getByLabel('Column Filter');
+  // Keyboard only: focus the header, Control and Enter, then type into the filter that opens. The typed text filters the rows.
+  await page.locator('[role="columnheader"][col-id="entryType"]').focus(); await page.keyboard.press('Control+Enter');
+  await expect(popup).toBeVisible(); await page.keyboard.type('Opening');
+  await expect(status(page)).toHaveText(`Showing ${view.rows.filter(row => row.entryType.includes('Opening')).length} of ${all}`);
+  // Still keyboard only: select the typed text and delete it inside the popup, then Escape closes the popup.
+  await page.keyboard.press('Control+A'); await page.keyboard.press('Backspace'); await expect(status(page)).toHaveText(`Showing ${all} of ${all}`);
+  await page.keyboard.press('Escape'); await expect(popup).toHaveCount(0);
+  await page.locator('[role="columnheader"][col-id="debitCents"]').focus(); await page.keyboard.press('Control+Enter');
+  await expect(popup).toBeVisible(); await page.keyboard.type('1500');
+  await expect(status(page)).toHaveText(`Showing ${view.rows.filter(row => row.debitCents === '150000').length} of ${all}`);
+  await page.keyboard.press('Control+A'); await page.keyboard.press('Backspace'); await expect(status(page)).toHaveText(`Showing ${all} of ${all}`);
+  await page.keyboard.press('Escape'); await expect(popup).toHaveCount(0);
+  // Mouse: the funnel in each header opens the same full filter.
+  for (const id of ['entryType', 'creditCents']) {
+    await page.locator(`[role="columnheader"][col-id="${id}"] .ag-header-cell-filter-button`).click();
+    // A click leaves the focus on the header, so the popup closes with a click on the page's status line, not with Escape.
+    await expect(popup).toBeVisible(); await status(page).click(); await expect(popup).toHaveCount(0);
+  }
 });
 
 // Runs last: every test above visited the view, filtered, sorted, searched and reset. None of it may touch a financial table.

@@ -6,12 +6,29 @@ import { createHash } from "node:crypto";
 import { and, asc, eq, sql } from "drizzle-orm";
 import * as s from "../../db/schema";
 import type { AppDatabase } from "../server/db";
+import { fundAutopilotEnabled, fundModesEnabled, type FlagEnv } from "../fund-modes/flag";
+import { recordedMode, type ModeReader } from "../fund-modes/modes";
 import { loadPolicyFacts, type PolicyReader } from "./facts";
 import { readModelChecks, type StoredModelRun } from "./model-read";
 import { evaluatePolicy } from "./rules";
 import type { PolicyFacts } from "./types";
 
-export type PolicyRefusal = "APPROVER_REQUIRED" | "NO_DECISION" | "STALE" | "NOT_AWAITING" | "INVALID_REQUEST";
+export type PolicyRefusal = "APPROVER_REQUIRED" | "NO_DECISION" | "STALE" | "NOT_AWAITING" | "INVALID_REQUEST" | "NOT_SWEEPABLE";
+// Who starts a run. The web route builds only the first kind: runPolicyChecks hard-codes it. The second is built only by src/policy/sweep.ts for the policy sweep
+// (docs/plans/FUND_MODES_SCOPE.md section 3) and carries no user. The database guard of migration 0019 backs both rules.
+export type RunStarter = { trigger: "APPROVER"; id: string } | { trigger: "SWEEP"; env?: FlagEnv };
+
+// The two columns every run insert sets from its starter. An APPROVER run names its approver. A SWEEP run has none, and the database check refuses a user there.
+export const startedFields = (starter: RunStarter) => starter.trigger === "APPROVER"
+  ? { trigger: "APPROVER" as const, startedBy: starter.id }
+  : { trigger: "SWEEP" as const, startedBy: null };
+// A SWEEP run is allowed only with the fund modes flag on and for a decision whose recorded effective mode is Assisted or Autopilot. With the flag off nothing is sweepable, so a flag-off process selects nothing and spends no model call. A missing decision_modes row (a decision frozen with the flag off,
+// or before migration 0019) is Manual, so it is never swept.
+export async function sweepable(tx: ModeReader, decisionHash: string, env?: FlagEnv): Promise<boolean> {
+  if (!fundModesEnabled(env)) return false;
+  const mode = await recordedMode(tx, decisionHash);
+  return mode === "ASSISTED" || (mode === "AUTOPILOT" && fundAutopilotEnabled(env));
+}
 export type PolicyRunResult =
   | { status: "RAN"; runId: string; flags: number; notChecked: number }
   | { status: "EXISTS"; runId: string }
@@ -34,17 +51,27 @@ function canonical(value: unknown): string {
 }
 export const factsDigest = (facts: PolicyFacts) => createHash("sha256").update(canonical(facts)).digest("hex");
 
+// The web route and the approver paths call this one: an APPROVER run, started by an approver who is not the claimant.
 export async function runPolicyChecks(db: AppDatabase, decisionHash: string, actor: { id: string }): Promise<PolicyRunResult> {
+  return runRulesCheck(db, decisionHash, { trigger: "APPROVER", id: actor.id });
+}
+
+// Shared body, exported for src/policy/sweep.ts only. An APPROVER run follows today's rules exactly. A SWEEP run has no user to authorize, so it is refused unless the
+// decision's recorded mode is Assisted or Autopilot (the database guard refuses it too), and it is never a Manual claim's check.
+export async function runRulesCheck(db: AppDatabase, decisionHash: string, starter: RunStarter): Promise<PolicyRunResult> {
   if (!HASH.test(decisionHash)) return { status: "REFUSED", reason: "INVALID_REQUEST" };
   // Read phase: authorization, decision state and facts, all from one snapshot. It writes nothing.
   const read = await db.transaction(async tx => {
-    const [user] = await tx.select({ id: s.users.id, role: s.users.role, organizationId: s.users.organizationId }).from(s.users).where(eq(s.users.id, actor.id));
-    if (!user || user.role !== "APPROVER") return { kind: "refused" as const, reason: "APPROVER_REQUIRED" as const };
+    const [user] = starter.trigger === "APPROVER"
+      ? await tx.select({ id: s.users.id, role: s.users.role, organizationId: s.users.organizationId }).from(s.users).where(eq(s.users.id, starter.id))
+      : [];
+    if (starter.trigger === "APPROVER" && (!user || user.role !== "APPROVER")) return { kind: "refused" as const, reason: "APPROVER_REQUIRED" as const };
     const [decision] = await tx.select().from(s.allocationDecisions).where(eq(s.allocationDecisions.decisionHash, decisionHash));
     // A decision in another organization looks the same as no decision.
-    if (!decision || decision.organizationId !== user.organizationId) return { kind: "refused" as const, reason: "NO_DECISION" as const };
+    if (!decision || (user && decision.organizationId !== user.organizationId)) return { kind: "refused" as const, reason: "NO_DECISION" as const };
     const [claim] = await tx.select().from(s.claims).where(and(eq(s.claims.id, decision.claimId), eq(s.claims.version, decision.claimVersion)));
-    if (!claim || claim.claimantId === user.id) return { kind: "refused" as const, reason: "APPROVER_REQUIRED" as const };
+    if (!claim || (user && claim.claimantId === user.id)) return { kind: "refused" as const, reason: "APPROVER_REQUIRED" as const };
+    if (starter.trigger === "SWEEP" && !(await sweepable(tx, decisionHash, starter.env))) return { kind: "refused" as const, reason: "NOT_SWEEPABLE" as const };
     if (decision.invalidatedAt || decision.recognizedAt) return { kind: "refused" as const, reason: "STALE" as const };
     if (claim.status !== "AWAITING_APPROVAL") return { kind: "refused" as const, reason: "NOT_AWAITING" as const };
     const [existing] = await tx.select({ id: s.policyCheckRuns.id }).from(s.policyCheckRuns).where(and(eq(s.policyCheckRuns.decisionHash, decisionHash), eq(s.policyCheckRuns.kind, "RULES")));
@@ -65,7 +92,7 @@ export async function runPolicyChecks(db: AppDatabase, decisionHash: string, act
       const [existing] = await tx.select({ id: s.policyCheckRuns.id }).from(s.policyCheckRuns).where(and(eq(s.policyCheckRuns.decisionHash, decisionHash), eq(s.policyCheckRuns.kind, "RULES")));
       if (existing) return { status: "EXISTS" as const, runId: existing.id };
       const [run] = await tx.insert(s.policyCheckRuns).values({
-        decisionHash, claimId: read.claimId, claimVersion: read.claimVersion, organizationId: read.organizationId, kind: "RULES", startedBy: actor.id,
+        decisionHash, claimId: read.claimId, claimVersion: read.claimVersion, organizationId: read.organizationId, kind: "RULES", ...startedFields(starter),
         settingsVersions: outcome.settingsVersions, ruleSetVersion: outcome.ruleSetVersion, factsDigest: factsDigest(facts),
       }).returning({ id: s.policyCheckRuns.id });
       if (!run) throw new Error("Policy check run was not created");
@@ -102,8 +129,8 @@ export type StoredPolicyRun = {
 };
 // Read-only. Returns the stored rows exactly as written, in sequence order.
 export async function readPolicyChecks(tx: PolicyReader, decisionHash: string, now?: Date): Promise<StoredPolicyRun | null> {
-  const [run] = await tx.select({ id: s.policyCheckRuns.id, startedAt: s.policyCheckRuns.startedAt, startedByName: s.users.displayName, ruleSetVersion: s.policyCheckRuns.ruleSetVersion, settingsVersions: s.policyCheckRuns.settingsVersions })
-    .from(s.policyCheckRuns).innerJoin(s.users, eq(s.users.id, s.policyCheckRuns.startedBy))
+  const [run] = await tx.select({ id: s.policyCheckRuns.id, startedAt: s.policyCheckRuns.startedAt, startedByName: sql<string>`coalesce(${s.users.displayName}, 'Policy sweep')`, ruleSetVersion: s.policyCheckRuns.ruleSetVersion, settingsVersions: s.policyCheckRuns.settingsVersions })
+    .from(s.policyCheckRuns).leftJoin(s.users, eq(s.users.id, s.policyCheckRuns.startedBy))
     .where(and(eq(s.policyCheckRuns.decisionHash, decisionHash), eq(s.policyCheckRuns.kind, "RULES")));
   if (!run) return null;
   const rows = await tx.select().from(s.policyCheckResults).where(eq(s.policyCheckResults.runId, run.id)).orderBy(asc(s.policyCheckResults.sequence));

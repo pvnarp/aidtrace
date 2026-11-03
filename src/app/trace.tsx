@@ -20,13 +20,13 @@ const LEGEND: readonly (readonly [TraceName, string])[] = [
   ["Fund split", "Computed from fund policy"], ["Approvals", "Two different people"], ["PayPal payout", "Separate decision"],
 ];
 
-export type TraceInput = { stage: Stage; typedReceipt: boolean; ai: AiCard; approvals: number | null; paypal: PayPalCard; policyBlocked?: boolean };
+export type TraceInput = { stage: Stage; typedReceipt: boolean; ai: AiCard; approvals: number | null; paypal: PayPalCard; policyBlocked?: boolean; required?: 1 | "auto" };
 
 /** The six steps with their state and detail text. A step is blocked only when the claim sits at stage 3 and organization policy stops it. */
 export function traceSteps(input: TraceInput): TraceStep[] {
   const { stage } = input;
   const blocked = Boolean(input.policyBlocked) && stage === 3;
-  const lines = railLines({ stage, typedReceipt: input.typedReceipt, ai: input.ai, approvals: input.approvals, paypal: input.paypal });
+  const lines = railLines({ stage, typedReceipt: input.typedReceipt, ai: input.ai, approvals: input.approvals, paypal: input.paypal, ...(input.required ? { required: input.required } : {}) });
   const state = (index: number): TraceState => {
     if (index === 2) return blocked ? "blocked" : stage >= 3 ? "done" : "future";
     if (index === 3) return stage >= 4 ? "done" : stage === 3 && !blocked ? "current" : "future";
@@ -60,10 +60,10 @@ function StepText({ step }: { step: TraceStep }) {
  * The stepper for a claim. A done step is a link only where the page supplies one for its stage (the old rail rule).
  * At 900 px and below the labels clip to the dots row and the compact line names the current step. All six names stay readable.
  */
-export function TraceStepper({ stage, state, reviews, links = {}, policyBlocked = false }: {
-  stage: Stage; state: { ai: AiCard; paypal: PayPalCard; typedReceipt: boolean }; reviews: number | null; links?: TraceLinks; policyBlocked?: boolean;
+export function TraceStepper({ stage, state, reviews, links = {}, policyBlocked = false, required }: {
+  stage: Stage; state: { ai: AiCard; paypal: PayPalCard; typedReceipt: boolean }; reviews: number | null; links?: TraceLinks; policyBlocked?: boolean; required?: 1 | "auto";
 }) {
-  const steps = traceSteps({ stage, typedReceipt: state.typedReceipt, ai: state.ai, approvals: reviews, paypal: state.paypal, policyBlocked });
+  const steps = traceSteps({ stage, typedReceipt: state.typedReceipt, ai: state.ai, approvals: reviews, paypal: state.paypal, policyBlocked, ...(required ? { required } : {}) });
   const now = currentTraceStep(steps); const position = steps.indexOf(now) + 1;
   return <nav aria-label="Expense trace" className="trace-nav">
     <ol className="trace">{steps.map(step => {

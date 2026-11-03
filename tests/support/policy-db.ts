@@ -11,7 +11,7 @@ import { createReceiptDraft, readReceiptView, confirmReceipt, suggestionHash } f
 
 // IAC-405 step 1 test helpers. Real Postgres in the isolated check project. No network, no model, no provider.
 export interface PolicyDatabase { db: AppDatabase; client: ReturnType<typeof postgres>; name: string; close: () => Promise<void> }
-export async function createPolicyDatabase(prefix: string, options: { migrationsFolder?: string; seed?: boolean } = {}): Promise<PolicyDatabase> {
+export async function createPolicyDatabase(prefix: string, options: { migrationsFolder?: string; seed?: boolean; payeeEmail?: string } = {}): Promise<PolicyDatabase> {
   const name = `${prefix}_${randomBytes(6).toString("hex")}`;
   if (!/^aidtrace_[a-z0-9_]+_[a-f0-9]{12}$/.test(name)) throw new Error("Unexpected test database name");
   const adminUrl = new URL(process.env.DATABASE_URL ?? "postgres://aidtrace@db:5432/aidtrace"); adminUrl.pathname = "/postgres";
@@ -19,7 +19,7 @@ export async function createPolicyDatabase(prefix: string, options: { migrations
   await admin`create database ${admin(name)}`;
   const { db, client } = connectDatabase(url.toString());
   await migrate(db, { migrationsFolder: options.migrationsFolder ?? "db/migrations" });
-  if (options.seed !== false) await seedFixture(db, { passwords: { maria: randomBytes(18).toString("hex"), tara: randomBytes(18).toString("hex"), ben: randomBytes(18).toString("hex") }, payeeEmail: "policy-test@example.invalid", payeeAllowlist: ["policy-test@example.invalid"] });
+  if (options.seed !== false) await seedFixture(db, { passwords: { maria: randomBytes(18).toString("hex"), tara: randomBytes(18).toString("hex"), ben: randomBytes(18).toString("hex") }, payeeEmail: options.payeeEmail ?? "policy-test@example.invalid", payeeAllowlist: ["policy-test@example.invalid"] });
   return { db, client, name, close: async () => { await client.end(); await admin`drop database ${admin(name)} with (force)`; await admin.end(); } };
 }
 
@@ -51,12 +51,17 @@ export async function insertClaim(db: AppDatabase, spec: ClaimSpec) {
   await db.insert(s.claimLines).values(spec.lines.map(line => ({ claimId: spec.id, claimVersion: version, description: "Policy test line", ...line })));
 }
 
-// The sixteen tables the financial hash covers (tests/analytics.integration.test.ts). The policy tables are not among them.
+// The sixteen tables the financial hash of tests/analytics.integration.test.ts covers, plus decision_modes, automated_decisions, fund_modes and fund_mode_proposals (IAC-405 PR F, docs/ASSUMPTIONS.md section 76) and payee_email_history, automation_switch_events and disbursement_origins (IAC-405 PR P, section 78): a policy check never changes a mode record, a mode proposal or an audit record of a decision. The other policy tables are not among them.
 export const FINANCIAL_TABLES = ["claims", "claim_lines", "allocation_decisions", "allocation_edges", "approvals", "fund_reservations", "reservation_budget_lines", "fund_credits", "fund_debits",
-  "journal_entries", "journal_postings", "disbursements", "disbursement_attempts", "donation_receipts", "retry_authorizations", "provider_events"];
-export async function financialHash(client: ReturnType<typeof postgres>) {
+  "journal_entries", "journal_postings", "disbursements", "disbursement_attempts", "donation_receipts", "retry_authorizations", "provider_events", "decision_modes", "automated_decisions", "fund_modes", "fund_mode_proposals", "payee_email_history", "automation_switch_events", "disbursement_origins"];
+// tables defaults to all twenty-three. A mode change writes fund_modes and fund_mode_proposals by design, so the mode change test hashes the other twenty-one (FM-11).
+export async function financialHash(client: ReturnType<typeof postgres>, tables: readonly string[] = FINANCIAL_TABLES) {
   const rows = [];
-  for (const table of FINANCIAL_TABLES) rows.push(await client`select to_jsonb(r)::text as v from ${client(table)} r order by (to_jsonb(r)::text) collate "C"`);
+  for (const table of tables) {
+    // A table that a database below its migration lacks counts as empty, so the hash compares across a migration (PC-24, migration 0017 and 0019 tests).
+    const [present] = await client`select to_regclass(${`public.${table}`}) is not null as present`;
+    rows.push(present!.present ? await client`select to_jsonb(r)::text as v from ${client(table)} r order by (to_jsonb(r)::text) collate "C"` : []);
+  }
   return digest(JSON.stringify(rows));
 }
 export async function tableHash(client: ReturnType<typeof postgres>, table: string) {

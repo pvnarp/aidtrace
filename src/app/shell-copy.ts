@@ -1,4 +1,5 @@
 import { payoutNoteStatus, type PayoutAttemptView, type PayoutNoteStatus } from "../donation/note";
+import { TRACE_APPROVALS_AUTOPILOT } from "../fund-modes/review-copy";
 
 // IAC-373 app shell. Pure wording and state mapping, no JSX, no I/O. Presentation only: every function here
 // reads facts a page already loaded from the server and returns text. None of it grants authority or changes
@@ -153,7 +154,9 @@ export function paypalCard(input: PayPalInput): PayPalCard {
 
 // ---- Rail lines ----
 export type RailLine = { name: (typeof STAGES)[number]; tag?: "AI" | "PayPal"; state: string };
-export function railLines(input: { stage: Stage; typedReceipt: boolean; ai: AiCard; approvals: number | null; paypal: PayPalCard }): RailLine[] {
+export function railLines(input: { stage: Stage; typedReceipt: boolean; ai: AiCard; approvals: number | null; paypal: PayPalCard; required?: 1 | "auto" }): RailLine[] {
+  // IAC-405 PR A (docs/ASSUMPTIONS.md section 77 item 13): required is 1 only for a decision that needs one approval (no holds found), read by the server from the stored decision. Absent, every line is as it always was.
+  const one = input.required === 1;
   const lines: RailLine[] = [
     { name: "Receipt", state: input.typedReceipt ? "Typed text and amounts" : "Preclassified example" },
     { name: "AI review", tag: "AI", state: input.ai.rail },
@@ -161,7 +164,7 @@ export function railLines(input: { stage: Stage; typedReceipt: boolean; ai: AiCa
     // Say it once (IAC-415 PR 4, PR 5): while a claim awaits approval (stage 4) the count lives in the title and the approvals section, and before the freeze (stages 1 to 3)
     // no approval can exist, so a count says nothing: the locked line reads "Locked. Two approvers" (short enough to stay on one rail line at 1440) and stage 4 reads
     // "Two different people", both while the PayPal card is "not-ready". A REJECTED claim (card "rejected") and stage 5 keep the count.
-    { name: "Approvals", state: input.approvals === null ? "People: see the claim" : input.stage <= 4 && input.paypal.key === "not-ready" ? input.stage === 4 ? "Two different people" : "Two approvers" : `People: ${input.approvals} of 2` },
+    { name: "Approvals", state: input.required === "auto" ? TRACE_APPROVALS_AUTOPILOT : input.approvals === null ? "People: see the claim" : input.stage <= 4 && input.paypal.key === "not-ready" ? input.stage === 4 ? (one ? "One person" : "Two different people") : (one ? "One approver" : "Two approvers") : `People: ${input.approvals} of ${one ? 1 : 2}` },
     { name: "PayPal", tag: "PayPal", state: input.paypal.rail },
   ];
   return lines.map((line, index) => index + 1 > input.stage ? { ...line, state: `Locked. ${line.state}` } : line);

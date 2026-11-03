@@ -2,8 +2,8 @@
 .aq-queue { margin-top: 8px; min-width: 0; }
 .aq-queue h2 { margin: 0 0 4px; }
 .aq-note { margin: 0 0 4px; font-size: 14px; color: var(--muted); }
-/* The frame follows the row count (two to twelve rows plus the header and the filter row), so a short queue stays short. */
-.aq-queue .gx-frame { height: calc(44px * (var(--aq-rows, 2) + 2) + 18px); min-height: 0; max-height: min(70vh, 640px); }
+/* The frame follows the row count (one to twelve rows plus the header, the filter row and 18 px for the frame border and a horizontal scrollbar), so a one-claim queue leaves no empty row. */
+.aq-queue .gx-frame { height: calc(44px * (var(--aq-rows, 1) + 2) + 18px); min-height: 0; max-height: min(70vh, 640px); }
 .aq-cell { display: flex; align-items: center; min-width: 0; line-height: 1.2; }
 .aq-vendor { display: flex; flex-direction: column; justify-content: center; min-width: 0; line-height: 1.2; }
 .aq-vendor-name, .aq-vendor small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -20,10 +20,16 @@
 .aq-mini i[data-state=done]:not(:last-child)::after { background: var(--navy); }
 .aq-mini i[data-state=current]:not(:last-child)::after { left: calc(100% + 3px); }
 .aq-review { display: inline-flex; align-items: center; min-width: 44px; min-height: 44px; font-weight: 600; color: var(--accent-ink); }
-/* The head text and the fund rail keep their places in the top row. The queue and the links below them take the full width, because seven columns do not fit the narrow left column. */
+/* Desktop polish (docs/ASSUMPTIONS.md section 74). With queued claims the home is one column of full-width rows: the head text, then the fund meters, then the queue and the links.
+   The meters used to be a right rail taller than the head text, which left an empty band under the lede. Each fund is a panel in one auto-fit row, with the panel look of
+   the Trust v2 tokens and no new color. The phone and tablet order (900 px and below) is set in style.css and is unchanged. */
 @media (min-width: 901px) {
+  .reference-screen.home-grid.aq-home { grid-template-columns: minmax(0, 1fr); }
   .reference-screen.home-grid.aq-home > .home-main { display: contents; }
-  .reference-screen.home-grid.aq-home .home-head-text { grid-column: 1; grid-row: 1; }
-  .reference-screen.home-grid.aq-home > .funds { grid-column: 2; grid-row: 1; }
+  .reference-screen.home-grid.aq-home .home-head-text { grid-column: 1 / -1; grid-row: 1; }
+  .reference-screen.home-grid.aq-home > .funds { grid-column: 1 / -1; grid-row: 2; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); padding: 0; background: none; border-radius: 0; box-shadow: none; }
+  .reference-screen.home-grid.aq-home > .funds > * { align-content: start; padding: 20px; background: var(--paper); border-radius: var(--radius-panel); box-shadow: var(--shadow); }
   .reference-screen.home-grid.aq-home .home-main > :not(.home-head-text) { grid-column: 1 / -1; }
+  /* The grid gap is the space between rows, so the queue drops the 28 px section margin that .claim-page section adds on top of it (the first run measured 52 px below the meters). */
+  .reference-screen.home-grid.aq-home .aq-queue { margin-top: 0; }
 }

@@ -4,7 +4,7 @@
   "baseCommit": "23a0a6be6e8abf348a4b27cacd6daff98db7326a",
   "ownerAuthorized": true,
   "studioClearanceClaimed": false,
-  "sponsorUseClaimed": false,
+  "sponsorUseClaimed": true,
   "publicationAuthorized": false,
   "scope": "docs/plans/STUDIO_FREE_FALLBACK_SCOPE.md",
   "gridScope": "docs/plans/LEDGER_GRID_SCOPE.md"

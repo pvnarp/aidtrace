@@ -560,7 +560,7 @@ describe("call settings, request digests and the run row", () => {
     const rows = await dump(hash);
     expect(new Set(rows.calls.map(row => row.requestDigest))).toEqual(new Set(seen.map(call => requestDigest(call.request))));
     for (const row of rows.calls) expect(row).toMatchObject({ stopReason: "end_turn", inputTokens: 120, outputTokens: 30, reasonCode: null });
-    expect(rows.run).toMatchObject({ kind: "MODEL", ruleSetVersion: COMPLIANCE_ARM, model: `${HAIKU}>${SONNET}`, effort: "low", promptVersion: "compliance-v1", schemaVersion: "compliance-lines-v1", startedBy: "tara" });
+    expect(rows.run).toMatchObject({ kind: "MODEL", ruleSetVersion: COMPLIANCE_ARM, model: `${HAIKU}>${SONNET}`, effort: "low", promptVersion: "compliance-v1.1", schemaVersion: "compliance-lines-v1", startedBy: "tara" });
     expect(rows.run!.requestDigest).toMatch(/^[a-f0-9]{64}$/);
     expect(rows.run!.factsDigest).toMatch(/^[a-f0-9]{64}$/);
     expect(rows.run!.clauseSetHash).toBe(clauseSetHash(fixtureClauses));

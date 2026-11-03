@@ -2,7 +2,7 @@ import type { AppDatabase } from "./db";
 import { desc, eq } from "drizzle-orm";
 import { allocationDecisions, claims, users } from "../../db/schema";
 import { findSession, isSameOrigin, sessionToken } from "./auth";
-import { approveDecision, freezeDecision, rejectClaim } from "../ledger/service";
+import { approveAutoRecognized, approveDecision, freezeDecision, rejectClaim } from "../ledger/service";
 import { refreshClaimPayout, sendClaimPayout } from "../ledger/payout";
 import { authorizePayoutRetry, sendAuthorizedPayoutRetry } from "../ledger/retry";
 import type { PayoutTransport } from "../paypal/adapter";
@@ -28,7 +28,7 @@ export async function handleClaimAction(request: Request, claimId: string, depen
   }
   const body = new URLSearchParams(Buffer.concat(chunks).toString("utf8"));
   const action = body.get("action");
-  if (dependencies.judgeSession && (!claimId.startsWith("R-") || ["send", "refresh", "retry", "authorize-retry"].includes(action ?? ""))) return new Response("This judging session cannot request or change a payment. Continue the unpaid receipt review.", { status: 403 });
+  if (dependencies.judgeSession && (!claimId.startsWith("R-") || ["send", "refresh", "retry", "authorize-retry", "takeover"].includes(action ?? ""))) return new Response("This judging session cannot request or change a payment. Continue the unpaid receipt review.", { status: 403 });
   if ((action === "freeze" && user.role !== "CLAIMANT") || (action !== "freeze" && user.role !== "APPROVER")) return new Response("This action requires the appropriate signed-in role", { status: 403 });
   const redirect = (notice: string) => new Response(null, { status: 303, headers: { Location: `/claims/${claimId}?notice=${notice}`, "Cache-Control": "no-store" } });
   try {
@@ -43,6 +43,11 @@ export async function handleClaimAction(request: Request, claimId: string, depen
       if (decision?.claimId !== claimId) return new Response("Decision does not belong to this claim", { status: 403 });
       const result = await approveDecision(dependencies.db, decisionId, user.id, hash);
       return redirect(result.status === "INVALIDATED" ? "invalidated" : result.status === "APPROVED" ? "approved" : "approval-saved");
+    }
+    if (action === "takeover") {
+      // IAC-405 PR P item 10: no hash and no decision id come from the client. The server resolves the claim's auto-recognized decision. It works whatever the flags and the switch say.
+      const result = await approveAutoRecognized(dependencies.db, claimId, user.id);
+      return redirect(result.approvalCount >= 2 ? "takeover-done" : "takeover-saved");
     }
     if (action === "approve-note") {
       // IAC-379 step 3b: approving a donor impact note moves no money. A judge (keyless) session reaches this only for an R- claim,

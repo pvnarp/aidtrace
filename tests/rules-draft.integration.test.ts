@@ -535,7 +535,7 @@ describe("DR-32 a bound version reaches allocation only for claims prepared afte
 });
 
 describe("DR-33 the draft workflow never touches money, claims, approvals of claims or the solver", () => {
-  it("leaves all sixteen financial tables and the solver priority byte-identical through draft, edit, approve, bind, withdraw and every refusal", async () => {
+  it("leaves all twenty-three financial tables and the solver priority byte-identical through draft, edit, approve, bind, withdraw and every refusal", async () => {
     await receiptClaim(ctx.db, { vendor: "Baseline shop" });
     const financial = await financialHash(ctx.client); const solver = await tableHash(ctx.client, "solver_priority_versions"); const claims = await tableHash(ctx.client, "claims");
     const a = await draftId(TARA); const b = await draftId(BEN, otherAnswer());

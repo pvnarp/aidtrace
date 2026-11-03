@@ -12,7 +12,8 @@
 .gx-search label { font-size: 13px; font-weight: 600; color: var(--gx-muted); }
 .gx-search input { width: 100%; min-height: 44px; border-color: var(--gx-line); border-radius: 8px; }
 .gx-toolbar button { min-height: 44px; }
-.gx-status-line { margin: 0 0 8px; font-size: 14px; color: var(--gx-muted); }
+.gx-statusbar { display: flex; flex-wrap: wrap; align-items: baseline; column-gap: 16px; margin: 0 0 8px; }
+.gx-status-line, .gx-more-columns { margin: 0; font-size: 14px; color: var(--gx-muted); }
 .gx-frame { height: min(70vh, 640px); min-height: 360px; width: 100%; max-width: 100%; overflow: hidden; }
 .gx-cell-num { font-variant-numeric: tabular-nums; }
 .gx-row-verify { background: color-mix(in srgb, var(--gx-hold) 12%, white); box-shadow: inset 3px 0 0 var(--gx-hold); }

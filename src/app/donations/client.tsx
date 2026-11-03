@@ -13,6 +13,7 @@ const DataGrid = dynamic(() => import('../grid/grid'), { ssr: false, loading: ()
 const TOTALS = { label: donationsTotalLabel, fields: DONATIONS_TOTAL_FIELDS };
 const rowId = (row: DonationRow) => row.id;
 const rowClass = (row: DonationRow) => (row.verify ? 'gx-row-verify' : undefined);
+const EMPTY = { none: 'No gifts yet. A completed PayPal gift shows here with its receipt match.', filtered: 'No gifts match this search or filter.' };
 const grouped = (count: number) => String(count).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
 
 export function DonationsClient({ view, userId }: { view: DonationsGrid; userId: string }) {
@@ -39,6 +40,7 @@ export function DonationsClient({ view, userId }: { view: DonationsGrid; userId:
       csv={{ fileBase: 'donations' }}
       totals={TOTALS}
       getRowClass={rowClass}
+      emptyMessages={EMPTY}
     />
   </>;
 }

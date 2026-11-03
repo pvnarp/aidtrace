@@ -16,7 +16,7 @@ const BANNED = /(^|\/)(ledger\/(service|payout|retry|journal|donation|opening|re
 // The same list without the ai folder. Piece G lets exactly one file, src/policy/model-run.ts, import three named ai modules (checked below).
 const BANNED_NO_AI = /(^|\/)(ledger\/(service|payout|retry|journal|donation|opening|reconcile|snapshot|webhooks)|paypal|server\/claim-actions|server\/payments|server\/webhook-[a-z]+)(\/|$)/;
 const AI_ALLOWED = /^\.\.\/ai\/(provider|budget|claude-client)$/;
-const SELF = ["src/policy/compliance.ts", "src/policy/copy.ts", "src/policy/facts.ts", "src/policy/model-read.ts", "src/policy/model-run.ts", "src/policy/money.ts", "src/policy/rules.ts", "src/policy/service.ts", "src/policy/text.ts", "src/policy/types.ts"];
+const SELF = ["src/policy/compliance.ts", "src/policy/copy.ts", "src/policy/facts.ts", "src/policy/model-read.ts", "src/policy/model-run.ts", "src/policy/money.ts", "src/policy/rules.ts", "src/policy/service.ts", "src/policy/sweep.ts", "src/policy/text.ts", "src/policy/types.ts"];
 const MODEL_RUN = "src/policy/model-run.ts";
 
 describe("PC-17 import boundaries of the policy module", () => {
@@ -28,8 +28,8 @@ describe("PC-17 import boundaries of the policy module", () => {
       if (/(^|\/)ai(\/|$)/.test(target)) { expect(file, `${file} -> ${target}`).toBe(MODEL_RUN); expect(target, `${file} -> ${target}`).toMatch(AI_ALLOWED); }
     }
   });
-  it("src/policy reaches only drizzle, node:crypto, the schema, the database type, the pure receipt screen, the three ai modules (model-run only) and itself", () => {
-    const allowed = /^(drizzle-orm|node:crypto|\.\.\/\.\.\/db\/schema|\.\.\/receipt\/prohibited-screen|\.\/(compliance|copy|facts|model-read|model-run|money|rules|service|text|types))$/;
+  it("src/policy reaches only drizzle, node:crypto, the schema, the database type, the pure receipt screen, the read-only fund mode reader and flag, the three ai modules (model-run only) and itself", () => {
+    const allowed = /^(drizzle-orm|node:crypto|\.\.\/\.\.\/db\/schema|\.\.\/receipt\/prohibited-screen|\.\.\/fund-modes\/(modes|flag)|\.\/(compliance|copy|facts|model-read|model-run|money|rules|service|text|types))$/;
     for (const file of walk("src/policy")) for (const target of imports(source(file))) expect(target, `${file} -> ${target}`).toMatch(file === MODEL_RUN ? new RegExp(`${allowed.source}|${AI_ALLOWED.source}`) : allowed);
   });
   it("the transitive closure of src/policy has no ledger, payout, retry, PayPal or claim-action module", () => {

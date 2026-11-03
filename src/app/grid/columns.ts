@@ -43,7 +43,7 @@ export function textColumn<Row>(options: TextColumnOptions<Row>): ColDef<Row> {
   return {
     filter: 'agTextColumnFilter',
     filterParams: { debounceMs: COLUMN_FILTER_DEBOUNCE_MS },
-    floatingFilter: true,
+    floatingFilter: true, suppressFloatingFilterButton: true,
     ...rest,
     field: fieldOf<Row>(field),
     headerName,
@@ -83,7 +83,7 @@ export function dateColumn<Row>(options: DateColumnOptions<Row>): ColDef<Row> {
   return {
     filter: 'agDateColumnFilter',
     filterParams: { comparator: dateOnlyComparator, debounceMs: COLUMN_FILTER_DEBOUNCE_MS },
-    floatingFilter: true,
+    floatingFilter: true, suppressFloatingFilterButton: true,
     ...rest,
     field: fieldOf<Row>(field),
     headerName,
@@ -106,7 +106,7 @@ export function statusColumn<Row>(options: StatusColumnOptions<Row>): ColDef<Row
   return {
     filter: 'agTextColumnFilter',
     filterParams: { debounceMs: COLUMN_FILTER_DEBOUNCE_MS },
-    floatingFilter: true,
+    floatingFilter: true, suppressFloatingFilterButton: true,
     ...rest,
     field: fieldOf<Row>(field),
     headerName,

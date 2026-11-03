@@ -1,5 +1,6 @@
 import { usd } from "../analytics/model";
 import { STATUS_LABELS } from "./shell-copy";
+import { QUEUE_LEDE_ASSISTED } from "../fund-modes/review-copy";
 
 // IAC-403 home screens. Pure wording and arithmetic, no JSX, no I/O. Presentation only: every function reads facts the page
 // already loaded from the server (a claim status, integer cents, whether this approver already approved) and returns text.
@@ -16,10 +17,11 @@ export function approverHeading(count: number): string {
 }
 
 /** The line under the approver heading. */
-export function approverLede(count: number): string {
-  return count > 0
-    ? "Check the items, the recipient and the funding. Two different approvers must approve the same frozen terms before anything is payable."
-    : "Nothing is waiting for your decision. A claimant must confirm categories and freeze the funding terms before an expense appears here.";
+export function approverLede(count: number, assistedNote = false): string {
+  if (count === 0) return "Nothing is waiting for your decision. A claimant must confirm categories and freeze the funding terms before an expense appears here.";
+  // IAC-405 PR A follow-up: the note is added only when the page read at least one listed claim as needing one approval (flag on, server read), so every other page is byte-identical.
+  const base = "Check the items, the recipient and the funding. Two different approvers must approve the same frozen terms before anything is payable.";
+  return assistedNote ? `${base} ${QUEUE_LEDE_ASSISTED}` : base;
 }
 
 export const CLAIMANT_LEDE = "Every grant has its own limits. AI helps prepare, rules calculate funding, two other people approve and PayPal remains a separate decision.";

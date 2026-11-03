@@ -11,6 +11,7 @@ import { judgeSession } from "../server/judge-mode";
 import { claimTotals } from "../server/home-view";
 import { ApproverQueueAccessError, loadApproverQueue } from "../server/approver-queue";
 import { ApproverQueueClient } from "./approver-queue/client";
+import { loadAssistedChecks } from "../server/assisted-checks";
 import { usd } from "../analytics/model";
 import { loadAnalyticsSnapshot } from "../analytics/snapshot";
 import { fundMeter, type FundMeter } from "./fund-meter";
@@ -34,6 +35,9 @@ export default async function Home() {
     // IAC-414 Q1: the claims awaiting this approver are one read-only grid, so each claim shows once. The loader keeps today's rule: a claim this
     // approver already approved waits for the second approver, so it is not listed and not counted. It stays under Other expenses as before.
     const queue = await loadApproverQueue(db, user.id).catch(error => { if (error instanceof ApproverQueueAccessError) return { observedAt: new Date().toISOString(), rows: [] }; throw error; });
+    // IAC-405 PR A: with the fund modes flag on, the Checks column and row selection appear only when a waiting claim is Assisted. Flag off or all Manual: no map, the queue as before.
+    const assistedChecks = await loadAssistedChecks(db, user.id, queue.rows.map(row => row.id)).catch(() => new Map());
+    const assisted = assistedChecks.size > 0 ? Object.fromEntries(assistedChecks) : undefined;
     const queued = new Set(queue.rows.map(row => row.id));
     const continuing = drafts.filter(claim => !queued.has(claim.id));
     // Trust v2: one meter per fund from the same read-only snapshot /analytics shows. A failed read renders no meters and no error text.
@@ -44,9 +48,9 @@ export default async function Home() {
         <div className="home-main">
         <div className="home-head-text">
           <h1 className="screen-heading">{queue.rows.length > 0 ? <><span className="act">{firstWord}</span> {restWords.join(" ")}</> : approverHeading(0)}</h1>
-          <p className="reference-intro">{approverLede(queue.rows.length)}</p>
+          <p className="reference-intro">{approverLede(queue.rows.length, assisted !== undefined)}</p>
         </div>
-        {queue.rows.length > 0 && <ApproverQueueClient rows={queue.rows} observedAt={queue.observedAt} userId={user.id} />}
+        {queue.rows.length > 0 && <ApproverQueueClient rows={queue.rows} observedAt={queue.observedAt} userId={user.id} assisted={assisted} />}
         {continuing.length > 0 && <section aria-labelledby="other-expenses"><h2 id="other-expenses">Other expenses</h2><ul className="draft-list">{continuing.map(claim => <li key={`${claim.id}:${claim.version}`}><Link href={`/claims/${claim.id}`} prefetch={false}>{claim.vendor}<small className="claim-reference">Claim {shortClaimRef(claim.id)}{money(claim) ? ` · ${money(claim)}` : ""}</small></Link><span>{statusLabel(claim.status)}</span></li>)}</ul></section>}
         <div className="reference-links"><Link className="button-link secondary" href="/analytics" prefetch={false}>View funding and cash</Link><Link className="button-link secondary" href="/architecture" prefetch={false}>Explore how it works</Link></div>
         </div>

@@ -299,6 +299,8 @@ export const giftApplications = pgTable("gift_applications", {
 // are written by the arm C model check, and its rows live in policy_model_results at the end of this file.
 export const policyCheckKinds = ["RULES", "MODEL"] as const;
 export type PolicyCheckKind = (typeof policyCheckKinds)[number];
+export const policyRunTriggers = ["APPROVER", "SWEEP"] as const;
+export type PolicyRunTrigger = (typeof policyRunTriggers)[number];
 export const policyRuleIds = ["P1", "P2", "P3", "P4", "P5", "P6", "P7"] as const;
 export type PolicyRuleId = (typeof policyRuleIds)[number];
 export const policyResultEntries = ["FLAG", "NOT_CHECKED", "RUN_END"] as const;
@@ -317,7 +319,10 @@ export const fundCheckSettings = pgTable("fund_check_settings", {
 export const policyCheckRuns = pgTable("policy_check_runs", {
   id: uuid().primaryKey().defaultRandom(), decisionHash: text("decision_hash").notNull().references(() => allocationDecisions.decisionHash),
   claimId: text("claim_id").notNull(), claimVersion: integer("claim_version").notNull(), organizationId: text("organization_id").notNull().references(() => organizations.id),
-  kind: text().$type<PolicyCheckKind>().notNull(), startedBy: text("started_by").notNull().references(() => users.id),
+  kind: text().$type<PolicyCheckKind>().notNull(),
+  // Migration 0019 (docs/plans/FUND_MODES_SCOPE.md section 3). APPROVER runs keep today's rule: started_by is an approver who is not the
+  // claimant. SWEEP runs come from the policy sweep and carry no user. The web route can only create APPROVER runs.
+  trigger: text().$type<PolicyRunTrigger>().notNull().default("APPROVER"), startedBy: text("started_by").references(() => users.id),
   startedAt: timestamp("started_at", { withTimezone: true }).notNull().defaultNow(),
   // Fund id to the fund_check_settings version this run read. An empty object means no funding fund had thresholds.
   settingsVersions: jsonb("settings_versions").$type<Record<string, number>>().notNull(), ruleSetVersion: text("rule_set_version").notNull(),
@@ -327,6 +332,8 @@ export const policyCheckRuns = pgTable("policy_check_runs", {
 }, t => [foreignKey({ columns: [t.claimId, t.claimVersion], foreignColumns: [claims.id, claims.version] }),
   unique("policy_run_per_decision_kind").on(t.decisionHash, t.kind),
   check("policy_run_kind", sql`${t.kind} in ('RULES','MODEL')`),
+  check("policy_run_trigger", sql`${t.trigger} in ('APPROVER','SWEEP')`),
+  check("policy_run_trigger_user", sql`(${t.trigger} = 'APPROVER' and ${t.startedBy} is not null) or (${t.trigger} = 'SWEEP' and ${t.startedBy} is null)`),
   check("policy_run_settings_object", sql`jsonb_typeof(${t.settingsVersions}) = 'object'`),
   check("policy_run_facts_digest", sql`${t.factsDigest} ~ '^[a-f0-9]{64}$'`),
   check("policy_run_model_columns", sql`(${t.kind} = 'RULES' and ${t.model} is null and ${t.effort} is null and ${t.promptVersion} is null and ${t.schemaVersion} is null and ${t.clauseSetHash} is null and ${t.requestDigest} is null) or (${t.kind} = 'MODEL' and ${t.model} is not null and ${t.effort} is not null and ${t.promptVersion} is not null and ${t.schemaVersion} is not null and ${t.clauseSetHash} is not null and ${t.requestDigest} is not null)`)]);
@@ -455,3 +462,80 @@ export const policyDraftEvents = pgTable("policy_draft_events", {
   uniqueIndex("draft_event_one_approval_per_person").on(t.draftId, t.actorId).where(sql`${t.kind} = 'APPROVED'`),
   uniqueIndex("draft_event_one_bound").on(t.draftId).where(sql`${t.kind} = 'BOUND'`),
   uniqueIndex("draft_event_one_withdrawn").on(t.draftId).where(sql`${t.kind} = 'WITHDRAWN'`)]);
+
+// IAC-405 step 2 PR F (docs/plans/FUND_MODES_SCOPE.md section 3; docs/ASSUMPTIONS.md section 76). Migration 0019. Four append-only tables.
+// A fund mode is proposed by one approver and approved by a second, distinct approver of the fund organization. A decision records its
+// effective mode once, at freeze. An automated record is the audit trail of a check outcome: it is never an approval and is never
+// written to the approvals table. AUTOPILOT is a legal stored value so a later package needs no schema change, and the server refuses to
+// propose or approve it in this release. None of these tables posts to the ledger or moves money.
+export const fundModeValues = ["MANUAL", "ASSISTED", "AUTOPILOT"] as const;
+export type FundMode = (typeof fundModeValues)[number];
+export const automatedDecisionKinds = ["NO_HOLDS", "HELD", "AUDIT_SAMPLED", "GUARDRAIL_REFUSED", "AUTO_RECOGNIZED", "AUTO_SENT", "AUTO_SEND_CONFIRMED"] as const;
+export type AutomatedDecisionKind = (typeof automatedDecisionKinds)[number];
+
+export const fundModeProposals = pgTable("fund_mode_proposals", {
+  id: uuid().primaryKey().defaultRandom(), fundId: text("fund_id").notNull().references(() => funds.id),
+  // The fund's mode version when this was proposed (0 for none). Approval requires the next version to be base_version + 1, so a proposal made before a later mode change is stale.
+  mode: text().$type<FundMode>().notNull(), baseVersion: integer("base_version").notNull(), proposedBy: text("proposed_by").notNull().references(() => users.id),
+  proposedAt: timestamp("proposed_at", { withTimezone: true }).notNull().defaultNow(),
+}, t => [check("fund_mode_proposal_mode", sql`${t.mode} in ('MANUAL','ASSISTED','AUTOPILOT')`), check("fund_mode_proposal_base_version", sql`${t.baseVersion} >= 0`)]);
+
+export const fundModes = pgTable("fund_modes", {
+  fundId: text("fund_id").notNull().references(() => funds.id), version: integer().notNull(),
+  mode: text().$type<FundMode>().notNull(), proposalId: uuid("proposal_id").notNull().unique().references(() => fundModeProposals.id),
+  approvedBy: text("approved_by").notNull().references(() => users.id), approvedAt: timestamp("approved_at", { withTimezone: true }).notNull().defaultNow(),
+}, t => [primaryKey({ columns: [t.fundId, t.version] }), check("fund_mode_version_positive", sql`${t.version} > 0`),
+  check("fund_mode_mode", sql`${t.mode} in ('MANUAL','ASSISTED','AUTOPILOT')`)]);
+
+export const decisionModes = pgTable("decision_modes", {
+  decisionHash: text("decision_hash").primaryKey().references(() => allocationDecisions.decisionHash),
+  effectiveMode: text("effective_mode").$type<FundMode>().notNull(),
+  // Fund id to the fund_modes version read at freeze. Zero means the fund had no approved mode row, so it was Manual.
+  fundModeVersions: jsonb("fund_mode_versions").$type<Record<string, number>>().notNull(), recordedAt: recordedAt(),
+}, t => [check("decision_mode_mode", sql`${t.effectiveMode} in ('MANUAL','ASSISTED','AUTOPILOT')`),
+  check("decision_mode_versions_object", sql`jsonb_typeof(${t.fundModeVersions}) = 'object'`)]);
+
+export const automatedDecisions = pgTable("automated_decisions", {
+  id: uuid().primaryKey().defaultRandom(), decisionHash: text("decision_hash").notNull().references(() => allocationDecisions.decisionHash),
+  kind: text().$type<AutomatedDecisionKind>().notNull(),
+  rulesRunId: uuid("rules_run_id").references(() => policyCheckRuns.id), modelRunId: uuid("model_run_id").references(() => policyCheckRuns.id),
+  // Copied from the runs as stored: the rule set version, and the model and prompt version of the model run. Null when that run is absent.
+  ruleSetVersion: text("rule_set_version"), model: text(), promptVersion: text("prompt_version"),
+  inputs: jsonb().$type<Record<string, unknown>>().notNull(), recordedAt: recordedAt(),
+}, t => [check("automated_decision_kind", sql`${t.kind} in ('NO_HOLDS','HELD','AUDIT_SAMPLED','GUARDRAIL_REFUSED','AUTO_RECOGNIZED','AUTO_SENT','AUTO_SEND_CONFIRMED')`),
+  check("automated_decision_inputs", sql`jsonb_typeof(${t.inputs}) = 'object' and octet_length(${t.inputs}::text) <= 8000`),
+  check("automated_decision_no_holds_runs", sql`${t.kind} <> 'NO_HOLDS' or (${t.rulesRunId} is not null and ${t.modelRunId} is not null and ${t.ruleSetVersion} is not null and ${t.model} is not null and ${t.promptVersion} is not null)`)]);
+
+// IAC-405 step 3 PR P (docs/plans/FUND_MODES_SCOPE.md section 5; docs/ASSUMPTIONS.md section 78). Migration 0020. Three append-only tables.
+// payee_email_history: one row each time a claim version is created (a database trigger writes it with source CLAIM), plus the demo fixture row the
+// seed writes (source FIXTURE, Pavan's decision 5). Guardrail G6 reads it. automation_switch_events: the per-organization kill switch. No row means OFF.
+// Turning it ON takes a proposal by one approver and a confirmation by a different approver. disbursement_origins: who sent a payout, a human signer or
+// an automated decision, exactly one of the two. None of these tables is an approval.
+export const payeeEmailSources = ["CLAIM", "FIXTURE"] as const;
+export type PayeeEmailSource = (typeof payeeEmailSources)[number];
+export const payeeEmailHistory = pgTable("payee_email_history", {
+  id: uuid().primaryKey().defaultRandom(), userId: text("user_id").notNull().references(() => users.id), email: text().notNull(),
+  source: text().$type<PayeeEmailSource>().notNull().default("CLAIM"), seenAt: timestamp("seen_at", { withTimezone: true }).notNull().defaultNow(),
+}, t => [check("payee_email_history_source", sql`${t.source} in ('CLAIM','FIXTURE')`), check("payee_email_history_email", sql`length(${t.email}) between 1 and 320`)]);
+
+export const switchEventKinds = ["PROPOSE_ON", "ON", "OFF"] as const;
+export type SwitchEventKind = (typeof switchEventKinds)[number];
+export const switchOffReasons = ["DISAGREE", "UNKNOWN_SEND", "APPROVER"] as const;
+export type SwitchOffReason = (typeof switchOffReasons)[number];
+export const automationSwitchEvents = pgTable("automation_switch_events", {
+  seq: bigint({ mode: "number" }).primaryKey().generatedAlwaysAsIdentity(), organizationId: text("organization_id").notNull().references(() => organizations.id),
+  event: text().$type<SwitchEventKind>().notNull(), reason: text().$type<SwitchOffReason>(), actorId: text("actor_id").references(() => users.id),
+  proposalSeq: bigint("proposal_seq", { mode: "number" }), decisionHash: text("decision_hash").references(() => allocationDecisions.decisionHash),
+  recordedAt: recordedAt(),
+}, t => [foreignKey({ columns: [t.proposalSeq], foreignColumns: [t.seq] }),
+  unique("switch_proposal_used_once").on(t.proposalSeq),
+  check("switch_event_kind", sql`${t.event} in ('PROPOSE_ON','ON','OFF')`),
+  check("switch_event_shape", sql`(${t.event} = 'PROPOSE_ON' and ${t.actorId} is not null and ${t.reason} is null and ${t.proposalSeq} is null and ${t.decisionHash} is null)
+    or (${t.event} = 'ON' and ${t.actorId} is not null and ${t.reason} is null and ${t.proposalSeq} is not null and ${t.decisionHash} is null)
+    or (${t.event} = 'OFF' and ${t.proposalSeq} is null and ((${t.reason} = 'DISAGREE' and ${t.actorId} is not null and ${t.decisionHash} is not null)
+      or (${t.reason} = 'UNKNOWN_SEND' and ${t.actorId} is null and ${t.decisionHash} is not null) or (${t.reason} = 'APPROVER' and ${t.actorId} is not null and ${t.decisionHash} is null)))`)]);
+
+export const disbursementOrigins = pgTable("disbursement_origins", {
+  disbursementId: uuid("disbursement_id").primaryKey().references(() => disbursements.id), signedBy: text("signed_by").references(() => users.id),
+  automatedDecisionId: uuid("automated_decision_id").references(() => automatedDecisions.id), recordedAt: recordedAt(),
+}, t => [check("disbursement_origin_exactly_one", sql`num_nonnulls(${t.signedBy}, ${t.automatedDecisionId}) = 1`)]);

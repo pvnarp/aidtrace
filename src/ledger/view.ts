@@ -1,4 +1,4 @@
-import { asc, count, desc, eq, inArray, sql } from 'drizzle-orm';
+import { and, asc, count, desc, eq, inArray, sql } from 'drizzle-orm';
 import * as s from '../../db/schema';
 import type { AppDatabase } from '../server/db';
 import { payoutNoteStatus } from '../donation/note';
@@ -73,6 +73,8 @@ export interface Lookups {
   attempts: ReadonlyMap<string, readonly AttemptLookup[]>;
   /** Fund name by fund id. */
   funds: ReadonlyMap<string, string>;
+  /** Decision hashes recognized by an AUTO_RECOGNIZED record (IAC-405 PR P). Optional: a caller with none reads every approval count as before. */
+  autopilot?: ReadonlySet<string>;
 }
 
 const ENTRY_TYPES: Readonly<Record<string, { label: string; tip: string }>> = {
@@ -91,6 +93,9 @@ export function entryTypeOf(sourceType: string, purpose: string) {
 }
 
 /** "n of 2" up to the requirement. A larger count reads as the count with the requirement beside it. */
+/** The same phrase the claim page shows for a decision recognized and sent under the Autopilot guardrails. */
+// Review item 7: the approvals column says what happened to the approval, never that anything was paid. Paid is said only on the claim page, from the provider outcome.
+export const AUTOPILOT_PHRASE = 'Approved under Autopilot guardrails';
 export function approvalsText(count: number): string {
   return count <= REQUIRED_APPROVALS ? `${count} of ${REQUIRED_APPROVALS}` : `${count} (${REQUIRED_APPROVALS} required)`;
 }
@@ -122,7 +127,7 @@ export function mapLedgerRow(posting: RawPosting, lookups: Lookups): LedgerRow {
   let claim = NO_CLAIM; let approvals = NOT_APPLICABLE; let paypalReference = NO_REFERENCE; let paypalTip = 'This entry did not come from a PayPal event.'; let verify = false;
   if (posting.sourceType === 'claim_recognition') {
     const decision = lookups.decisions.get(posting.sourceId);
-    if (decision) { claim = decision.claimId; approvals = approvalsText(lookups.approvals.get(decision.decisionHash) ?? 0); }
+    if (decision) { claim = decision.claimId; approvals = lookups.autopilot?.has(decision.decisionHash) ? AUTOPILOT_PHRASE : approvalsText(lookups.approvals.get(decision.decisionHash) ?? 0); }
     else { claim = unresolved('no allocation decision matches this source id'); approvals = claim; }
   } else if (posting.sourceType === 'paypal_capture') {
     if (lookups.captures.has(posting.sourceId)) { paypalReference = posting.sourceId; paypalTip = 'PayPal capture id from the stored donation receipt.'; }
@@ -131,7 +136,7 @@ export function mapLedgerRow(posting: RawPosting, lookups: Lookups): LedgerRow {
     const matches = lookups.attempts.get(posting.sourceId) ?? [];
     if (matches.length === 1) {
       const attempt = matches[0]!;
-      claim = attempt.claimId; approvals = approvalsText(lookups.approvals.get(attempt.decisionHash) ?? 0);
+      claim = attempt.claimId; approvals = lookups.autopilot?.has(attempt.decisionHash) ? AUTOPILOT_PHRASE : approvalsText(lookups.approvals.get(attempt.decisionHash) ?? 0);
       const status = payoutNoteStatus({ state: attempt.state, itemStatus: attempt.itemStatus, payoutBatchId: attempt.payoutBatchId }).status;
       if (status === 'UNKNOWN') { paypalReference = 'UNKNOWN'; paypalTip = 'The payout outcome is not verified. It is neither paid nor failed.'; verify = true; }
       else { paypalReference = posting.sourceId; paypalTip = 'PayPal payout item id from the matching disbursement attempt.'; }
@@ -188,6 +193,7 @@ export async function loadLedgerView(db: AppDatabase, actorId: string): Promise<
     }).from(s.disbursementAttempts).innerJoin(s.disbursements, eq(s.disbursementAttempts.disbursementId, s.disbursements.id)).where(inArray(s.disbursementAttempts.payoutItemId, itemIds)) : [];
     const hashes = [...new Set([...decisionRows.map(row => row.decisionHash), ...attemptRows.map(row => row.decisionHash)])];
     const approvalRows = hashes.length ? await tx.select({ decisionHash: s.approvals.decisionHash, n: count() }).from(s.approvals).where(inArray(s.approvals.decisionHash, hashes)).groupBy(s.approvals.decisionHash) : [];
+    const autoRows = hashes.length ? await tx.select({ decisionHash: s.automatedDecisions.decisionHash }).from(s.automatedDecisions).where(and(inArray(s.automatedDecisions.decisionHash, hashes), eq(s.automatedDecisions.kind, 'AUTO_RECOGNIZED'))) : [];
     const fundRows = await tx.select({ id: s.funds.id, name: s.funds.name }).from(s.funds).where(eq(s.funds.organizationId, actor.organizationId));
 
     const attempts = new Map<string, AttemptLookup[]>();
@@ -203,6 +209,7 @@ export async function loadLedgerView(db: AppDatabase, actorId: string): Promise<
       captures: new Set(receiptRows.flatMap(row => (row.captureId ? [row.captureId] : []))),
       attempts,
       funds: new Map(fundRows.map(row => [row.id, row.name])),
+      autopilot: new Set(autoRows.map(row => row.decisionHash)),
     };
 
     return {

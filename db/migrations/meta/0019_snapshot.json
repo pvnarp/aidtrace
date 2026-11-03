@@ -1,0 +1,5197 @@
+{
+  "id": "5ca8cf4e-84df-4187-84a9-5d991efda8ec",
+  "prevId": "a9b6ec28-7a64-4a3a-b6d4-e11d15b1affd",
+  "version": "7",
+  "dialect": "postgresql",
+  "tables": {
+    "public.allocation_decisions": {
+      "name": "allocation_decisions",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "claim_id": {
+          "name": "claim_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "claim_version": {
+          "name": "claim_version",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "organization_id": {
+          "name": "organization_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "solver_priority_version": {
+          "name": "solver_priority_version",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "decision_hash": {
+          "name": "decision_hash",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "payload": {
+          "name": "payload",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "frozen_at": {
+          "name": "frozen_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "comparison": {
+          "name": "comparison",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "invalidated_at": {
+          "name": "invalidated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "recognized_at": {
+          "name": "recognized_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_transaction_id": {
+          "name": "created_transaction_id",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "txid_current()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "allocation_decisions_claim_id_claim_version_claims_id_version_fk": {
+          "name": "allocation_decisions_claim_id_claim_version_claims_id_version_fk",
+          "tableFrom": "allocation_decisions",
+          "tableTo": "claims",
+          "columnsFrom": [
+            "claim_id",
+            "claim_version"
+          ],
+          "columnsTo": [
+            "id",
+            "version"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "allocation_decisions_organization_id_solver_priority_version_solver_priority_versions_organization_id_version_fk": {
+          "name": "allocation_decisions_organization_id_solver_priority_version_solver_priority_versions_organization_id_version_fk",
+          "tableFrom": "allocation_decisions",
+          "tableTo": "solver_priority_versions",
+          "columnsFrom": [
+            "organization_id",
+            "solver_priority_version"
+          ],
+          "columnsTo": [
+            "organization_id",
+            "version"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "allocation_decisions_decision_hash_unique": {
+          "name": "allocation_decisions_decision_hash_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "decision_hash"
+          ]
+        },
+        "decision_claim_version_unique": {
+          "name": "decision_claim_version_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "id",
+            "claim_id",
+            "claim_version"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {
+        "decision_hash_sha256": {
+          "name": "decision_hash_sha256",
+          "value": "\"allocation_decisions\".\"decision_hash\" ~ '^[0-9a-f]{64}$'"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.allocation_edges": {
+      "name": "allocation_edges",
+      "schema": "",
+      "columns": {
+        "decision_id": {
+          "name": "decision_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "claim_id": {
+          "name": "claim_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "claim_version": {
+          "name": "claim_version",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "line_id": {
+          "name": "line_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "fund_id": {
+          "name": "fund_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "policy_version": {
+          "name": "policy_version",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "solver_priority_version": {
+          "name": "solver_priority_version",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "amount_cents": {
+          "name": "amount_cents",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "reason": {
+          "name": "reason",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "allocation_edges_decision_id_claim_id_claim_version_allocation_decisions_id_claim_id_claim_version_fk": {
+          "name": "allocation_edges_decision_id_claim_id_claim_version_allocation_decisions_id_claim_id_claim_version_fk",
+          "tableFrom": "allocation_edges",
+          "tableTo": "allocation_decisions",
+          "columnsFrom": [
+            "decision_id",
+            "claim_id",
+            "claim_version"
+          ],
+          "columnsTo": [
+            "id",
+            "claim_id",
+            "claim_version"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "allocation_edges_claim_id_claim_version_line_id_claim_lines_claim_id_claim_version_id_fk": {
+          "name": "allocation_edges_claim_id_claim_version_line_id_claim_lines_claim_id_claim_version_id_fk",
+          "tableFrom": "allocation_edges",
+          "tableTo": "claim_lines",
+          "columnsFrom": [
+            "claim_id",
+            "claim_version",
+            "line_id"
+          ],
+          "columnsTo": [
+            "claim_id",
+            "claim_version",
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "allocation_edges_fund_id_policy_version_fund_policy_versions_fund_id_version_fk": {
+          "name": "allocation_edges_fund_id_policy_version_fund_policy_versions_fund_id_version_fk",
+          "tableFrom": "allocation_edges",
+          "tableTo": "fund_policy_versions",
+          "columnsFrom": [
+            "fund_id",
+            "policy_version"
+          ],
+          "columnsTo": [
+            "fund_id",
+            "version"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "allocation_edges_decision_id_fund_id_line_id_pk": {
+          "name": "allocation_edges_decision_id_fund_id_line_id_pk",
+          "columns": [
+            "decision_id",
+            "fund_id",
+            "line_id"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "allocation_amount_positive": {
+          "name": "allocation_amount_positive",
+          "value": "\"allocation_edges\".\"amount_cents\" > 0"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.approvals": {
+      "name": "approvals",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "decision_hash": {
+          "name": "decision_hash",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "approver_id": {
+          "name": "approver_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "approved_at": {
+          "name": "approved_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "approvals_decision_hash_allocation_decisions_decision_hash_fk": {
+          "name": "approvals_decision_hash_allocation_decisions_decision_hash_fk",
+          "tableFrom": "approvals",
+          "tableTo": "allocation_decisions",
+          "columnsFrom": [
+            "decision_hash"
+          ],
+          "columnsTo": [
+            "decision_hash"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "approvals_approver_id_users_id_fk": {
+          "name": "approvals_approver_id_users_id_fk",
+          "tableFrom": "approvals",
+          "tableTo": "users",
+          "columnsFrom": [
+            "approver_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "approval_per_hash_user": {
+          "name": "approval_per_hash_user",
+          "nullsNotDistinct": false,
+          "columns": [
+            "decision_hash",
+            "approver_id"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.automated_decisions": {
+      "name": "automated_decisions",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "decision_hash": {
+          "name": "decision_hash",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "kind": {
+          "name": "kind",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "rules_run_id": {
+          "name": "rules_run_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "model_run_id": {
+          "name": "model_run_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "rule_set_version": {
+          "name": "rule_set_version",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "model": {
+          "name": "model",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "prompt_version": {
+          "name": "prompt_version",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "inputs": {
+          "name": "inputs",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "recorded_at": {
+          "name": "recorded_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "automated_decisions_decision_hash_allocation_decisions_decision_hash_fk": {
+          "name": "automated_decisions_decision_hash_allocation_decisions_decision_hash_fk",
+          "tableFrom": "automated_decisions",
+          "tableTo": "allocation_decisions",
+          "columnsFrom": [
+            "decision_hash"
+          ],
+          "columnsTo": [
+            "decision_hash"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "automated_decisions_rules_run_id_policy_check_runs_id_fk": {
+          "name": "automated_decisions_rules_run_id_policy_check_runs_id_fk",
+          "tableFrom": "automated_decisions",
+          "tableTo": "policy_check_runs",
+          "columnsFrom": [
+            "rules_run_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "automated_decisions_model_run_id_policy_check_runs_id_fk": {
+          "name": "automated_decisions_model_run_id_policy_check_runs_id_fk",
+          "tableFrom": "automated_decisions",
+          "tableTo": "policy_check_runs",
+          "columnsFrom": [
+            "model_run_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "automated_decision_kind": {
+          "name": "automated_decision_kind",
+          "value": "\"automated_decisions\".\"kind\" in ('NO_HOLDS','HELD','AUDIT_SAMPLED','GUARDRAIL_REFUSED','AUTO_RECOGNIZED','AUTO_SENT')"
+        },
+        "automated_decision_inputs": {
+          "name": "automated_decision_inputs",
+          "value": "jsonb_typeof(\"automated_decisions\".\"inputs\") = 'object' and octet_length(\"automated_decisions\".\"inputs\"::text) <= 8000"
+        },
+        "automated_decision_no_holds_runs": {
+          "name": "automated_decision_no_holds_runs",
+          "value": "\"automated_decisions\".\"kind\" <> 'NO_HOLDS' or (\"automated_decisions\".\"rules_run_id\" is not null and \"automated_decisions\".\"model_run_id\" is not null and \"automated_decisions\".\"rule_set_version\" is not null and \"automated_decisions\".\"model\" is not null and \"automated_decisions\".\"prompt_version\" is not null)"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.claim_lines": {
+      "name": "claim_lines",
+      "schema": "",
+      "columns": {
+        "claim_id": {
+          "name": "claim_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "claim_version": {
+          "name": "claim_version",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "description": {
+          "name": "description",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "category": {
+          "name": "category",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "budget_line": {
+          "name": "budget_line",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "amount_cents": {
+          "name": "amount_cents",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "claim_lines_claim_id_claim_version_claims_id_version_fk": {
+          "name": "claim_lines_claim_id_claim_version_claims_id_version_fk",
+          "tableFrom": "claim_lines",
+          "tableTo": "claims",
+          "columnsFrom": [
+            "claim_id",
+            "claim_version"
+          ],
+          "columnsTo": [
+            "id",
+            "version"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "claim_lines_claim_id_claim_version_id_pk": {
+          "name": "claim_lines_claim_id_claim_version_id_pk",
+          "columns": [
+            "claim_id",
+            "claim_version",
+            "id"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "claim_line_amount_positive": {
+          "name": "claim_line_amount_positive",
+          "value": "\"claim_lines\".\"amount_cents\" > 0"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.claim_rejections": {
+      "name": "claim_rejections",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "claim_id": {
+          "name": "claim_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "claim_version": {
+          "name": "claim_version",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "rejected_by": {
+          "name": "rejected_by",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "reason": {
+          "name": "reason",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "recorded_at": {
+          "name": "recorded_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "claim_rejections_rejected_by_users_id_fk": {
+          "name": "claim_rejections_rejected_by_users_id_fk",
+          "tableFrom": "claim_rejections",
+          "tableTo": "users",
+          "columnsFrom": [
+            "rejected_by"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "claim_rejections_claim_id_claim_version_claims_id_version_fk": {
+          "name": "claim_rejections_claim_id_claim_version_claims_id_version_fk",
+          "tableFrom": "claim_rejections",
+          "tableTo": "claims",
+          "columnsFrom": [
+            "claim_id",
+            "claim_version"
+          ],
+          "columnsTo": [
+            "id",
+            "version"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "rejection_per_claim_version": {
+          "name": "rejection_per_claim_version",
+          "nullsNotDistinct": false,
+          "columns": [
+            "claim_id",
+            "claim_version"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {
+        "rejection_reason_length": {
+          "name": "rejection_reason_length",
+          "value": "length(trim(\"claim_rejections\".\"reason\")) between 1 and 500"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.claims": {
+      "name": "claims",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "version": {
+          "name": "version",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "organization_id": {
+          "name": "organization_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "claimant_id": {
+          "name": "claimant_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "program": {
+          "name": "program",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "vendor": {
+          "name": "vendor",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "incurred_on": {
+          "name": "incurred_on",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "payee_email": {
+          "name": "payee_email",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "payee_is_placeholder": {
+          "name": "payee_is_placeholder",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "status": {
+          "name": "status",
+          "type": "claim_status",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'DRAFT'"
+        },
+        "is_fixture": {
+          "name": "is_fixture",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "claims_organization_id_organizations_id_fk": {
+          "name": "claims_organization_id_organizations_id_fk",
+          "tableFrom": "claims",
+          "tableTo": "organizations",
+          "columnsFrom": [
+            "organization_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "claims_claimant_id_users_id_fk": {
+          "name": "claims_claimant_id_users_id_fk",
+          "tableFrom": "claims",
+          "tableTo": "users",
+          "columnsFrom": [
+            "claimant_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "claims_id_version_pk": {
+          "name": "claims_id_version_pk",
+          "columns": [
+            "id",
+            "version"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "claim_version_positive": {
+          "name": "claim_version_positive",
+          "value": "\"claims\".\"version\" > 0"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.decision_modes": {
+      "name": "decision_modes",
+      "schema": "",
+      "columns": {
+        "decision_hash": {
+          "name": "decision_hash",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "effective_mode": {
+          "name": "effective_mode",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "fund_mode_versions": {
+          "name": "fund_mode_versions",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "recorded_at": {
+          "name": "recorded_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "decision_modes_decision_hash_allocation_decisions_decision_hash_fk": {
+          "name": "decision_modes_decision_hash_allocation_decisions_decision_hash_fk",
+          "tableFrom": "decision_modes",
+          "tableTo": "allocation_decisions",
+          "columnsFrom": [
+            "decision_hash"
+          ],
+          "columnsTo": [
+            "decision_hash"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "decision_mode_mode": {
+          "name": "decision_mode_mode",
+          "value": "\"decision_modes\".\"effective_mode\" in ('MANUAL','ASSISTED','AUTOPILOT')"
+        },
+        "decision_mode_versions_object": {
+          "name": "decision_mode_versions_object",
+          "value": "jsonb_typeof(\"decision_modes\".\"fund_mode_versions\") = 'object'"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.disbursement_attempts": {
+      "name": "disbursement_attempts",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "disbursement_id": {
+          "name": "disbursement_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "attempt_number": {
+          "name": "attempt_number",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "sender_batch_id": {
+          "name": "sender_batch_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "sender_item_id": {
+          "name": "sender_item_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "payout_batch_id": {
+          "name": "payout_batch_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "payout_item_id": {
+          "name": "payout_item_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "batch_status": {
+          "name": "batch_status",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "item_status": {
+          "name": "item_status",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "state": {
+          "name": "state",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'PREPARED'"
+        },
+        "amount_cents": {
+          "name": "amount_cents",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "payee_email": {
+          "name": "payee_email",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "fee_cents": {
+          "name": "fee_cents",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "recorded_at": {
+          "name": "recorded_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "last_http_status": {
+          "name": "last_http_status",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "last_error_code": {
+          "name": "last_error_code",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "last_polled_at": {
+          "name": "last_polled_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "provider_balance_cents": {
+          "name": "provider_balance_cents",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "provider_balance_as_of": {
+          "name": "provider_balance_as_of",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "settled_on": {
+          "name": "settled_on",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "disbursement_attempts_disbursement_id_disbursements_id_fk": {
+          "name": "disbursement_attempts_disbursement_id_disbursements_id_fk",
+          "tableFrom": "disbursement_attempts",
+          "tableTo": "disbursements",
+          "columnsFrom": [
+            "disbursement_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "disbursement_attempts_sender_batch_id_unique": {
+          "name": "disbursement_attempts_sender_batch_id_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "sender_batch_id"
+          ]
+        },
+        "disbursement_attempts_sender_item_id_unique": {
+          "name": "disbursement_attempts_sender_item_id_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "sender_item_id"
+          ]
+        },
+        "attempt_number_per_disbursement": {
+          "name": "attempt_number_per_disbursement",
+          "nullsNotDistinct": false,
+          "columns": [
+            "disbursement_id",
+            "attempt_number"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {
+        "attempt_number_amount_positive": {
+          "name": "attempt_number_amount_positive",
+          "value": "\"disbursement_attempts\".\"attempt_number\" > 0 and \"disbursement_attempts\".\"amount_cents\" > 0"
+        },
+        "attempt_fee_nonnegative": {
+          "name": "attempt_fee_nonnegative",
+          "value": "\"disbursement_attempts\".\"fee_cents\" is null or \"disbursement_attempts\".\"fee_cents\" >= 0"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.disbursements": {
+      "name": "disbursements",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "claim_id": {
+          "name": "claim_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "claim_version": {
+          "name": "claim_version",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "decision_hash": {
+          "name": "decision_hash",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "payee_email": {
+          "name": "payee_email",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "amount_cents": {
+          "name": "amount_cents",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "currency": {
+          "name": "currency",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'USD'"
+        },
+        "recorded_at": {
+          "name": "recorded_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "disbursements_decision_hash_allocation_decisions_decision_hash_fk": {
+          "name": "disbursements_decision_hash_allocation_decisions_decision_hash_fk",
+          "tableFrom": "disbursements",
+          "tableTo": "allocation_decisions",
+          "columnsFrom": [
+            "decision_hash"
+          ],
+          "columnsTo": [
+            "decision_hash"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "disbursements_claim_id_claim_version_claims_id_version_fk": {
+          "name": "disbursements_claim_id_claim_version_claims_id_version_fk",
+          "tableFrom": "disbursements",
+          "tableTo": "claims",
+          "columnsFrom": [
+            "claim_id",
+            "claim_version"
+          ],
+          "columnsTo": [
+            "id",
+            "version"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "disbursement_per_claim_version": {
+          "name": "disbursement_per_claim_version",
+          "nullsNotDistinct": false,
+          "columns": [
+            "claim_id",
+            "claim_version"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {
+        "disbursement_positive_usd": {
+          "name": "disbursement_positive_usd",
+          "value": "\"disbursements\".\"amount_cents\" > 0 and \"disbursements\".\"currency\" = 'USD'"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.donation_orders": {
+      "name": "donation_orders",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "order_id": {
+          "name": "order_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "fund_id": {
+          "name": "fund_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "expected_amount_cents": {
+          "name": "expected_amount_cents",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "create_request_id": {
+          "name": "create_request_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "capture_request_id": {
+          "name": "capture_request_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "status": {
+          "name": "status",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'CREATED'"
+        },
+        "capture_attempts": {
+          "name": "capture_attempts",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "create_attempts": {
+          "name": "create_attempts",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 1
+        },
+        "declined_capture_request_ids": {
+          "name": "declined_capture_request_ids",
+          "type": "uuid[]",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'{}'::uuid[]"
+        },
+        "display_name": {
+          "name": "display_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "lease_token": {
+          "name": "lease_token",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "lease_expires_at": {
+          "name": "lease_expires_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "donation_orders_fund_id_funds_id_fk": {
+          "name": "donation_orders_fund_id_funds_id_fk",
+          "tableFrom": "donation_orders",
+          "tableTo": "funds",
+          "columnsFrom": [
+            "fund_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "donation_orders_order_id_unique": {
+          "name": "donation_orders_order_id_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "order_id"
+          ]
+        },
+        "donation_orders_create_request_id_unique": {
+          "name": "donation_orders_create_request_id_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "create_request_id"
+          ]
+        },
+        "donation_orders_capture_request_id_unique": {
+          "name": "donation_orders_capture_request_id_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "capture_request_id"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {
+        "donation_order_expected_positive": {
+          "name": "donation_order_expected_positive",
+          "value": "\"donation_orders\".\"expected_amount_cents\" > 0"
+        },
+        "donation_order_expected_bound": {
+          "name": "donation_order_expected_bound",
+          "value": "\"donation_orders\".\"expected_amount_cents\" <= 9999999999999"
+        },
+        "donation_order_id_format": {
+          "name": "donation_order_id_format",
+          "value": "\"donation_orders\".\"order_id\" is null or \"donation_orders\".\"order_id\" ~ '^[A-Za-z0-9_-]{1,64}$'"
+        },
+        "donation_order_request_ids_differ": {
+          "name": "donation_order_request_ids_differ",
+          "value": "\"donation_orders\".\"create_request_id\" <> \"donation_orders\".\"capture_request_id\""
+        },
+        "donation_order_status": {
+          "name": "donation_order_status",
+          "value": "\"donation_orders\".\"status\" in ('CREATED','APPROVED','CAPTURING','CAPTURE_UNKNOWN','PENDING','DECLINED','COMPLETED','FAILED','MISMATCH','EXPIRED')"
+        },
+        "donation_order_id_required": {
+          "name": "donation_order_id_required",
+          "value": "\"donation_orders\".\"status\" in ('CREATED','FAILED','EXPIRED') or \"donation_orders\".\"order_id\" is not null"
+        },
+        "donation_order_attempts": {
+          "name": "donation_order_attempts",
+          "value": "\"donation_orders\".\"capture_attempts\" between 0 and 2"
+        },
+        "donation_order_attempts_by_status": {
+          "name": "donation_order_attempts_by_status",
+          "value": "\"donation_orders\".\"capture_attempts\" > 0 or \"donation_orders\".\"status\" in ('CREATED','APPROVED','FAILED','MISMATCH','EXPIRED')"
+        },
+        "donation_order_attempts_before_capture": {
+          "name": "donation_order_attempts_before_capture",
+          "value": "\"donation_orders\".\"status\" not in ('CREATED','APPROVED') or \"donation_orders\".\"capture_attempts\" = 0"
+        },
+        "donation_order_create_attempts": {
+          "name": "donation_order_create_attempts",
+          "value": "\"donation_orders\".\"create_attempts\" between 1 and 3"
+        },
+        "donation_order_history_bound": {
+          "name": "donation_order_history_bound",
+          "value": "cardinality(\"donation_orders\".\"declined_capture_request_ids\") <= 2"
+        },
+        "donation_order_history_distinct": {
+          "name": "donation_order_history_distinct",
+          "value": "not (\"donation_orders\".\"capture_request_id\" = any(\"donation_orders\".\"declined_capture_request_ids\")) and not (\"donation_orders\".\"create_request_id\" = any(\"donation_orders\".\"declined_capture_request_ids\"))"
+        },
+        "donation_order_display_name": {
+          "name": "donation_order_display_name",
+          "value": "\"donation_orders\".\"display_name\" is null or (char_length(\"donation_orders\".\"display_name\") between 1 and 40 and \"donation_orders\".\"display_name\" = btrim(\"donation_orders\".\"display_name\"))"
+        },
+        "donation_order_lease_pair": {
+          "name": "donation_order_lease_pair",
+          "value": "(\"donation_orders\".\"lease_token\" is null) = (\"donation_orders\".\"lease_expires_at\" is null)"
+        },
+        "donation_order_final_has_no_lease": {
+          "name": "donation_order_final_has_no_lease",
+          "value": "\"donation_orders\".\"status\" not in ('COMPLETED','FAILED','MISMATCH','EXPIRED') or \"donation_orders\".\"lease_token\" is null"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.donation_receipts": {
+      "name": "donation_receipts",
+      "schema": "",
+      "columns": {
+        "order_id": {
+          "name": "order_id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "organization_id": {
+          "name": "organization_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "fund_id": {
+          "name": "fund_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "expected_amount_cents": {
+          "name": "expected_amount_cents",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "capture_id": {
+          "name": "capture_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "status": {
+          "name": "status",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "provider_status": {
+          "name": "provider_status",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "gross_cents": {
+          "name": "gross_cents",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "fee_cents": {
+          "name": "fee_cents",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "net_cents": {
+          "name": "net_cents",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "effective_on": {
+          "name": "effective_on",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "recorded_by": {
+          "name": "recorded_by",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "recorded_at": {
+          "name": "recorded_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "donation_receipts_organization_id_organizations_id_fk": {
+          "name": "donation_receipts_organization_id_organizations_id_fk",
+          "tableFrom": "donation_receipts",
+          "tableTo": "organizations",
+          "columnsFrom": [
+            "organization_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "donation_receipts_fund_id_funds_id_fk": {
+          "name": "donation_receipts_fund_id_funds_id_fk",
+          "tableFrom": "donation_receipts",
+          "tableTo": "funds",
+          "columnsFrom": [
+            "fund_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "donation_receipts_recorded_by_users_id_fk": {
+          "name": "donation_receipts_recorded_by_users_id_fk",
+          "tableFrom": "donation_receipts",
+          "tableTo": "users",
+          "columnsFrom": [
+            "recorded_by"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "donation_receipts_capture_id_unique": {
+          "name": "donation_receipts_capture_id_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "capture_id"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {
+        "donation_expected_positive": {
+          "name": "donation_expected_positive",
+          "value": "\"donation_receipts\".\"expected_amount_cents\" > 0"
+        },
+        "donation_status": {
+          "name": "donation_status",
+          "value": "\"donation_receipts\".\"status\" in ('PENDING','COMPLETED')"
+        },
+        "donation_completed_amounts": {
+          "name": "donation_completed_amounts",
+          "value": "\"donation_receipts\".\"status\" <> 'COMPLETED' or (\"donation_receipts\".\"capture_id\" is not null and \"donation_receipts\".\"effective_on\" is not null and \"donation_receipts\".\"gross_cents\" is not null and \"donation_receipts\".\"fee_cents\" is not null and \"donation_receipts\".\"net_cents\" is not null and \"donation_receipts\".\"gross_cents\" = \"donation_receipts\".\"expected_amount_cents\" and \"donation_receipts\".\"fee_cents\" >= 0 and \"donation_receipts\".\"net_cents\" >= 0 and \"donation_receipts\".\"gross_cents\" - \"donation_receipts\".\"fee_cents\" = \"donation_receipts\".\"net_cents\")"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.expense_proposals": {
+      "name": "expense_proposals",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "review_id": {
+          "name": "review_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "claim_id": {
+          "name": "claim_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "claim_version": {
+          "name": "claim_version",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "organization_id": {
+          "name": "organization_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "actor_id": {
+          "name": "actor_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "request_key": {
+          "name": "request_key",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "draft_hash": {
+          "name": "draft_hash",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "source_hash": {
+          "name": "source_hash",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "payee_hash": {
+          "name": "payee_hash",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "state": {
+          "name": "state",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "suggestion_id": {
+          "name": "suggestion_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "suggestion_digest": {
+          "name": "suggestion_digest",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "snapshot_digest": {
+          "name": "snapshot_digest",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "result": {
+          "name": "result",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "error_code": {
+          "name": "error_code",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "recorded_at": {
+          "name": "recorded_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "deadline_at": {
+          "name": "deadline_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "completed_at": {
+          "name": "completed_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "expense_proposal_active_review": {
+          "name": "expense_proposal_active_review",
+          "columns": [
+            {
+              "expression": "review_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "where": "\"expense_proposals\".\"state\" = 'RUNNING'",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "expense_proposal_active_slot": {
+          "name": "expense_proposal_active_slot",
+          "columns": [
+            {
+              "expression": "(true)",
+              "asc": true,
+              "isExpression": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "where": "\"expense_proposals\".\"state\" = 'RUNNING'",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "expense_proposals_review_id_receipt_reviews_id_fk": {
+          "name": "expense_proposals_review_id_receipt_reviews_id_fk",
+          "tableFrom": "expense_proposals",
+          "tableTo": "receipt_reviews",
+          "columnsFrom": [
+            "review_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "expense_proposals_organization_id_organizations_id_fk": {
+          "name": "expense_proposals_organization_id_organizations_id_fk",
+          "tableFrom": "expense_proposals",
+          "tableTo": "organizations",
+          "columnsFrom": [
+            "organization_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "expense_proposals_actor_id_users_id_fk": {
+          "name": "expense_proposals_actor_id_users_id_fk",
+          "tableFrom": "expense_proposals",
+          "tableTo": "users",
+          "columnsFrom": [
+            "actor_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "expense_proposals_suggestion_id_receipt_suggestions_id_fk": {
+          "name": "expense_proposals_suggestion_id_receipt_suggestions_id_fk",
+          "tableFrom": "expense_proposals",
+          "tableTo": "receipt_suggestions",
+          "columnsFrom": [
+            "suggestion_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "expense_proposals_claim_id_claim_version_claims_id_version_fk": {
+          "name": "expense_proposals_claim_id_claim_version_claims_id_version_fk",
+          "tableFrom": "expense_proposals",
+          "tableTo": "claims",
+          "columnsFrom": [
+            "claim_id",
+            "claim_version"
+          ],
+          "columnsTo": [
+            "id",
+            "version"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "expense_proposals_request_key_unique": {
+          "name": "expense_proposals_request_key_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "request_key"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {
+        "expense_proposal_state": {
+          "name": "expense_proposal_state",
+          "value": "\"expense_proposals\".\"state\" in ('RUNNING','READY_FOR_REVIEW','NEEDS_REVIEW','POLICY_BLOCKED','UNAVAILABLE','STALE')"
+        },
+        "expense_proposal_deadline": {
+          "name": "expense_proposal_deadline",
+          "value": "\"expense_proposals\".\"deadline_at\" > \"expense_proposals\".\"recorded_at\" and \"expense_proposals\".\"deadline_at\" <= \"expense_proposals\".\"recorded_at\" + interval '65 seconds'"
+        },
+        "expense_proposal_hashes": {
+          "name": "expense_proposal_hashes",
+          "value": "\"expense_proposals\".\"request_key\" ~ '^[a-f0-9]{64}$' and \"expense_proposals\".\"draft_hash\" ~ '^[a-f0-9]{64}$' and \"expense_proposals\".\"source_hash\" ~ '^[a-f0-9]{64}$' and \"expense_proposals\".\"payee_hash\" ~ '^[a-f0-9]{64}$'"
+        },
+        "expense_proposal_completion": {
+          "name": "expense_proposal_completion",
+          "value": "(\"expense_proposals\".\"state\" = 'RUNNING' and \"expense_proposals\".\"completed_at\" is null and \"expense_proposals\".\"result\" is null) or (\"expense_proposals\".\"state\" <> 'RUNNING' and \"expense_proposals\".\"completed_at\" is not null)"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.fund_budget_lines": {
+      "name": "fund_budget_lines",
+      "schema": "",
+      "columns": {
+        "fund_id": {
+          "name": "fund_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "policy_version": {
+          "name": "policy_version",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "budget_line": {
+          "name": "budget_line",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "cap_cents": {
+          "name": "cap_cents",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "fund_budget_lines_fund_id_policy_version_fund_policy_versions_fund_id_version_fk": {
+          "name": "fund_budget_lines_fund_id_policy_version_fund_policy_versions_fund_id_version_fk",
+          "tableFrom": "fund_budget_lines",
+          "tableTo": "fund_policy_versions",
+          "columnsFrom": [
+            "fund_id",
+            "policy_version"
+          ],
+          "columnsTo": [
+            "fund_id",
+            "version"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "fund_budget_lines_fund_id_policy_version_budget_line_pk": {
+          "name": "fund_budget_lines_fund_id_policy_version_budget_line_pk",
+          "columns": [
+            "fund_id",
+            "policy_version",
+            "budget_line"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "budget_cap_nonnegative": {
+          "name": "budget_cap_nonnegative",
+          "value": "\"fund_budget_lines\".\"cap_cents\" >= 0"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.fund_check_settings": {
+      "name": "fund_check_settings",
+      "schema": "",
+      "columns": {
+        "fund_id": {
+          "name": "fund_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "version": {
+          "name": "version",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "approved_by": {
+          "name": "approved_by",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "approved_at": {
+          "name": "approved_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "supplies_limit_cents": {
+          "name": "supplies_limit_cents",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "equipment_limit_cents": {
+          "name": "equipment_limit_cents",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "claim_limit_cents": {
+          "name": "claim_limit_cents",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "stale_receipt_days": {
+          "name": "stale_receipt_days",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "duplicate_window_days": {
+          "name": "duplicate_window_days",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "split_window_days": {
+          "name": "split_window_days",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "fund_check_settings_fund_id_funds_id_fk": {
+          "name": "fund_check_settings_fund_id_funds_id_fk",
+          "tableFrom": "fund_check_settings",
+          "tableTo": "funds",
+          "columnsFrom": [
+            "fund_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "fund_check_settings_approved_by_users_id_fk": {
+          "name": "fund_check_settings_approved_by_users_id_fk",
+          "tableFrom": "fund_check_settings",
+          "tableTo": "users",
+          "columnsFrom": [
+            "approved_by"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "fund_check_settings_fund_id_version_pk": {
+          "name": "fund_check_settings_fund_id_version_pk",
+          "columns": [
+            "fund_id",
+            "version"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "check_settings_version_positive": {
+          "name": "check_settings_version_positive",
+          "value": "\"fund_check_settings\".\"version\" > 0"
+        },
+        "check_settings_limits_positive": {
+          "name": "check_settings_limits_positive",
+          "value": "\"fund_check_settings\".\"supplies_limit_cents\" > 0 and \"fund_check_settings\".\"equipment_limit_cents\" > 0 and \"fund_check_settings\".\"claim_limit_cents\" > 0"
+        },
+        "check_settings_days": {
+          "name": "check_settings_days",
+          "value": "\"fund_check_settings\".\"stale_receipt_days\" between 1 and 3650 and \"fund_check_settings\".\"duplicate_window_days\" between 1 and 3650 and \"fund_check_settings\".\"split_window_days\" between 1 and 3650"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.fund_credits": {
+      "name": "fund_credits",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "fund_id": {
+          "name": "fund_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "amount_cents": {
+          "name": "amount_cents",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "source_type": {
+          "name": "source_type",
+          "type": "source_type",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "source_id": {
+          "name": "source_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "effective_on": {
+          "name": "effective_on",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "recorded_at": {
+          "name": "recorded_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "is_opening": {
+          "name": "is_opening",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "fund_credits_fund_id_funds_id_fk": {
+          "name": "fund_credits_fund_id_funds_id_fk",
+          "tableFrom": "fund_credits",
+          "tableTo": "funds",
+          "columnsFrom": [
+            "fund_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "credit_source_fund_unique": {
+          "name": "credit_source_fund_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "source_type",
+            "source_id",
+            "fund_id"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {
+        "credit_amount_positive": {
+          "name": "credit_amount_positive",
+          "value": "\"fund_credits\".\"amount_cents\" > 0"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.fund_debits": {
+      "name": "fund_debits",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "fund_id": {
+          "name": "fund_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "budget_line": {
+          "name": "budget_line",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "amount_cents": {
+          "name": "amount_cents",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "source_type": {
+          "name": "source_type",
+          "type": "source_type",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "source_id": {
+          "name": "source_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "effective_on": {
+          "name": "effective_on",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "recorded_at": {
+          "name": "recorded_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "decision_id": {
+          "name": "decision_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "purpose": {
+          "name": "purpose",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "fund_debits_fund_id_funds_id_fk": {
+          "name": "fund_debits_fund_id_funds_id_fk",
+          "tableFrom": "fund_debits",
+          "tableTo": "funds",
+          "columnsFrom": [
+            "fund_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "fund_debits_decision_id_allocation_decisions_id_fk": {
+          "name": "fund_debits_decision_id_allocation_decisions_id_fk",
+          "tableFrom": "fund_debits",
+          "tableTo": "allocation_decisions",
+          "columnsFrom": [
+            "decision_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "debit_source_fund_purpose_unique": {
+          "name": "debit_source_fund_purpose_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "source_type",
+            "source_id",
+            "fund_id",
+            "purpose"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {
+        "debit_amount_positive": {
+          "name": "debit_amount_positive",
+          "value": "\"fund_debits\".\"amount_cents\" > 0"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.fund_mode_proposals": {
+      "name": "fund_mode_proposals",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "fund_id": {
+          "name": "fund_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "mode": {
+          "name": "mode",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "base_version": {
+          "name": "base_version",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "proposed_by": {
+          "name": "proposed_by",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "proposed_at": {
+          "name": "proposed_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "fund_mode_proposals_fund_id_funds_id_fk": {
+          "name": "fund_mode_proposals_fund_id_funds_id_fk",
+          "tableFrom": "fund_mode_proposals",
+          "tableTo": "funds",
+          "columnsFrom": [
+            "fund_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "fund_mode_proposals_proposed_by_users_id_fk": {
+          "name": "fund_mode_proposals_proposed_by_users_id_fk",
+          "tableFrom": "fund_mode_proposals",
+          "tableTo": "users",
+          "columnsFrom": [
+            "proposed_by"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "fund_mode_proposal_mode": {
+          "name": "fund_mode_proposal_mode",
+          "value": "\"fund_mode_proposals\".\"mode\" in ('MANUAL','ASSISTED','AUTOPILOT')"
+        },
+        "fund_mode_proposal_base_version": {
+          "name": "fund_mode_proposal_base_version",
+          "value": "\"fund_mode_proposals\".\"base_version\" >= 0"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.fund_modes": {
+      "name": "fund_modes",
+      "schema": "",
+      "columns": {
+        "fund_id": {
+          "name": "fund_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "version": {
+          "name": "version",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "mode": {
+          "name": "mode",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "proposal_id": {
+          "name": "proposal_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "approved_by": {
+          "name": "approved_by",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "approved_at": {
+          "name": "approved_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "fund_modes_fund_id_funds_id_fk": {
+          "name": "fund_modes_fund_id_funds_id_fk",
+          "tableFrom": "fund_modes",
+          "tableTo": "funds",
+          "columnsFrom": [
+            "fund_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "fund_modes_proposal_id_fund_mode_proposals_id_fk": {
+          "name": "fund_modes_proposal_id_fund_mode_proposals_id_fk",
+          "tableFrom": "fund_modes",
+          "tableTo": "fund_mode_proposals",
+          "columnsFrom": [
+            "proposal_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "fund_modes_approved_by_users_id_fk": {
+          "name": "fund_modes_approved_by_users_id_fk",
+          "tableFrom": "fund_modes",
+          "tableTo": "users",
+          "columnsFrom": [
+            "approved_by"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "fund_modes_fund_id_version_pk": {
+          "name": "fund_modes_fund_id_version_pk",
+          "columns": [
+            "fund_id",
+            "version"
+          ]
+        }
+      },
+      "uniqueConstraints": {
+        "fund_modes_proposal_id_unique": {
+          "name": "fund_modes_proposal_id_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "proposal_id"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {
+        "fund_mode_version_positive": {
+          "name": "fund_mode_version_positive",
+          "value": "\"fund_modes\".\"version\" > 0"
+        },
+        "fund_mode_mode": {
+          "name": "fund_mode_mode",
+          "value": "\"fund_modes\".\"mode\" in ('MANUAL','ASSISTED','AUTOPILOT')"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.fund_policy_clauses": {
+      "name": "fund_policy_clauses",
+      "schema": "",
+      "columns": {
+        "fund_id": {
+          "name": "fund_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "policy_version": {
+          "name": "policy_version",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "clause_id": {
+          "name": "clause_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "text": {
+          "name": "text",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "fund_policy_clauses_fund_id_policy_version_fund_policy_versions_fund_id_version_fk": {
+          "name": "fund_policy_clauses_fund_id_policy_version_fund_policy_versions_fund_id_version_fk",
+          "tableFrom": "fund_policy_clauses",
+          "tableTo": "fund_policy_versions",
+          "columnsFrom": [
+            "fund_id",
+            "policy_version"
+          ],
+          "columnsTo": [
+            "fund_id",
+            "version"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "fund_policy_clauses_fund_id_policy_version_clause_id_pk": {
+          "name": "fund_policy_clauses_fund_id_policy_version_clause_id_pk",
+          "columns": [
+            "fund_id",
+            "policy_version",
+            "clause_id"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "clause_id_shape": {
+          "name": "clause_id_shape",
+          "value": "\"fund_policy_clauses\".\"clause_id\" ~ '^[0-9]{1,2}[.][0-9]{1,2}$'"
+        },
+        "clause_text_bounded": {
+          "name": "clause_text_bounded",
+          "value": "char_length(\"fund_policy_clauses\".\"text\") between 1 and 600 and \"fund_policy_clauses\".\"text\" = btrim(\"fund_policy_clauses\".\"text\")"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.fund_policy_versions": {
+      "name": "fund_policy_versions",
+      "schema": "",
+      "columns": {
+        "fund_id": {
+          "name": "fund_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "version": {
+          "name": "version",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "approved_by": {
+          "name": "approved_by",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "approved_at": {
+          "name": "approved_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "programs": {
+          "name": "programs",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "allowed_categories": {
+          "name": "allowed_categories",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "period_start": {
+          "name": "period_start",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "period_end": {
+          "name": "period_end",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "breadth": {
+          "name": "breadth",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "summary": {
+          "name": "summary",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "fund_policy_versions_fund_id_funds_id_fk": {
+          "name": "fund_policy_versions_fund_id_funds_id_fk",
+          "tableFrom": "fund_policy_versions",
+          "tableTo": "funds",
+          "columnsFrom": [
+            "fund_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "fund_policy_versions_approved_by_users_id_fk": {
+          "name": "fund_policy_versions_approved_by_users_id_fk",
+          "tableFrom": "fund_policy_versions",
+          "tableTo": "users",
+          "columnsFrom": [
+            "approved_by"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "fund_policy_versions_fund_id_version_pk": {
+          "name": "fund_policy_versions_fund_id_version_pk",
+          "columns": [
+            "fund_id",
+            "version"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "policy_version_positive": {
+          "name": "policy_version_positive",
+          "value": "\"fund_policy_versions\".\"version\" > 0"
+        },
+        "policy_period_valid": {
+          "name": "policy_period_valid",
+          "value": "(\"fund_policy_versions\".\"period_start\" is null and \"fund_policy_versions\".\"period_end\" is null) or (\"fund_policy_versions\".\"period_start\" is not null and \"fund_policy_versions\".\"period_end\" is not null and \"fund_policy_versions\".\"period_start\" <= \"fund_policy_versions\".\"period_end\")"
+        },
+        "policy_breadth_positive": {
+          "name": "policy_breadth_positive",
+          "value": "\"fund_policy_versions\".\"breadth\" is null or \"fund_policy_versions\".\"breadth\" > 0"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.fund_reservations": {
+      "name": "fund_reservations",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "decision_id": {
+          "name": "decision_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "fund_id": {
+          "name": "fund_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "amount_cents": {
+          "name": "amount_cents",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "status": {
+          "name": "status",
+          "type": "reservation_status",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'ACTIVE'"
+        },
+        "recorded_at": {
+          "name": "recorded_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "fund_reservations_decision_id_allocation_decisions_id_fk": {
+          "name": "fund_reservations_decision_id_allocation_decisions_id_fk",
+          "tableFrom": "fund_reservations",
+          "tableTo": "allocation_decisions",
+          "columnsFrom": [
+            "decision_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "fund_reservations_fund_id_funds_id_fk": {
+          "name": "fund_reservations_fund_id_funds_id_fk",
+          "tableFrom": "fund_reservations",
+          "tableTo": "funds",
+          "columnsFrom": [
+            "fund_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "reservation_per_decision_fund": {
+          "name": "reservation_per_decision_fund",
+          "nullsNotDistinct": false,
+          "columns": [
+            "decision_id",
+            "fund_id"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {
+        "reservation_amount_positive": {
+          "name": "reservation_amount_positive",
+          "value": "\"fund_reservations\".\"amount_cents\" > 0"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.funds": {
+      "name": "funds",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "organization_id": {
+          "name": "organization_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "fund_class": {
+          "name": "fund_class",
+          "type": "fund_class",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "current_policy_version": {
+          "name": "current_policy_version",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "is_fixture": {
+          "name": "is_fixture",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "funds_organization_id_organizations_id_fk": {
+          "name": "funds_organization_id_organizations_id_fk",
+          "tableFrom": "funds",
+          "tableTo": "organizations",
+          "columnsFrom": [
+            "organization_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "fund_policy_version_positive": {
+          "name": "fund_policy_version_positive",
+          "value": "\"funds\".\"current_policy_version\" > 0"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.gift_applications": {
+      "name": "gift_applications",
+      "schema": "",
+      "columns": {
+        "note_id": {
+          "name": "note_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "capture_id": {
+          "name": "capture_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "claim_id": {
+          "name": "claim_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "claim_version": {
+          "name": "claim_version",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "line_id": {
+          "name": "line_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "fund_id": {
+          "name": "fund_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "applied_cents": {
+          "name": "applied_cents",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "policy_version": {
+          "name": "policy_version",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "gift_applications_fund_id_funds_id_fk": {
+          "name": "gift_applications_fund_id_funds_id_fk",
+          "tableFrom": "gift_applications",
+          "tableTo": "funds",
+          "columnsFrom": [
+            "fund_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "gift_applications_note_id_capture_id_claim_id_claim_version_gift_notes_id_capture_id_claim_id_claim_version_fk": {
+          "name": "gift_applications_note_id_capture_id_claim_id_claim_version_gift_notes_id_capture_id_claim_id_claim_version_fk",
+          "tableFrom": "gift_applications",
+          "tableTo": "gift_notes",
+          "columnsFrom": [
+            "note_id",
+            "capture_id",
+            "claim_id",
+            "claim_version"
+          ],
+          "columnsTo": [
+            "id",
+            "capture_id",
+            "claim_id",
+            "claim_version"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "gift_applications_claim_id_claim_version_line_id_claim_lines_claim_id_claim_version_id_fk": {
+          "name": "gift_applications_claim_id_claim_version_line_id_claim_lines_claim_id_claim_version_id_fk",
+          "tableFrom": "gift_applications",
+          "tableTo": "claim_lines",
+          "columnsFrom": [
+            "claim_id",
+            "claim_version",
+            "line_id"
+          ],
+          "columnsTo": [
+            "claim_id",
+            "claim_version",
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "gift_applications_note_id_line_id_fund_id_pk": {
+          "name": "gift_applications_note_id_line_id_fund_id_pk",
+          "columns": [
+            "note_id",
+            "line_id",
+            "fund_id"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "gift_application_positive": {
+          "name": "gift_application_positive",
+          "value": "\"gift_applications\".\"applied_cents\" > 0"
+        },
+        "gift_application_policy": {
+          "name": "gift_application_policy",
+          "value": "\"gift_applications\".\"policy_version\" = 'GIFT_ATTRIBUTION_V1'"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.gift_links": {
+      "name": "gift_links",
+      "schema": "",
+      "columns": {
+        "token_hash": {
+          "name": "token_hash",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "capture_id": {
+          "name": "capture_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "policy_version": {
+          "name": "policy_version",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "recorded_at": {
+          "name": "recorded_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "gift_links_capture_id_donation_receipts_capture_id_fk": {
+          "name": "gift_links_capture_id_donation_receipts_capture_id_fk",
+          "tableFrom": "gift_links",
+          "tableTo": "donation_receipts",
+          "columnsFrom": [
+            "capture_id"
+          ],
+          "columnsTo": [
+            "capture_id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "gift_links_capture_id_unique": {
+          "name": "gift_links_capture_id_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "capture_id"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {
+        "gift_link_hash": {
+          "name": "gift_link_hash",
+          "value": "\"gift_links\".\"token_hash\" ~ '^[a-f0-9]{64}$'"
+        },
+        "gift_link_policy": {
+          "name": "gift_link_policy",
+          "value": "\"gift_links\".\"policy_version\" = 'GIFT_LINK_V1'"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.gift_notes": {
+      "name": "gift_notes",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "capture_id": {
+          "name": "capture_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "claim_id": {
+          "name": "claim_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "claim_version": {
+          "name": "claim_version",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "decision_hash": {
+          "name": "decision_hash",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "fact_set_version": {
+          "name": "fact_set_version",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "fact_digest": {
+          "name": "fact_digest",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "template_id": {
+          "name": "template_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "optional_fact_ids": {
+          "name": "optional_fact_ids",
+          "type": "text[]",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'{}'::text[]"
+        },
+        "rendered_text": {
+          "name": "rendered_text",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "text_hash": {
+          "name": "text_hash",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "mode": {
+          "name": "mode",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "model_metadata": {
+          "name": "model_metadata",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "approver_id": {
+          "name": "approver_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "approved_at": {
+          "name": "approved_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "payout_status": {
+          "name": "payout_status",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "policy_version": {
+          "name": "policy_version",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "gift_notes_capture_id_donation_receipts_capture_id_fk": {
+          "name": "gift_notes_capture_id_donation_receipts_capture_id_fk",
+          "tableFrom": "gift_notes",
+          "tableTo": "donation_receipts",
+          "columnsFrom": [
+            "capture_id"
+          ],
+          "columnsTo": [
+            "capture_id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "gift_notes_decision_hash_allocation_decisions_decision_hash_fk": {
+          "name": "gift_notes_decision_hash_allocation_decisions_decision_hash_fk",
+          "tableFrom": "gift_notes",
+          "tableTo": "allocation_decisions",
+          "columnsFrom": [
+            "decision_hash"
+          ],
+          "columnsTo": [
+            "decision_hash"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "gift_notes_approver_id_users_id_fk": {
+          "name": "gift_notes_approver_id_users_id_fk",
+          "tableFrom": "gift_notes",
+          "tableTo": "users",
+          "columnsFrom": [
+            "approver_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "gift_notes_claim_id_claim_version_claims_id_version_fk": {
+          "name": "gift_notes_claim_id_claim_version_claims_id_version_fk",
+          "tableFrom": "gift_notes",
+          "tableTo": "claims",
+          "columnsFrom": [
+            "claim_id",
+            "claim_version"
+          ],
+          "columnsTo": [
+            "id",
+            "version"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "gift_note_identity": {
+          "name": "gift_note_identity",
+          "nullsNotDistinct": false,
+          "columns": [
+            "id",
+            "capture_id",
+            "claim_id",
+            "claim_version"
+          ]
+        },
+        "gift_note_facts_unique": {
+          "name": "gift_note_facts_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "capture_id",
+            "claim_id",
+            "claim_version",
+            "fact_digest"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {
+        "gift_note_fact_set": {
+          "name": "gift_note_fact_set",
+          "value": "\"gift_notes\".\"fact_set_version\" = 'donor-note-facts-v1'"
+        },
+        "gift_note_policy": {
+          "name": "gift_note_policy",
+          "value": "\"gift_notes\".\"policy_version\" = 'GIFT_ATTRIBUTION_V1'"
+        },
+        "gift_note_mode": {
+          "name": "gift_note_mode",
+          "value": "\"gift_notes\".\"mode\" in ('TEMPLATE','AI')"
+        },
+        "gift_note_model_metadata": {
+          "name": "gift_note_model_metadata",
+          "value": "(\"gift_notes\".\"mode\" = 'AI') or (\"gift_notes\".\"model_metadata\" is null)"
+        },
+        "gift_note_hashes": {
+          "name": "gift_note_hashes",
+          "value": "\"gift_notes\".\"fact_digest\" ~ '^[a-f0-9]{64}$' and \"gift_notes\".\"text_hash\" ~ '^[a-f0-9]{64}$'"
+        },
+        "gift_note_payout_status": {
+          "name": "gift_note_payout_status",
+          "value": "\"gift_notes\".\"payout_status\" in ('NO_PAYMENT','PROCESSING','UNKNOWN','NEEDS_ATTENTION','PAID')"
+        },
+        "gift_note_text_bounded": {
+          "name": "gift_note_text_bounded",
+          "value": "char_length(\"gift_notes\".\"rendered_text\") between 1 and 8000"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.journal_entries": {
+      "name": "journal_entries",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "source_type": {
+          "name": "source_type",
+          "type": "source_type",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "source_id": {
+          "name": "source_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "purpose": {
+          "name": "purpose",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "effective_on": {
+          "name": "effective_on",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "recorded_at": {
+          "name": "recorded_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "created_transaction_id": {
+          "name": "created_transaction_id",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "txid_current()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "journal_source_purpose_unique": {
+          "name": "journal_source_purpose_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "source_type",
+            "source_id",
+            "purpose"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.journal_postings": {
+      "name": "journal_postings",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "entry_id": {
+          "name": "entry_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "account_code": {
+          "name": "account_code",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "sub_key": {
+          "name": "sub_key",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "debit_cents": {
+          "name": "debit_cents",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "credit_cents": {
+          "name": "credit_cents",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "journal_postings_entry_id_journal_entries_id_fk": {
+          "name": "journal_postings_entry_id_journal_entries_id_fk",
+          "tableFrom": "journal_postings",
+          "tableTo": "journal_entries",
+          "columnsFrom": [
+            "entry_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "posting_one_positive_side": {
+          "name": "posting_one_positive_side",
+          "value": "(\"journal_postings\".\"debit_cents\" > 0 and \"journal_postings\".\"credit_cents\" = 0) or (\"journal_postings\".\"credit_cents\" > 0 and \"journal_postings\".\"debit_cents\" = 0)"
+        },
+        "posting_known_account": {
+          "name": "posting_known_account",
+          "value": "\"journal_postings\".\"account_code\" in ('1010','2010','3100','3200','4100','5100','5200','5300','5400','5500','5900')"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.login_windows": {
+      "name": "login_windows",
+      "schema": "",
+      "columns": {
+        "username": {
+          "name": "username",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "attempts": {
+          "name": "attempts",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "resets_at": {
+          "name": "resets_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "login_attempts_positive": {
+          "name": "login_attempts_positive",
+          "value": "\"login_windows\".\"attempts\" > 0"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.organizations": {
+      "name": "organizations",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "prohibited_categories": {
+          "name": "prohibited_categories",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "is_fixture": {
+          "name": "is_fixture",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": true
+        },
+        "opening_source_type": {
+          "name": "opening_source_type",
+          "type": "source_type",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "organization_opening_source": {
+          "name": "organization_opening_source",
+          "value": "\"organizations\".\"opening_source_type\" in ('fixture_opening_balance', 'paypal_capture')"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.policy_check_results": {
+      "name": "policy_check_results",
+      "schema": "",
+      "columns": {
+        "run_id": {
+          "name": "run_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "sequence": {
+          "name": "sequence",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "entry": {
+          "name": "entry",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "rule_id": {
+          "name": "rule_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "severity": {
+          "name": "severity",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "line_id": {
+          "name": "line_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "fund_id": {
+          "name": "fund_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "settings_version": {
+          "name": "settings_version",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "reason_code": {
+          "name": "reason_code",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "flag_text": {
+          "name": "flag_text",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "inputs": {
+          "name": "inputs",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "recorded_at": {
+          "name": "recorded_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "policy_check_results_run_id_policy_check_runs_id_fk": {
+          "name": "policy_check_results_run_id_policy_check_runs_id_fk",
+          "tableFrom": "policy_check_results",
+          "tableTo": "policy_check_runs",
+          "columnsFrom": [
+            "run_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "policy_check_results_fund_id_funds_id_fk": {
+          "name": "policy_check_results_fund_id_funds_id_fk",
+          "tableFrom": "policy_check_results",
+          "tableTo": "funds",
+          "columnsFrom": [
+            "fund_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "policy_check_results_fund_id_settings_version_fund_check_settings_fund_id_version_fk": {
+          "name": "policy_check_results_fund_id_settings_version_fund_check_settings_fund_id_version_fk",
+          "tableFrom": "policy_check_results",
+          "tableTo": "fund_check_settings",
+          "columnsFrom": [
+            "fund_id",
+            "settings_version"
+          ],
+          "columnsTo": [
+            "fund_id",
+            "version"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "policy_check_results_run_id_sequence_pk": {
+          "name": "policy_check_results_run_id_sequence_pk",
+          "columns": [
+            "run_id",
+            "sequence"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "policy_result_sequence": {
+          "name": "policy_result_sequence",
+          "value": "\"policy_check_results\".\"sequence\" > 0"
+        },
+        "policy_result_entry": {
+          "name": "policy_result_entry",
+          "value": "\"policy_check_results\".\"entry\" in ('FLAG','NOT_CHECKED','RUN_END')"
+        },
+        "policy_result_fund_version": {
+          "name": "policy_result_fund_version",
+          "value": "(\"policy_check_results\".\"fund_id\" is null) = (\"policy_check_results\".\"settings_version\" is null)"
+        },
+        "policy_result_text_bounded": {
+          "name": "policy_result_text_bounded",
+          "value": "\"policy_check_results\".\"flag_text\" is null or char_length(\"policy_check_results\".\"flag_text\") between 1 and 600"
+        },
+        "policy_result_inputs": {
+          "name": "policy_result_inputs",
+          "value": "jsonb_typeof(\"policy_check_results\".\"inputs\") = 'object' and octet_length(\"policy_check_results\".\"inputs\"::text) <= 8000"
+        },
+        "policy_result_shape": {
+          "name": "policy_result_shape",
+          "value": "(\"policy_check_results\".\"entry\" = 'FLAG' and \"policy_check_results\".\"rule_id\" in ('P1','P2','P3','P4','P5','P6','P7') and \"policy_check_results\".\"severity\" in ('HOLD','NOTE') and \"policy_check_results\".\"flag_text\" is not null and \"policy_check_results\".\"reason_code\" is null)\n    or (\"policy_check_results\".\"entry\" = 'NOT_CHECKED' and \"policy_check_results\".\"rule_id\" in ('P1','P2','P3','P5','P6') and \"policy_check_results\".\"severity\" is null and \"policy_check_results\".\"reason_code\" = 'NO_THRESHOLDS' and \"policy_check_results\".\"flag_text\" is not null and \"policy_check_results\".\"fund_id\" is null and \"policy_check_results\".\"line_id\" is null)\n    or (\"policy_check_results\".\"entry\" = 'RUN_END' and \"policy_check_results\".\"rule_id\" is null and \"policy_check_results\".\"severity\" is null and \"policy_check_results\".\"reason_code\" is null and \"policy_check_results\".\"flag_text\" is null and \"policy_check_results\".\"line_id\" is null and \"policy_check_results\".\"fund_id\" is null)"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.policy_check_runs": {
+      "name": "policy_check_runs",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "decision_hash": {
+          "name": "decision_hash",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "claim_id": {
+          "name": "claim_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "claim_version": {
+          "name": "claim_version",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "organization_id": {
+          "name": "organization_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "kind": {
+          "name": "kind",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "trigger": {
+          "name": "trigger",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'APPROVER'"
+        },
+        "started_by": {
+          "name": "started_by",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "started_at": {
+          "name": "started_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "settings_versions": {
+          "name": "settings_versions",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "rule_set_version": {
+          "name": "rule_set_version",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "facts_digest": {
+          "name": "facts_digest",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "model": {
+          "name": "model",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "effort": {
+          "name": "effort",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "prompt_version": {
+          "name": "prompt_version",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "schema_version": {
+          "name": "schema_version",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "clause_set_hash": {
+          "name": "clause_set_hash",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "request_digest": {
+          "name": "request_digest",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "policy_check_runs_decision_hash_allocation_decisions_decision_hash_fk": {
+          "name": "policy_check_runs_decision_hash_allocation_decisions_decision_hash_fk",
+          "tableFrom": "policy_check_runs",
+          "tableTo": "allocation_decisions",
+          "columnsFrom": [
+            "decision_hash"
+          ],
+          "columnsTo": [
+            "decision_hash"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "policy_check_runs_organization_id_organizations_id_fk": {
+          "name": "policy_check_runs_organization_id_organizations_id_fk",
+          "tableFrom": "policy_check_runs",
+          "tableTo": "organizations",
+          "columnsFrom": [
+            "organization_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "policy_check_runs_started_by_users_id_fk": {
+          "name": "policy_check_runs_started_by_users_id_fk",
+          "tableFrom": "policy_check_runs",
+          "tableTo": "users",
+          "columnsFrom": [
+            "started_by"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "policy_check_runs_claim_id_claim_version_claims_id_version_fk": {
+          "name": "policy_check_runs_claim_id_claim_version_claims_id_version_fk",
+          "tableFrom": "policy_check_runs",
+          "tableTo": "claims",
+          "columnsFrom": [
+            "claim_id",
+            "claim_version"
+          ],
+          "columnsTo": [
+            "id",
+            "version"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "policy_run_per_decision_kind": {
+          "name": "policy_run_per_decision_kind",
+          "nullsNotDistinct": false,
+          "columns": [
+            "decision_hash",
+            "kind"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {
+        "policy_run_kind": {
+          "name": "policy_run_kind",
+          "value": "\"policy_check_runs\".\"kind\" in ('RULES','MODEL')"
+        },
+        "policy_run_trigger": {
+          "name": "policy_run_trigger",
+          "value": "\"policy_check_runs\".\"trigger\" in ('APPROVER','SWEEP')"
+        },
+        "policy_run_trigger_user": {
+          "name": "policy_run_trigger_user",
+          "value": "(\"policy_check_runs\".\"trigger\" = 'APPROVER' and \"policy_check_runs\".\"started_by\" is not null) or (\"policy_check_runs\".\"trigger\" = 'SWEEP' and \"policy_check_runs\".\"started_by\" is null)"
+        },
+        "policy_run_settings_object": {
+          "name": "policy_run_settings_object",
+          "value": "jsonb_typeof(\"policy_check_runs\".\"settings_versions\") = 'object'"
+        },
+        "policy_run_facts_digest": {
+          "name": "policy_run_facts_digest",
+          "value": "\"policy_check_runs\".\"facts_digest\" ~ '^[a-f0-9]{64}$'"
+        },
+        "policy_run_model_columns": {
+          "name": "policy_run_model_columns",
+          "value": "(\"policy_check_runs\".\"kind\" = 'RULES' and \"policy_check_runs\".\"model\" is null and \"policy_check_runs\".\"effort\" is null and \"policy_check_runs\".\"prompt_version\" is null and \"policy_check_runs\".\"schema_version\" is null and \"policy_check_runs\".\"clause_set_hash\" is null and \"policy_check_runs\".\"request_digest\" is null) or (\"policy_check_runs\".\"kind\" = 'MODEL' and \"policy_check_runs\".\"model\" is not null and \"policy_check_runs\".\"effort\" is not null and \"policy_check_runs\".\"prompt_version\" is not null and \"policy_check_runs\".\"schema_version\" is not null and \"policy_check_runs\".\"clause_set_hash\" is not null and \"policy_check_runs\".\"request_digest\" is not null)"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.policy_draft_events": {
+      "name": "policy_draft_events",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "draft_id": {
+          "name": "draft_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "kind": {
+          "name": "kind",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "actor_id": {
+          "name": "actor_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "bound_policy_version": {
+          "name": "bound_policy_version",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "recorded_at": {
+          "name": "recorded_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "draft_event_one_approval_per_person": {
+          "name": "draft_event_one_approval_per_person",
+          "columns": [
+            {
+              "expression": "draft_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "actor_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "where": "\"policy_draft_events\".\"kind\" = 'APPROVED'",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "draft_event_one_bound": {
+          "name": "draft_event_one_bound",
+          "columns": [
+            {
+              "expression": "draft_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "where": "\"policy_draft_events\".\"kind\" = 'BOUND'",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "draft_event_one_withdrawn": {
+          "name": "draft_event_one_withdrawn",
+          "columns": [
+            {
+              "expression": "draft_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "where": "\"policy_draft_events\".\"kind\" = 'WITHDRAWN'",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "policy_draft_events_draft_id_policy_drafts_id_fk": {
+          "name": "policy_draft_events_draft_id_policy_drafts_id_fk",
+          "tableFrom": "policy_draft_events",
+          "tableTo": "policy_drafts",
+          "columnsFrom": [
+            "draft_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "policy_draft_events_actor_id_users_id_fk": {
+          "name": "policy_draft_events_actor_id_users_id_fk",
+          "tableFrom": "policy_draft_events",
+          "tableTo": "users",
+          "columnsFrom": [
+            "actor_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "draft_event_kind": {
+          "name": "draft_event_kind",
+          "value": "\"policy_draft_events\".\"kind\" in ('APPROVED','BOUND','WITHDRAWN')"
+        },
+        "draft_event_bound_version": {
+          "name": "draft_event_bound_version",
+          "value": "(\"policy_draft_events\".\"kind\" = 'BOUND') = (\"policy_draft_events\".\"bound_policy_version\" is not null) and (\"policy_draft_events\".\"bound_policy_version\" is null or \"policy_draft_events\".\"bound_policy_version\" > 1)"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.policy_drafts": {
+      "name": "policy_drafts",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "fund_id": {
+          "name": "fund_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "base_policy_version": {
+          "name": "base_policy_version",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "parent_draft_id": {
+          "name": "parent_draft_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "input_sha256": {
+          "name": "input_sha256",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "input_text": {
+          "name": "input_text",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "outcome": {
+          "name": "outcome",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "draft": {
+          "name": "draft",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "refusal_reason": {
+          "name": "refusal_reason",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "refusal_path": {
+          "name": "refusal_path",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "changed_fields": {
+          "name": "changed_fields",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "model": {
+          "name": "model",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "effort": {
+          "name": "effort",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "prompt_version": {
+          "name": "prompt_version",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "schema_version": {
+          "name": "schema_version",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "request_digest": {
+          "name": "request_digest",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "stop_reason": {
+          "name": "stop_reason",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "input_tokens": {
+          "name": "input_tokens",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "output_tokens": {
+          "name": "output_tokens",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "drafted_by": {
+          "name": "drafted_by",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "policy_drafts_drafted_by_users_id_fk": {
+          "name": "policy_drafts_drafted_by_users_id_fk",
+          "tableFrom": "policy_drafts",
+          "tableTo": "users",
+          "columnsFrom": [
+            "drafted_by"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "policy_drafts_fund_id_base_policy_version_fund_policy_versions_fund_id_version_fk": {
+          "name": "policy_drafts_fund_id_base_policy_version_fund_policy_versions_fund_id_version_fk",
+          "tableFrom": "policy_drafts",
+          "tableTo": "fund_policy_versions",
+          "columnsFrom": [
+            "fund_id",
+            "base_policy_version"
+          ],
+          "columnsTo": [
+            "fund_id",
+            "version"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "policy_drafts_parent_draft_id_policy_drafts_id_fk": {
+          "name": "policy_drafts_parent_draft_id_policy_drafts_id_fk",
+          "tableFrom": "policy_drafts",
+          "tableTo": "policy_drafts",
+          "columnsFrom": [
+            "parent_draft_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "draft_input_bounded": {
+          "name": "draft_input_bounded",
+          "value": "char_length(\"policy_drafts\".\"input_text\") between 1 and 20000 and btrim(\"policy_drafts\".\"input_text\", E' \\n\\r\\t') <> ''"
+        },
+        "draft_input_hash": {
+          "name": "draft_input_hash",
+          "value": "\"policy_drafts\".\"input_sha256\" = encode(sha256(convert_to(\"policy_drafts\".\"input_text\", 'UTF8')), 'hex')"
+        },
+        "draft_outcome": {
+          "name": "draft_outcome",
+          "value": "\"policy_drafts\".\"outcome\" in ('DRAFTED','REFUSED')"
+        },
+        "draft_outcome_shape": {
+          "name": "draft_outcome_shape",
+          "value": "(\"policy_drafts\".\"outcome\" = 'DRAFTED' and \"policy_drafts\".\"draft\" is not null and jsonb_typeof(\"policy_drafts\".\"draft\") = 'object' and \"policy_drafts\".\"refusal_reason\" is null and \"policy_drafts\".\"refusal_path\" is null)\n    or (\"policy_drafts\".\"outcome\" = 'REFUSED' and \"policy_drafts\".\"draft\" is null and \"policy_drafts\".\"refusal_reason\" ~ '^[A-Z_]{1,40}$' and \"policy_drafts\".\"refusal_path\" ~ '^[A-Za-z0-9_.]{1,80}$' and \"policy_drafts\".\"parent_draft_id\" is null and \"policy_drafts\".\"changed_fields\" is null)"
+        },
+        "draft_edit_shape": {
+          "name": "draft_edit_shape",
+          "value": "(\"policy_drafts\".\"parent_draft_id\" is null and \"policy_drafts\".\"changed_fields\" is null\n      and \"policy_drafts\".\"model\" is not null and \"policy_drafts\".\"effort\" is not null and \"policy_drafts\".\"prompt_version\" is not null and \"policy_drafts\".\"schema_version\" is not null and \"policy_drafts\".\"request_digest\" is not null)\n    or (\"policy_drafts\".\"parent_draft_id\" is not null and \"policy_drafts\".\"outcome\" = 'DRAFTED' and \"policy_drafts\".\"changed_fields\" is not null and jsonb_typeof(\"policy_drafts\".\"changed_fields\") = 'array' and jsonb_array_length(\"policy_drafts\".\"changed_fields\") > 0\n      and \"policy_drafts\".\"model\" is null and \"policy_drafts\".\"effort\" is null and \"policy_drafts\".\"prompt_version\" is null and \"policy_drafts\".\"schema_version\" is null and \"policy_drafts\".\"request_digest\" is null and \"policy_drafts\".\"stop_reason\" is null and \"policy_drafts\".\"input_tokens\" is null and \"policy_drafts\".\"output_tokens\" is null)"
+        },
+        "draft_digest": {
+          "name": "draft_digest",
+          "value": "\"policy_drafts\".\"request_digest\" is null or \"policy_drafts\".\"request_digest\" ~ '^[a-f0-9]{64}$'"
+        },
+        "draft_stop_reason": {
+          "name": "draft_stop_reason",
+          "value": "\"policy_drafts\".\"stop_reason\" is null or \"policy_drafts\".\"stop_reason\" ~ '^[a-z_]{1,40}$'"
+        },
+        "draft_counts": {
+          "name": "draft_counts",
+          "value": "(\"policy_drafts\".\"input_tokens\" is null or \"policy_drafts\".\"input_tokens\" >= 0) and (\"policy_drafts\".\"output_tokens\" is null or \"policy_drafts\".\"output_tokens\" >= 0)"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.policy_model_results": {
+      "name": "policy_model_results",
+      "schema": "",
+      "columns": {
+        "run_id": {
+          "name": "run_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "sequence": {
+          "name": "sequence",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "entry": {
+          "name": "entry",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "fund_id": {
+          "name": "fund_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "policy_version": {
+          "name": "policy_version",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "line_id": {
+          "name": "line_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "verdict": {
+          "name": "verdict",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "clause_id": {
+          "name": "clause_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "model": {
+          "name": "model",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "effort": {
+          "name": "effort",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "reason_code": {
+          "name": "reason_code",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "request_digest": {
+          "name": "request_digest",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "stop_reason": {
+          "name": "stop_reason",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "input_tokens": {
+          "name": "input_tokens",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "output_tokens": {
+          "name": "output_tokens",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "recorded_at": {
+          "name": "recorded_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "policy_model_results_run_id_policy_check_runs_id_fk": {
+          "name": "policy_model_results_run_id_policy_check_runs_id_fk",
+          "tableFrom": "policy_model_results",
+          "tableTo": "policy_check_runs",
+          "columnsFrom": [
+            "run_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "policy_model_results_fund_id_policy_version_fund_policy_versions_fund_id_version_fk": {
+          "name": "policy_model_results_fund_id_policy_version_fund_policy_versions_fund_id_version_fk",
+          "tableFrom": "policy_model_results",
+          "tableTo": "fund_policy_versions",
+          "columnsFrom": [
+            "fund_id",
+            "policy_version"
+          ],
+          "columnsTo": [
+            "fund_id",
+            "version"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "policy_model_results_fund_id_policy_version_clause_id_fund_policy_clauses_fund_id_policy_version_clause_id_fk": {
+          "name": "policy_model_results_fund_id_policy_version_clause_id_fund_policy_clauses_fund_id_policy_version_clause_id_fk",
+          "tableFrom": "policy_model_results",
+          "tableTo": "fund_policy_clauses",
+          "columnsFrom": [
+            "fund_id",
+            "policy_version",
+            "clause_id"
+          ],
+          "columnsTo": [
+            "fund_id",
+            "policy_version",
+            "clause_id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "policy_model_results_run_id_sequence_pk": {
+          "name": "policy_model_results_run_id_sequence_pk",
+          "columns": [
+            "run_id",
+            "sequence"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "model_result_sequence": {
+          "name": "model_result_sequence",
+          "value": "\"policy_model_results\".\"sequence\" > 0"
+        },
+        "model_result_entry": {
+          "name": "model_result_entry",
+          "value": "\"policy_model_results\".\"entry\" in ('CALL','LINE','NOT_CHECKED','SKIPPED','RUN_END')"
+        },
+        "model_result_verdict": {
+          "name": "model_result_verdict",
+          "value": "\"policy_model_results\".\"verdict\" is null or \"policy_model_results\".\"verdict\" in ('OK','CONFLICT','UNSURE')"
+        },
+        "model_result_reason": {
+          "name": "model_result_reason",
+          "value": "\"policy_model_results\".\"reason_code\" is null or \"policy_model_results\".\"reason_code\" in ('TIMEOUT','UNAVAILABLE','INVALID','LIMIT','NO_CLAUSES','GENERAL_FUND')"
+        },
+        "model_result_fund_version": {
+          "name": "model_result_fund_version",
+          "value": "(\"policy_model_results\".\"fund_id\" is null) = (\"policy_model_results\".\"policy_version\" is null)"
+        },
+        "model_result_clause_scope": {
+          "name": "model_result_clause_scope",
+          "value": "\"policy_model_results\".\"clause_id\" is null or \"policy_model_results\".\"fund_id\" is not null"
+        },
+        "model_result_model_effort": {
+          "name": "model_result_model_effort",
+          "value": "(\"policy_model_results\".\"model\" is null) = (\"policy_model_results\".\"effort\" is null)"
+        },
+        "model_result_digest": {
+          "name": "model_result_digest",
+          "value": "\"policy_model_results\".\"request_digest\" is null or \"policy_model_results\".\"request_digest\" ~ '^[a-f0-9]{64}$'"
+        },
+        "model_result_counts": {
+          "name": "model_result_counts",
+          "value": "(\"policy_model_results\".\"input_tokens\" is null or \"policy_model_results\".\"input_tokens\" >= 0) and (\"policy_model_results\".\"output_tokens\" is null or \"policy_model_results\".\"output_tokens\" >= 0)"
+        },
+        "model_result_shape": {
+          "name": "model_result_shape",
+          "value": "(\"policy_model_results\".\"entry\" = 'CALL' and \"policy_model_results\".\"fund_id\" is not null and \"policy_model_results\".\"model\" is not null and \"policy_model_results\".\"request_digest\" is not null and \"policy_model_results\".\"line_id\" is null and \"policy_model_results\".\"verdict\" is null and \"policy_model_results\".\"clause_id\" is null and (\"policy_model_results\".\"reason_code\" is null or \"policy_model_results\".\"reason_code\" in ('TIMEOUT','UNAVAILABLE','INVALID')))\n    or (\"policy_model_results\".\"entry\" = 'LINE' and \"policy_model_results\".\"fund_id\" is not null and \"policy_model_results\".\"model\" is not null and \"policy_model_results\".\"line_id\" is not null and \"policy_model_results\".\"verdict\" is not null and \"policy_model_results\".\"reason_code\" is null and \"policy_model_results\".\"request_digest\" is null and \"policy_model_results\".\"stop_reason\" is null and \"policy_model_results\".\"input_tokens\" is null and \"policy_model_results\".\"output_tokens\" is null\n      and ((\"policy_model_results\".\"verdict\" = 'OK' and \"policy_model_results\".\"clause_id\" is null) or \"policy_model_results\".\"verdict\" = 'UNSURE' or (\"policy_model_results\".\"verdict\" = 'CONFLICT' and \"policy_model_results\".\"clause_id\" is not null)))\n    or (\"policy_model_results\".\"entry\" = 'NOT_CHECKED' and \"policy_model_results\".\"fund_id\" is not null and \"policy_model_results\".\"reason_code\" in ('TIMEOUT','UNAVAILABLE','INVALID','LIMIT','NO_CLAUSES') and \"policy_model_results\".\"line_id\" is null and \"policy_model_results\".\"verdict\" is null and \"policy_model_results\".\"clause_id\" is null and \"policy_model_results\".\"request_digest\" is null and \"policy_model_results\".\"stop_reason\" is null and \"policy_model_results\".\"input_tokens\" is null and \"policy_model_results\".\"output_tokens\" is null and ((\"policy_model_results\".\"reason_code\" = 'NO_CLAUSES') = (\"policy_model_results\".\"model\" is null)))\n    or (\"policy_model_results\".\"entry\" = 'SKIPPED' and \"policy_model_results\".\"fund_id\" is not null and \"policy_model_results\".\"reason_code\" = 'GENERAL_FUND' and \"policy_model_results\".\"model\" is null and \"policy_model_results\".\"line_id\" is null and \"policy_model_results\".\"verdict\" is null and \"policy_model_results\".\"clause_id\" is null and \"policy_model_results\".\"request_digest\" is null and \"policy_model_results\".\"stop_reason\" is null and \"policy_model_results\".\"input_tokens\" is null and \"policy_model_results\".\"output_tokens\" is null)\n    or (\"policy_model_results\".\"entry\" = 'RUN_END' and \"policy_model_results\".\"fund_id\" is null and \"policy_model_results\".\"model\" is null and \"policy_model_results\".\"line_id\" is null and \"policy_model_results\".\"verdict\" is null and \"policy_model_results\".\"clause_id\" is null and \"policy_model_results\".\"reason_code\" is null and \"policy_model_results\".\"request_digest\" is null and \"policy_model_results\".\"stop_reason\" is null and \"policy_model_results\".\"input_tokens\" is null and \"policy_model_results\".\"output_tokens\" is null)"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.provider_events": {
+      "name": "provider_events",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "event_id": {
+          "name": "event_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "event_type": {
+          "name": "event_type",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "verification_status": {
+          "name": "verification_status",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "resource_id": {
+          "name": "resource_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "received_at": {
+          "name": "received_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "processed_at": {
+          "name": "processed_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "provider_events_event_id_unique": {
+          "name": "provider_events_event_id_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "event_id"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.receipt_confirmations": {
+      "name": "receipt_confirmations",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "review_id": {
+          "name": "review_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "suggestion_id": {
+          "name": "suggestion_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "confirmed_by": {
+          "name": "confirmed_by",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "terms_hash": {
+          "name": "terms_hash",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "selections": {
+          "name": "selections",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "recorded_at": {
+          "name": "recorded_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "prohibited_screen": {
+          "name": "prohibited_screen",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "receipt_confirmations_review_id_receipt_reviews_id_fk": {
+          "name": "receipt_confirmations_review_id_receipt_reviews_id_fk",
+          "tableFrom": "receipt_confirmations",
+          "tableTo": "receipt_reviews",
+          "columnsFrom": [
+            "review_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "receipt_confirmations_suggestion_id_receipt_suggestions_id_fk": {
+          "name": "receipt_confirmations_suggestion_id_receipt_suggestions_id_fk",
+          "tableFrom": "receipt_confirmations",
+          "tableTo": "receipt_suggestions",
+          "columnsFrom": [
+            "suggestion_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "receipt_confirmations_confirmed_by_users_id_fk": {
+          "name": "receipt_confirmations_confirmed_by_users_id_fk",
+          "tableFrom": "receipt_confirmations",
+          "tableTo": "users",
+          "columnsFrom": [
+            "confirmed_by"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "receipt_confirmations_review_id_unique": {
+          "name": "receipt_confirmations_review_id_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "review_id"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {
+        "receipt_confirmation_hash": {
+          "name": "receipt_confirmation_hash",
+          "value": "\"receipt_confirmations\".\"terms_hash\" ~ '^[a-f0-9]{64}$'"
+        },
+        "receipt_prohibited_screen_shape": {
+          "name": "receipt_prohibited_screen_shape",
+          "value": "\"receipt_confirmations\".\"prohibited_screen\" is null or (case when jsonb_typeof(\"receipt_confirmations\".\"prohibited_screen\") = 'object' and jsonb_typeof(\"receipt_confirmations\".\"prohibited_screen\"->'version') = 'string' and jsonb_typeof(\"receipt_confirmations\".\"prohibited_screen\"->'matches') = 'array' and jsonb_typeof(\"receipt_confirmations\".\"prohibited_screen\"->'unresolved') = 'array' and jsonb_typeof(\"receipt_confirmations\".\"prohibited_screen\"->'acknowledged') = 'boolean' then (\"receipt_confirmations\".\"prohibited_screen\"->'acknowledged' = 'true'::jsonb) = (jsonb_array_length(\"receipt_confirmations\".\"prohibited_screen\"->'unresolved') > 0) else false end)"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.receipt_reviews": {
+      "name": "receipt_reviews",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "claim_id": {
+          "name": "claim_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "claim_version": {
+          "name": "claim_version",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "revision": {
+          "name": "revision",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "source": {
+          "name": "source",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "source_hash": {
+          "name": "source_hash",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "draft_hash": {
+          "name": "draft_hash",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_by": {
+          "name": "created_by",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "recorded_at": {
+          "name": "recorded_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "receipt_reviews_created_by_users_id_fk": {
+          "name": "receipt_reviews_created_by_users_id_fk",
+          "tableFrom": "receipt_reviews",
+          "tableTo": "users",
+          "columnsFrom": [
+            "created_by"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "receipt_reviews_claim_id_claim_version_claims_id_version_fk": {
+          "name": "receipt_reviews_claim_id_claim_version_claims_id_version_fk",
+          "tableFrom": "receipt_reviews",
+          "tableTo": "claims",
+          "columnsFrom": [
+            "claim_id",
+            "claim_version"
+          ],
+          "columnsTo": [
+            "id",
+            "version"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "receipt_reviews_claim_id_claim_version_revision_unique": {
+          "name": "receipt_reviews_claim_id_claim_version_revision_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "claim_id",
+            "claim_version",
+            "revision"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {
+        "receipt_claim_namespace": {
+          "name": "receipt_claim_namespace",
+          "value": "\"receipt_reviews\".\"claim_id\" ~ '^R-[a-f0-9-]{36}$'"
+        },
+        "receipt_revision_positive": {
+          "name": "receipt_revision_positive",
+          "value": "\"receipt_reviews\".\"revision\" > 0"
+        },
+        "receipt_source_bounded": {
+          "name": "receipt_source_bounded",
+          "value": "octet_length(\"receipt_reviews\".\"source\") between 1 and 16384"
+        },
+        "receipt_hashes": {
+          "name": "receipt_hashes",
+          "value": "\"receipt_reviews\".\"source_hash\" ~ '^[a-f0-9]{64}$' and \"receipt_reviews\".\"draft_hash\" ~ '^[a-f0-9]{64}$'"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.receipt_suggestions": {
+      "name": "receipt_suggestions",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "review_id": {
+          "name": "review_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "attempt": {
+          "name": "attempt",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "status": {
+          "name": "status",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "proposals": {
+          "name": "proposals",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "audit": {
+          "name": "audit",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "provider": {
+          "name": "provider",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "model": {
+          "name": "model",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "error_code": {
+          "name": "error_code",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "recorded_at": {
+          "name": "recorded_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "receipt_suggestions_review_id_receipt_reviews_id_fk": {
+          "name": "receipt_suggestions_review_id_receipt_reviews_id_fk",
+          "tableFrom": "receipt_suggestions",
+          "tableTo": "receipt_reviews",
+          "columnsFrom": [
+            "review_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "receipt_suggestions_review_id_attempt_unique": {
+          "name": "receipt_suggestions_review_id_attempt_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "review_id",
+            "attempt"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {
+        "receipt_attempt_positive": {
+          "name": "receipt_attempt_positive",
+          "value": "\"receipt_suggestions\".\"attempt\" > 0"
+        },
+        "receipt_suggestion_status": {
+          "name": "receipt_suggestion_status",
+          "value": "\"receipt_suggestions\".\"status\" in ('RUNNING','READY','FAILED')"
+        },
+        "receipt_ready_evidence": {
+          "name": "receipt_ready_evidence",
+          "value": "\"receipt_suggestions\".\"status\" <> 'READY' or (\"receipt_suggestions\".\"proposals\" is not null and \"receipt_suggestions\".\"audit\" is not null)"
+        },
+        "receipt_suggestion_provider": {
+          "name": "receipt_suggestion_provider",
+          "value": "(\"receipt_suggestions\".\"status\" = 'READY') = (\"receipt_suggestions\".\"provider\" is not null) and (\"receipt_suggestions\".\"provider\" is null) = (\"receipt_suggestions\".\"model\" is null) and (\"receipt_suggestions\".\"provider\" is null or \"receipt_suggestions\".\"provider\" in ('local','claude')) and (\"receipt_suggestions\".\"provider\" is distinct from 'local' or (not (\"receipt_suggestions\".\"audit\" ? 'provider') and \"receipt_suggestions\".\"model\" = \"receipt_suggestions\".\"audit\"->>'modelRevision' and \"receipt_suggestions\".\"model\" ~ '^[a-f0-9]{40}$') is true) and (\"receipt_suggestions\".\"provider\" is distinct from 'claude' or (\"receipt_suggestions\".\"audit\"->>'provider' = 'claude' and \"receipt_suggestions\".\"model\" = \"receipt_suggestions\".\"audit\"->>'model' and \"receipt_suggestions\".\"model\" in ('claude-haiku-5-5','claude-sonnet-5-5')) is true)"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.reservation_budget_lines": {
+      "name": "reservation_budget_lines",
+      "schema": "",
+      "columns": {
+        "reservation_id": {
+          "name": "reservation_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "budget_line": {
+          "name": "budget_line",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "amount_cents": {
+          "name": "amount_cents",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "reservation_budget_lines_reservation_id_fund_reservations_id_fk": {
+          "name": "reservation_budget_lines_reservation_id_fund_reservations_id_fk",
+          "tableFrom": "reservation_budget_lines",
+          "tableTo": "fund_reservations",
+          "columnsFrom": [
+            "reservation_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "reservation_budget_lines_reservation_id_budget_line_pk": {
+          "name": "reservation_budget_lines_reservation_id_budget_line_pk",
+          "columns": [
+            "reservation_id",
+            "budget_line"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "reserved_budget_amount_positive": {
+          "name": "reserved_budget_amount_positive",
+          "value": "\"reservation_budget_lines\".\"amount_cents\" > 0"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.retry_authorizations": {
+      "name": "retry_authorizations",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "claim_id": {
+          "name": "claim_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "claim_version": {
+          "name": "claim_version",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "decision_hash": {
+          "name": "decision_hash",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "attempt_number": {
+          "name": "attempt_number",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "payee_email": {
+          "name": "payee_email",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "amount_cents": {
+          "name": "amount_cents",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "authorized_by": {
+          "name": "authorized_by",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "authorized_at": {
+          "name": "authorized_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "retry_authorizations_decision_hash_allocation_decisions_decision_hash_fk": {
+          "name": "retry_authorizations_decision_hash_allocation_decisions_decision_hash_fk",
+          "tableFrom": "retry_authorizations",
+          "tableTo": "allocation_decisions",
+          "columnsFrom": [
+            "decision_hash"
+          ],
+          "columnsTo": [
+            "decision_hash"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "retry_authorizations_authorized_by_users_id_fk": {
+          "name": "retry_authorizations_authorized_by_users_id_fk",
+          "tableFrom": "retry_authorizations",
+          "tableTo": "users",
+          "columnsFrom": [
+            "authorized_by"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "retry_authorizations_claim_id_claim_version_claims_id_version_fk": {
+          "name": "retry_authorizations_claim_id_claim_version_claims_id_version_fk",
+          "tableFrom": "retry_authorizations",
+          "tableTo": "claims",
+          "columnsFrom": [
+            "claim_id",
+            "claim_version"
+          ],
+          "columnsTo": [
+            "id",
+            "version"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "retry_authorization_per_claim_attempt": {
+          "name": "retry_authorization_per_claim_attempt",
+          "nullsNotDistinct": false,
+          "columns": [
+            "claim_id",
+            "claim_version",
+            "attempt_number"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {
+        "retry_number_amount_positive": {
+          "name": "retry_number_amount_positive",
+          "value": "\"retry_authorizations\".\"attempt_number\" > 1 and \"retry_authorizations\".\"amount_cents\" > 0"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.sessions": {
+      "name": "sessions",
+      "schema": "",
+      "columns": {
+        "token_hash": {
+          "name": "token_hash",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "expires_at": {
+          "name": "expires_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "sessions_user_id_users_id_fk": {
+          "name": "sessions_user_id_users_id_fk",
+          "tableFrom": "sessions",
+          "tableTo": "users",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "session_hash_sha256": {
+          "name": "session_hash_sha256",
+          "value": "\"sessions\".\"token_hash\" ~ '^[0-9a-f]{64}$'"
+        },
+        "session_expiry_after_creation": {
+          "name": "session_expiry_after_creation",
+          "value": "\"sessions\".\"expires_at\" > \"sessions\".\"created_at\""
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.solver_priority_versions": {
+      "name": "solver_priority_versions",
+      "schema": "",
+      "columns": {
+        "organization_id": {
+          "name": "organization_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "version": {
+          "name": "version",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "approved_by": {
+          "name": "approved_by",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "approved_at": {
+          "name": "approved_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "costs_per_cent": {
+          "name": "costs_per_cent",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "solver_priority_versions_organization_id_organizations_id_fk": {
+          "name": "solver_priority_versions_organization_id_organizations_id_fk",
+          "tableFrom": "solver_priority_versions",
+          "tableTo": "organizations",
+          "columnsFrom": [
+            "organization_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "solver_priority_versions_approved_by_users_id_fk": {
+          "name": "solver_priority_versions_approved_by_users_id_fk",
+          "tableFrom": "solver_priority_versions",
+          "tableTo": "users",
+          "columnsFrom": [
+            "approved_by"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "solver_priority_versions_organization_id_version_pk": {
+          "name": "solver_priority_versions_organization_id_version_pk",
+          "columns": [
+            "organization_id",
+            "version"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "solver_version_positive": {
+          "name": "solver_version_positive",
+          "value": "\"solver_priority_versions\".\"version\" > 0"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.users": {
+      "name": "users",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "organization_id": {
+          "name": "organization_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "username": {
+          "name": "username",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "display_name": {
+          "name": "display_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "role": {
+          "name": "role",
+          "type": "user_role",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "password_hash": {
+          "name": "password_hash",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "is_fixture": {
+          "name": "is_fixture",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "users_organization_id_organizations_id_fk": {
+          "name": "users_organization_id_organizations_id_fk",
+          "tableFrom": "users",
+          "tableTo": "organizations",
+          "columnsFrom": [
+            "organization_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "users_username_unique": {
+          "name": "users_username_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "username"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    }
+  },
+  "enums": {
+    "public.claim_status": {
+      "name": "claim_status",
+      "schema": "public",
+      "values": [
+        "DRAFT",
+        "AWAITING_APPROVAL",
+        "APPROVED",
+        "PAYOUT_PROCESSING",
+        "PAID",
+        "REJECTED",
+        "PAYOUT_ISSUE"
+      ]
+    },
+    "public.fund_class": {
+      "name": "fund_class",
+      "schema": "public",
+      "values": [
+        "RESTRICTED",
+        "UNRESTRICTED"
+      ]
+    },
+    "public.reservation_status": {
+      "name": "reservation_status",
+      "schema": "public",
+      "values": [
+        "ACTIVE",
+        "RELEASED",
+        "CONSUMED"
+      ]
+    },
+    "public.source_type": {
+      "name": "source_type",
+      "schema": "public",
+      "values": [
+        "fixture_opening_balance",
+        "claim_recognition",
+        "paypal_capture",
+        "paypal_payout_item"
+      ]
+    },
+    "public.user_role": {
+      "name": "user_role",
+      "schema": "public",
+      "values": [
+        "CLAIMANT",
+        "APPROVER"
+      ]
+    }
+  },
+  "schemas": {},
+  "sequences": {},
+  "roles": {},
+  "policies": {},
+  "views": {},
+  "_meta": {
+    "columns": {},
+    "schemas": {},
+    "tables": {}
+  }
+}

@@ -80,6 +80,18 @@ function assertRows(actual: Record<string, unknown>[], expected: Record<string, 
   if (comparable(project(actual)) !== comparable(project(expected))) throw new Error("Existing fixture differs; seed refuses to overwrite data. Use a separate workspace or reviewed migration.");
 }
 
+// IAC-405 step 3 PR P (docs/ASSUMPTIONS.md section 78). Pavan's decision 5, November 2: "Seed it, marked as demo (Recommended)". The seed alone writes one payee_email_history row of source FIXTURE for Maria's
+// payout email, first seen 45 days before the seed runs, so guardrail G6 can pass for her in a fresh database. No claim-creation write can produce that source: the claims trigger of migration 0020
+// writes CLAIM only. The claim page shows a FIXTURE row as demo history. A database taken only through migration 0019 or earlier has no such table, so it is skipped there. Written once.
+const DEMO_HISTORY_DAYS = 45;
+async function ensureDemoEmailHistory(tx: Pick<AppDatabase, "select" | "insert" | "execute">, payeeEmail: string) {
+  const [table] = await tx.execute<{ present: boolean }>(sql`select to_regclass('public.payee_email_history') is not null as present`);
+  if (!table?.present) return;
+  const existing = await tx.select({ id: s.payeeEmailHistory.id }).from(s.payeeEmailHistory).where(and(eq(s.payeeEmailHistory.userId, "maria"), eq(s.payeeEmailHistory.source, "FIXTURE")));
+  if (existing.length) return;
+  await tx.insert(s.payeeEmailHistory).values({ userId: "maria", email: payeeEmail, source: "FIXTURE", seenAt: new Date(Date.now() - DEMO_HISTORY_DAYS * 86_400_000) });
+}
+
 export async function seedFixture(db: AppDatabase, config: SeedConfig) {
   const people = [
     { id: "maria", organizationId: organization.id, username: "maria", displayName: "Maria", role: "CLAIMANT" as const, isFixture: true },
@@ -105,6 +117,7 @@ export async function seedFixture(db: AppDatabase, config: SeedConfig) {
       assertRows(await tx.select().from(s.claims), [claim], ["id", "version"]);
       assertRows(await tx.select().from(s.claimLines), lines, ["id"]);
       assertRows(await tx.select().from(s.fundCredits).where(eq(s.fundCredits.isOpening, true)), openings, ["fundId"]);
+      await ensureDemoEmailHistory(tx, config.payeeEmail);
       return "UNCHANGED" as const;
     }
     await tx.insert(s.organizations).values(organization);
@@ -122,6 +135,7 @@ export async function seedFixture(db: AppDatabase, config: SeedConfig) {
     await tx.insert(s.claims).values(claim);
     await tx.insert(s.claimLines).values(lines);
     await tx.insert(s.fundCredits).values(openings);
+    await ensureDemoEmailHistory(tx, config.payeeEmail);
     return "CREATED" as const;
   });
 }

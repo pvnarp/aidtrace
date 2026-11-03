@@ -22,7 +22,6 @@ const NOTICES = {
   "draft-stale": { tone: "warning", text: "The fund's rules changed while the AI was working. Nothing was stored. Start again from the current rules." },
   "draft-guard": { tone: "warning", text: "The database refused that draft. Nothing was stored." },
   // Acting on a draft.
-  "approved-1": { tone: "info", text: "Your approval is recorded. A second, different approver must approve before anything changes." },
   "withdrawn": { tone: "info", text: "The draft is withdrawn. It takes no more approvals." },
   "edited": { tone: "info", text: "Your change is saved as a new draft. It needs its own two approvals." },
   "edit-nochange": { tone: "warning", text: "Nothing was changed, so no new draft was made." },
@@ -42,6 +41,23 @@ const NOTICES = {
   "act-invalid": { tone: "warning", text: "This draft no longer passes the checks, for example because a category was prohibited after it was made. Make a new draft." },
   "act-guard": { tone: "warning", text: "The database refused that change. Nothing was changed." },
   "act-failed": { tone: "warning", text: "That action could not be completed. Nothing was changed. Reload the page and try again." },
+  // Changing how claims are approved (IAC-405 step 2 PR F).
+  "mode-proposed": { tone: "info", text: "The change is proposed. A different approver must approve it before it takes effect." },
+  "mode-approved": { tone: "info", text: "The change is approved and takes effect for claims frozen from now on. A waiting claim never becomes looser." },
+  "mode-same-approver": { tone: "warning", text: "You proposed this change. A different approver must approve it." },
+  "mode-stale": { tone: "warning", text: "The fund changed after this was proposed, so it can no longer be approved. Propose it again." },
+  "mode-no-change": { tone: "warning", text: "The fund already works that way, so nothing was proposed." },
+  "mode-done": { tone: "warning", text: "That change was already approved." },
+  "mode-guard": { tone: "warning", text: "The database refused that change. Nothing was changed." },
+  "mode-failed": { tone: "warning", text: "That change could not be completed. Nothing was changed. Reload the page and try again." },
+  // The automation kill switch (IAC-405 step 3 PR P).
+  "switch-proposed": { tone: "info", text: "Turning automation on is proposed. A different approver must confirm it before anything is recognized or sent without an approver." },
+  "switch-on": { tone: "info", text: "Automation is on for the organization. Only claims that meet every guardrail are recognized and sent without an approver." },
+  "switch-off": { tone: "info", text: "Automation is off. No claim is recognized or sent without an approver until two approvers turn it on again." },
+  "switch-same-approver": { tone: "warning", text: "You proposed this. A different approver must confirm it." },
+  "switch-stale": { tone: "warning", text: "The switch changed in the meantime, so that request no longer applies. Reload the page and look at its current state." },
+  "switch-guard": { tone: "warning", text: "The database refused that change. Nothing was changed." },
+  "switch-failed": { tone: "warning", text: "That change could not be completed. Nothing was changed. Reload the page and try again." },
 } as const satisfies Record<string, RulesNotice>;
 export type RulesNoticeCode = keyof typeof NOTICES | "bound";
 
@@ -95,7 +111,9 @@ const SMALL_INTEGER = /^[0-9]{1,6}$/;
 const smallInteger = (value: string | undefined): number | null => (value !== undefined && SMALL_INTEGER.test(value) ? Number(value) : null);
 
 // The query string of a redirect. Every value is a table code, a small integer or a validator refusal name, so nothing else can ride a redirect.
-export function noticeQuery(code: RulesNoticeCode, extra: { v?: number; back?: number; why?: string } = {}): string {
+// A null code is no notice at all: the first approval redirects to the review page with no query, because that page's state notice already says what is next.
+export function noticeQuery(code: RulesNoticeCode | null, extra: { v?: number; back?: number; why?: string } = {}): string {
+  if (code === null) return "";
   const params = new URLSearchParams({ notice: code });
   if (extra.v !== undefined && Number.isSafeInteger(extra.v) && extra.v >= 0 && extra.v <= 999_999) params.set("v", String(extra.v));
   if (extra.back !== undefined && Number.isSafeInteger(extra.back) && extra.back >= 0 && extra.back <= 999_999) params.set("back", String(extra.back));

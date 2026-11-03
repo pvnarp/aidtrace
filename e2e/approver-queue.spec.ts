@@ -9,6 +9,7 @@ import { connectDatabase } from "../src/server/db";
 import { seedFixture } from "../db/fixture";
 import { ensureFixtureOpening } from "../src/ledger/opening";
 import * as s from "../db/schema";
+import { centerOverflow, measureEdge, measureFilters, MIN_FILTER_INPUT } from "./grid-edge";
 
 // IAC-414 Q1 (docs/plans/GRID_SURFACES_SCOPE.md section 3.2 step A), tests AQ-21 to AQ-25. The real flow in an isolated database and server: Maria submits and freezes
 // a practice expense, Tara approves it once, and Ben then sees it in the queue as "Approvals: 1 of 2". AI is off and no provider request is made. Every approval below
@@ -103,6 +104,17 @@ test("AQ-21 to AQ-25: the approver queue grid in the real flow, wide and on a ph
     await expect(page.getByTestId("aq-queue")).toHaveCount(0); await expect(page.getByRole("grid")).toHaveCount(0);
     await expect(page.getByRole("heading", { name: "Other expenses", level: 2 })).toBeVisible();
     await expect(page.locator(".draft-list").getByRole("link").first()).toHaveAttribute("href", claimPath);
+    await test.step("HP-02 the empty-queue approver home has no empty band under the lede and keeps its fund rail", async () => {
+      const lede = await page.locator(".home-head-text .reference-intro").first().boundingBox(), next = await page.locator(".home-main > :not(.home-head-text)").first().boundingBox();
+      expect(next!.y - (lede!.y + lede!.height), "lede to the next block").toBeGreaterThanOrEqual(0); expect(next!.y - (lede!.y + lede!.height), "lede to the next block").toBeLessThanOrEqual(48);
+      // Unchanged by the polish: the meters stay in one white panel in the right rail, beside the head text, and the main column is not stretched across it.
+      const head = await page.locator(".home-head-text").boundingBox(), rail = await page.locator('[aria-label="Fund balances"]').boundingBox();
+      expect(rail!.x).toBeGreaterThan(head!.x + head!.width - 1);
+      expect(await style(page, '[aria-label="Fund balances"]', "background-color")).toBe("rgb(255, 255, 255)");
+      expect(await style(page, '[data-testid="fund-meter"]', "background-color")).toBe("rgba(0, 0, 0, 0)");
+      await expect(page.getByTestId("fund-meter").first()).toBeVisible();
+      if (process.env.AQ_STILLS) { mkdirSync(process.env.AQ_STILLS, { recursive: true }); await page.screenshot({ path: `${process.env.AQ_STILLS}/hp-empty-1440.png`, fullPage: true }); }
+    });
     await signOut(page);
   });
 
@@ -139,7 +151,7 @@ test("AQ-21 to AQ-25: the approver queue grid in the real flow, wide and on a ph
     await test.step("AQ-24 the grid is styled: computed styles of the frame, the dots, the vendor and the link", async () => {
       // An unstyled grid would keep the foundation's 360 px minimum frame, plain dots and no weight on the link.
       expect(await style(page, ".aq-queue .gx-frame", "min-height")).toBe("0px");
-      const frame = await page.locator(".aq-queue .gx-frame").boundingBox(); expect(frame!.height).toBeLessThan(360); expect(frame!.height).toBeGreaterThan(150);
+      const frame = await page.locator(".aq-queue .gx-frame").boundingBox(); expect(frame!.height).toBeLessThan(360); expect(frame!.height).toBeGreaterThan(140);
       expect(await style(page, '.aq-mini i[data-state="done"]', "background-color")).toBe("rgb(11, 31, 58)");
       expect(await style(page, '.aq-mini i[data-state="future"]', "background-color")).toBe("rgb(255, 255, 255)");
       expect(await style(page, '.aq-mini i[data-state="current"]', "border-top-width")).toBe("3px");
@@ -150,9 +162,9 @@ test("AQ-21 to AQ-25: the approver queue grid in the real flow, wide and on a ph
       expect(await style(page, ".aq-vendor small", "font-size")).toBe("13px"); expect(await style(page, ".aq-vendor small", "color")).toBe("rgb(91, 107, 128)");
       expect(await style(page, ".aq-review", "font-weight")).toBe("600"); expect(await style(page, ".aq-review", "color")).toBe("rgb(8, 80, 204)");
       const link = await page.locator(".aq-review").first().boundingBox(); expect(link!.width).toBeGreaterThanOrEqual(44); expect(link!.height).toBeGreaterThanOrEqual(40);
-      // Wide layout: the queue spans the full width under the head text, with the fund rail kept in the top row to the right.
+      // Wide layout (desktop polish, HP-01): the head text, the fund meters and the queue are three full-width rows, in that order, so nothing sits in a rail beside the head text.
       const queue = await page.getByTestId("aq-queue").boundingBox(); const funds = await page.locator(".funds").boundingBox(); const head = await page.locator(".home-head-text").boundingBox();
-      expect(queue!.width).toBeGreaterThan(900); expect(queue!.y).toBeGreaterThanOrEqual(head!.y + head!.height - 1); expect(funds!.x).toBeGreaterThan(head!.x + head!.width - 1);
+      expect(queue!.width).toBeGreaterThan(900); expect(funds!.y).toBeGreaterThanOrEqual(head!.y + head!.height - 1); expect(queue!.y).toBeGreaterThanOrEqual(funds!.y + funds!.height - 1);
       await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
       if (process.env.AQ_STILLS) { mkdirSync(process.env.AQ_STILLS, { recursive: true }); await page.screenshot({ path: `${process.env.AQ_STILLS}/approver-queue-1440.png`, fullPage: true }); }
     });
@@ -160,6 +172,79 @@ test("AQ-21 to AQ-25: the approver queue grid in the real flow, wide and on a ph
     await row.getByRole("link", { name: /^Review / }).click();
     await expect(page).toHaveURL(new RegExp(`${claimPath}$`));
     await expect(page.getByRole("button", { name: "Approve these terms", exact: true })).toBeVisible();
+  });
+
+  // Desktop polish (docs/ASSUMPTIONS.md section 74, GATE_REPORT section 62): geometry of the approver home in the real flow, as the second approver with one queued claim.
+  const boxOf = async (page: Page, selector: string) => { const found = await page.locator(selector).first().boundingBox(); expect(found, selector).not.toBeNull(); return found!; };
+  const hpStill = async (page: Page, name: string) => { if (process.env.AQ_STILLS) { mkdirSync(process.env.AQ_STILLS, { recursive: true }); await page.screenshot({ path: `${process.env.AQ_STILLS}/${name}.png`, fullPage: true }); } };
+  await test.step("HP-01 the approver home with a queued claim has no empty band at 1440 and 1280, and the queue keeps the whole column with all seven columns", async () => {
+    for (const [width, height] of [[1440, 900], [1280, 800]] as const) {
+      await page.setViewportSize({ width, height }); await page.goto("/");
+      await expect(dataRows(page)).toHaveCount(1); await expect(page.getByTestId("fund-meter").first()).toBeVisible();
+      const lede = await boxOf(page, ".home-head-text .reference-intro"), funds = await boxOf(page, '[aria-label="Fund balances"]'), queue = await boxOf(page, '[data-testid="aq-queue"]'), column = await boxOf(page, ".reference-screen.home-grid");
+      // No empty band: the next block starts within 48 px of the bottom of the lede, and the queue within 48 px of the meters.
+      const bandUnderLede = funds.y - (lede.y + lede.height), bandUnderMeters = queue.y - (funds.y + funds.height);
+      expect(bandUnderLede, `${width}: lede to fund meters`).toBeGreaterThanOrEqual(0); expect(bandUnderLede, `${width}: lede to fund meters`).toBeLessThanOrEqual(48);
+      expect(bandUnderMeters, `${width}: fund meters to queue`).toBeGreaterThanOrEqual(0); expect(bandUnderMeters, `${width}: fund meters to queue`).toBeLessThanOrEqual(48);
+      // The meters and the queue are as wide as the content column.
+      expect(Math.abs(funds.width - column.width), `${width}: meters width`).toBeLessThanOrEqual(1); expect(Math.abs(queue.width - column.width), `${width}: queue width`).toBeLessThanOrEqual(1);
+      // One horizontal row of white 14 px panels. An unstyled page keeps the rail's block layout, with a transparent meter and a square corner, and fails here.
+      const meters = await page.getByTestId("fund-meter").evaluateAll(nodes => nodes.map(node => { const rect = node.getBoundingClientRect(); const computed = getComputedStyle(node); return { top: Math.round(rect.top), bottom: rect.bottom, background: computed.backgroundColor, radius: computed.borderTopLeftRadius }; }));
+      expect(meters.length).toBeGreaterThanOrEqual(2);
+      expect(new Set(meters.map(meter => meter.top)).size, `${width}: one row`).toBe(1);
+      for (const meter of meters) { expect(meter.background).toBe("rgb(255, 255, 255)"); expect(meter.radius).toBe("14px"); expect(meter.bottom, `${width}: meter above the fold`).toBeLessThanOrEqual(height); }
+      expect(await style(page, '[aria-label="Fund balances"]', "background-color")).toBe("rgba(0, 0, 0, 0)");
+      expect(await style(page, '[aria-label="Fund balances"]', "display")).toBe("grid");
+      // auto-fit keeps an empty track at 0px in the computed value (four tracks fit at 1440, three meters fill three), so count the tracks with width.
+      expect((await style(page, '[aria-label="Fund balances"]', "grid-template-columns")).split(" ").filter(track => track !== "0px").length).toBe(meters.length);
+      // The rules link of each restricted fund is visible above the fold too.
+      const links = page.getByTestId("fund-rules-link"); expect(await links.count()).toBeGreaterThanOrEqual(1);
+      for (const link of await links.all()) { await expect(link).toBeVisible(); const found = await link.boundingBox(); expect(found!.y + found!.height, `${width}: rules link above the fold`).toBeLessThanOrEqual(height); }
+      // All seven columns, no sideways scroll inside the grid or on the page.
+      expect(await headerIds(page)).toEqual(["claimant", "vendor", "approvals", "amountCents", "approvalCount", "waitingSince", "href"]);
+      await expect(page.locator(".aq-queue .ag-body-horizontal-scroll-viewport")).toHaveCount(1);
+      expect(await page.evaluate(() => { const viewport = document.querySelector(".aq-queue .ag-body-horizontal-scroll-viewport")!; return viewport.scrollWidth - viewport.clientWidth; }), `${width}: grid scrolls sideways`).toBeLessThanOrEqual(0);
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), `${width}: page scrolls sideways`).toBe(true);
+      const frameBox = await boxOf(page, ".aq-queue .gx-frame"), reviewHeader = await boxOf(page, '[role="columnheader"][col-id="href"]');
+      expect(reviewHeader.x + reviewHeader.width, `${width}: Review header inside the frame`).toBeLessThanOrEqual(frameBox.x + frameBox.width + 1);
+      await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
+      await hpStill(page, `hp-queued-${width}`);
+    }
+  });
+
+  await test.step("HP-10 the queue frame fits one row: no empty row under it, and a filter that hides the row still shows the empty message inside the frame", async () => {
+    await page.setViewportSize({ width: 1440, height: 900 }); await page.goto("/");
+    await expect(dataRows(page)).toHaveCount(1);
+    const frame = await boxOf(page, ".aq-queue .gx-frame"), data = await boxOf(page, '.aq-queue .ag-row[row-id]:not(.ag-row-pinned)');
+    // Header, filter row, one row and 18 px: 44 * 3 + 18. The old frame kept room for two rows and left an empty one (194 px).
+    expect(Math.abs(frame.height - 150), "frame height").toBeLessThanOrEqual(1);
+    expect(frame.y + frame.height - (data.y + data.height), "room under the only row").toBeLessThanOrEqual(24);
+    expect(data.y + data.height, "row inside the frame").toBeLessThanOrEqual(frame.y + frame.height);
+    await page.getByLabel("Search this table").fill("no vendor has this name");
+    await expect(page.getByTestId("gx-status")).toHaveText("Showing 0 of 1"); await expect(dataRows(page)).toHaveCount(0);
+    const overlay = page.locator(".aq-queue .ag-overlay-no-matching-rows-center").first(); await expect(overlay).toBeVisible();
+    const message = await overlay.boundingBox();
+    expect(message!.y, "empty message top").toBeGreaterThanOrEqual(frame.y); expect(message!.y + message!.height, "empty message bottom").toBeLessThanOrEqual(frame.y + frame.height);
+    await hpStill(page, "hp-queued-filtered-1440");
+  });
+
+  await test.step("GE-15 at 1440 the queue's floating filter inputs are wide enough, no column crosses the frame edge, no sideways cue shows, and the filtered copy is the house text", async () => {
+    await page.setViewportSize({ width: 1440, height: 900 }); await page.goto("/");
+    await expect(dataRows(page)).toHaveCount(1);
+    await expect(page.locator(".aq-queue .ag-floating-filter button[aria-label='Open Filter Menu']:visible")).toHaveCount(0);
+    const filters = (await measureFilters(page)).inputs;
+    expect(filters.length, "the queue's filterable columns").toBeGreaterThanOrEqual(3);
+    for (const item of filters) {
+      if (item.kind === "date") expect(item.width, `${item.id} date input`).toBeGreaterThanOrEqual(item.needs);
+      else expect(item.width, `${item.id} input`).toBeGreaterThanOrEqual(MIN_FILTER_INPUT);
+    }
+    const report = await measureEdge(page, []);
+    expect(report.crossing).toEqual([]); expect(report.checked.headers).toBeGreaterThanOrEqual(5);
+    // The queue's flex columns fit the frame, so nothing scrolls sideways and the status line carries no cue.
+    expect((await centerOverflow(page)).overflows).toBe(false);
+    await expect(page.getByTestId("gx-more-columns")).toHaveCount(0);
+    await page.getByLabel("Search this table").fill("no vendor has this name");
+    await expect(page.locator(".aq-queue .ag-overlay-no-matching-rows-center").first()).toHaveText("No queued claims match this search or filter.");
   });
 
   await test.step("AQ-25 on a phone the grid keeps vendor, amount and the Review link, and the rest moves under it", async () => {
@@ -172,6 +257,13 @@ test("AQ-21 to AQ-25: the approver queue grid in the real flow, wide and on a ph
     await expect(extras).toContainText(`${claim!.vendor}, Amount ${money(total)}`);
     for (const [label, value] of [["Claimant", maria!.displayName], ["Status", "Approvals: 1 of 2"], ["Progress", "Step 5 of 6, Approvals"]]) await expect(extras.locator("dl > div", { hasText: label! }).first()).toContainText(value!);
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+    await test.step("HP-03 on a phone the order is still the head text, the fund meters in one panel, then the queue", async () => {
+      const head = await page.locator(".home-head-text").boundingBox(), funds = await page.locator('[aria-label="Fund balances"]').boundingBox(), queue = await page.getByTestId("aq-queue").boundingBox();
+      expect(funds!.y).toBeGreaterThanOrEqual(head!.y + head!.height - 1); expect(queue!.y).toBeGreaterThanOrEqual(funds!.y + funds!.height - 1);
+      expect(await style(page, '[aria-label="Fund balances"]', "background-color")).toBe("rgb(255, 255, 255)");
+      expect(await style(page, '[data-testid="fund-meter"]', "background-color")).toBe("rgba(0, 0, 0, 0)");
+      expect(Math.abs(funds!.width - queue!.width)).toBeLessThanOrEqual(1);
+    });
     if (process.env.AQ_STILLS) { mkdirSync(process.env.AQ_STILLS, { recursive: true }); await page.screenshot({ path: `${process.env.AQ_STILLS}/approver-queue-390.png`, fullPage: true }); }
     const link = dataRows(page).getByRole("link", { name: /^Review / }); await expect(link).toBeVisible();
     const box = await link.boundingBox(); expect(box!.x).toBeGreaterThanOrEqual(0); expect(box!.x + box!.width).toBeLessThanOrEqual(390);

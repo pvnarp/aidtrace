@@ -217,7 +217,7 @@ describe("PC-14 no key and AI off, rules-only form", () => {
 });
 
 describe("PC-16 and PC-18 no financial change and approval unchanged", () => {
-  it("PC-16: the financial hash over the sixteen tables is identical before and after a run", async () => {
+  it("PC-16: the financial hash over the twenty-three tables is identical before and after a run", async () => {
     const { decisionHash } = await frozen();
     const before = await financialHash(ctx.client);
     const [claimBefore] = await ctx.db.select().from(s.claims).where(eq(s.claims.id, "C-104"));
@@ -453,6 +453,9 @@ describe("PC-24 migration 0015 on a database with retained data", () => {
     expect(await hashes()).toEqual(retained);
     expect((await tables()).filter(name => !existing.includes(name) && name !== "__drizzle_migrations")).toEqual(["fund_check_settings", "policy_check_results", "policy_check_runs"]);
     for (const table of ["fund_check_settings", "policy_check_runs", "policy_check_results"]) expect((await old.client`select count(*)::int as n from ${old.client(table)}`)[0]!.n).toBe(0);
+    // The service now writes the migration 0019 trigger column, so the current code runs only once the rest of the chain is applied. Migration 0019 is additive and
+    // changes no retained row (tests/fund-modes-db.integration.test.ts); the checks below start from the fully migrated database.
+    await migrate(old.db, { migrationsFolder: "db/migrations" });
     const financialAfterMigration = await financialHash(old.client);
     // The upgraded database has no settings row (no additive seed), so the threshold rules say so and the meal rule still runs.
     const result = await runPolicyChecks(old.db, frozenOld.decisionHash, { id: "ben" });

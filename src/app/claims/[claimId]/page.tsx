@@ -27,6 +27,8 @@ import { describeMatches } from "../../receipts/prohibited-notice";
 import { readGiftNotes } from "../../../donation/note";
 import { GiftNotes } from "./gift-notes";
 import { PolicyChecks } from "./policy-checks";
+import { AutomatedTrail } from "./automated-trail";
+import { TITLE_AUTO_NOT_SENT, FOOTER_AUTOPILOT, APPROVALS_HEADING_AUTOPILOT, REFERENCE_BINDS_AUTOPILOT, REVIEW_COUNT_AUTOPILOT, APPROVALS_HEADING_ONE, FOOTER_NO_HOLDS_DONE, FOOTER_NO_HOLDS_WAITING, HEADING_AWAITING_ONE, REFERENCE_BINDS_ONE } from "../../../fund-modes/review-copy";
 import { ruleChecksSummary } from "../../../policy/copy";
 
 const usd = (cents: bigint) => `${cents < 0n ? "-" : ""}$${(cents < 0n ? -cents : cents) / 100n}.${((cents < 0n ? -cents : cents) % 100n).toString().padStart(2, "0")}`;
@@ -36,6 +38,8 @@ const notices: Record<string, string> = {
   unfunded: "Current funds cannot cover this claim. No partial allocation was frozen.",
   "approval-saved": "Your approval is saved. A different approver is still required.",
   approved: "Both approvals are complete. The obligation is recognized; payment has not been sent.",
+  "takeover-saved": "Your approval is saved. A second approver is still required.",
+  "takeover-done": "Both approvals are complete. A person can now send the payment.",
   invalidated: "Claim or policy terms changed. The old decision was invalidated and its reservations released. Maria must submit again.",
   rejected: "The claim was rejected and its active reservations released.",
   submitted: "PayPal accepted the batch. Refresh status to check the individual payment before calling it paid.",
@@ -95,10 +99,16 @@ export default async function ClaimPage({ params, searchParams }: { params: Prom
   // title and detail are non-null only for a PAYOUT_PROCESSING claim (PE-01), so each `??` below falls through to the PAYOUT_ISSUE text exactly as the old last branch did.
   const words = payoutWords({ claimStatus: claim.status, attempt: attempt ?? null, canPay, refreshForm: showRefresh, usd });
   const statusLabel = handoffReady ? "Approved / unpaid" : STATUS_LABELS[claim.status];
+  // IAC-405 PR A follow-up: true only when the server read this claim's stored decision as needing one approval (no holds found). It comes from view.reviewMode, never from the client.
+  const oneApproval = view.reviewMode === "ASSISTED_NO_HOLDS";
+  // IAC-405 PR P merge fix: true only for a claim recognized by an automated record and paid with no person involved (stored records, view.reviewMode). A claim not yet sent, or one a person began to take over, keeps the two-person words.
+  const autoReview = view.reviewMode === "AUTO_RECOGNIZED_SENT";
+  // The same recognized claim before two takeover approvals exist: no one can send yet, so the title must not say the handoff is ready.
+  const autoWaiting = view.reviewMode === "AUTO_RECOGNIZED_PEOPLE" && claim.status === "APPROVED" && approvals.length < 2;
   const heading = policyBlocked ? "Organization policy stops this expense."
     : claim.status === "DRAFT" ? view.feasible ? `${usd(total - view.generalCents)} restricted. ${usd(view.generalCents)} General.` : "This claim needs more eligible funding."
-    : claim.status === "AWAITING_APPROVAL" ? decision ? approvals.length === 0 ? "Frozen. Awaiting two approvals." : `${approvals.length} of 2 approvals saved. One more needed.` : "Awaiting approval."
-    : claim.status === "APPROVED" ? handoffReady ? `${usd(total)} approved. PayPal handoff ready. Unpaid.` : `${usd(total)} approved. Payment is a separate decision.`
+    : claim.status === "AWAITING_APPROVAL" ? decision ? approvals.length === 0 ? oneApproval ? HEADING_AWAITING_ONE : "Frozen. Awaiting two approvals." : `${approvals.length} of 2 approvals saved. One more needed.` : "Awaiting approval."
+    : claim.status === "APPROVED" ? autoWaiting ? `${usd(total)} ${TITLE_AUTO_NOT_SENT}` : handoffReady ? `${usd(total)} approved. PayPal handoff ready. Unpaid.` : `${usd(total)} approved. Payment is a separate decision.`
     : claim.status === "PAID" ? `${usd(total)} paid. Settlement verified.`
     : claim.status === "REJECTED" ? "Claim rejected. Nothing is paid."
     : words.title ?? "Payment issue. Resolve it before another attempt.";
@@ -151,11 +161,11 @@ export default async function ClaimPage({ params, searchParams }: { params: Prom
   // Say it once: the Next decision card only guides a claim that still needs a decision or has a payment in flight. Approved, paid and rejected claims
   // state themselves in the title and the Decision panel.
   const guided = ["DRAFT", "AWAITING_APPROVAL", "PAYOUT_PROCESSING", "PAYOUT_ISSUE"].includes(claim.status);
-  return <Workspace user={user} stage={stage} summary={summary} state={shellState} policyBlocked={policyBlocked} decisionFirst={handoffReady} links={{ ...(receiptLink ? { 1: receiptLink, 2: receiptLink } : {}), 3: "#funding-review", 4: "#approvals" }}
+  return <Workspace user={user} stage={stage} summary={summary} state={shellState} policyBlocked={policyBlocked} {...(oneApproval ? { required: 1 as const } : {})} {...(autoReview ? { required: "auto" as const } : {})} decisionFirst={handoffReady} links={{ ...(receiptLink ? { 1: receiptLink, 2: receiptLink } : {}), 3: "#funding-review", 4: "#approvals" }}
     header={<ClaimHeader claimId={claim.id} heading={heading} data={summary} />}
     decision={<DecisionPanel data={summary}
       split={showSplit ? <section className="sec" aria-labelledby="fund-split-title"><h3 id="fund-split-title">Fund split</h3><FundingSummary total={total} general={view.generalCents} edges={edges} funds={view.funds} /></section> : undefined}
-      approvals={<section className="sec approval-section" id="approvals" aria-labelledby="approvals-title"><h3 id="approvals-title">Two independent approvals</h3><p className="hybrid-review-count">Human reviews: <strong>{approvals.length} of 2</strong></p>{!decision && <p>The claimant must freeze this allocation before approval.</p>}{decision && <p className="claim-reference">Decision {decision.decisionHash.slice(0, 16)}. Both approvals bind this reference.</p>}
+      approvals={<section className="sec approval-section" id="approvals" aria-labelledby="approvals-title"><h3 id="approvals-title">{autoReview ? APPROVALS_HEADING_AUTOPILOT : <>{oneApproval ? APPROVALS_HEADING_ONE : "Two independent approvals"}</>}</h3><p className="hybrid-review-count" data-review-mode={view.reviewMode}>{autoReview ? REVIEW_COUNT_AUTOPILOT : <>Human reviews: {view.reviewMode === "ASSISTED_NO_HOLDS" ? <><strong>{approvals.length} of 1</strong>, Assisted, no holds found</> : <strong>{approvals.length} of 2</strong>}</>}</p>{!decision && <p>The claimant must freeze this allocation before approval.</p>}{decision && <p className="claim-reference">Decision {decision.decisionHash.slice(0, 16)}. {autoReview ? REFERENCE_BINDS_AUTOPILOT : <>{oneApproval ? REFERENCE_BINDS_ONE : "Both approvals bind this reference."}</>}</p>}
         <ul>{approvals.map(row => <li key={row.approverId}>{row.displayName} approved at <time dateTime={row.approvedAt.toISOString()}>{reviewTime(row.approvedAt)}</time>.</li>)}</ul>
         {view.rejections.map((rejection, index) => <p key={index}>Rejected by {rejection.rejectedBy}: {rejection.reason}</p>)}</section>}
       payout={paymentSection}
@@ -194,8 +204,9 @@ export default async function ClaimPage({ params, searchParams }: { params: Prom
     <section className="panel rules-panel" id="rule-checks" aria-labelledby="rule-checks-title"><h2 id="rule-checks-title">Checks</h2>
       <p className="sub">{ruleChecksSummary(clearRules, rules.length, view.policyChecks?.run?.flags)} Each row comes from stored data this page loaded.</p>
       <ul className="rules">{rules.map(rule => <li key={rule.key} data-state={rule.state}><span className="rule-state">{stateWord[rule.state]}</span><span className="rule-body"><strong>{rule.label}</strong>{rule.detail}</span></li>)}</ul>
-    {view.policyChecks && <PolicyChecks claimId={claimId} decisionHash={view.policyChecks.decisionHash} run={view.policyChecks.run} canRun={claim.status === "AWAITING_APPROVAL"} modelEligible={Boolean(view.receiptReview)} aiOff={complianceAi.on ? null : AI_OFF_MESSAGES[complianceAi.reason]} headingLevel={3} />}
+    {view.policyChecks && <PolicyChecks claimId={claimId} decisionHash={view.policyChecks.decisionHash} run={view.policyChecks.run} canRun={claim.status === "AWAITING_APPROVAL"} modelEligible={Boolean(view.receiptReview)} aiOff={complianceAi.on ? null : AI_OFF_MESSAGES[complianceAi.reason]} headingLevel={3} {...(oneApproval ? { footer: claim.status === "AWAITING_APPROVAL" ? FOOTER_NO_HOLDS_WAITING : FOOTER_NO_HOLDS_DONE } : {})} {...(autoReview ? { footer: FOOTER_AUTOPILOT } : {})} />}
     </section>
+    <AutomatedTrail claimId={claimId} viewer={user} />
     <section className="panel funding-evidence" id="funding-review"><h2>Check the funding rules</h2><p>Each split uses an approved policy. General still follows organization-wide prohibitions.</p>
       <div className="comparison-grid">
       <section className="comparison-card chosen"><p className="eyebrow">Computed by funding rules</p><h2>{view.feasible ? `${usd(view.generalCents)} from General` : "No partial allocation"}</h2>{baselineGeneral !== undefined && view.feasible && baselineGeneral > view.generalCents && <p><strong>{usd(baselineGeneral - view.generalCents)} less General than this comparison</strong>, under its fixed fund order. More flexible funding remains for expenses restricted funds cannot cover.</p>}{split(edges)}</section>

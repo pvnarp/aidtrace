@@ -15,6 +15,7 @@ import { loadDonationsGrid, type DonationRow } from '../src/donation/donations-g
 import { usd } from '../src/analytics/model';
 import { createPayPalAdapter, type DonationObservation, type PayoutTransport } from '../src/paypal/adapter';
 import { financialHash, tableHash } from '../tests/support/policy-db';
+import { centerOverflow, EDGE_TOLERANCE, measureEdge, measureFilters, MIN_FILTER_INPUT, scrollSideways } from './grid-edge';
 
 // IAC-413 PR B: the approver-only /donations grid in a real browser against a real isolated PostgreSQL and a production build
 // (docs/plans/DONOR_TRAIL_SCOPE.md section 6: GT-27, GT-31 and the grid part of GT-32). Every provider is a scripted stand-in written
@@ -114,6 +115,9 @@ test.beforeAll(async () => {
   await client`insert into donation_receipts (order_id, organization_id, fund_id, expected_amount_cents, capture_id, status, provider_status, gross_cents, fee_cents, net_cents, effective_on, recorded_by)
     values (${OTHER_ORDER}, 'dg-other', 'dg_fund_x', ${OTHER_CENTS.toString()}, ${OTHER_CAPTURE}, 'COMPLETED', 'COMPLETED', ${OTHER_CENTS.toString()}, 0, ${OTHER_CENTS.toString()}, date '2026-10-22', 'dg-approver')`;
   await nameDonor(OTHER_ORDER, 'dg_fund_x', OTHER_CENTS, OTHER_DONOR);
+  // A third organization with an approver and no gift at all, for the empty grid copy (GE-10).
+  await db.insert(s.organizations).values({ id: 'dg-empty', name: 'Hollowmere Private Organization', prohibitedCategories: [], openingSourceType: 'fixture_opening_balance' });
+  await db.insert(s.users).values({ id: 'dg-empty-approver', organizationId: 'dg-empty', username: 'dg-empty-approver', displayName: 'Empty Approver', role: 'APPROVER', passwordHash: 'not-a-real-hash' });
   baseline = await financialHash(client); linksBaseline = await tableHash(client, 'gift_links');
   server = spawn(process.execPath, ['node_modules/next/dist/bin/next', 'start', '--hostname', '127.0.0.1', '--port', '3100'], {
     detached: true, stdio: 'ignore',
@@ -480,6 +484,92 @@ test('styled: the page and the grid carry their computed styles at 1440, and DON
     await scrollGrid(page, 'left'); await page.getByLabel('Search this table').fill('Ashmere'); await expect(status(page)).toHaveText('Showing 4 of 10');
     await page.waitForTimeout(1000); await page.screenshot({ path: `${process.env.DONATIONS_STILLS}/donations-1440-filtered.png`, fullPage: true });
   }
+});
+
+// IAC-440 grid report polish, GE-07 to GE-10 on /donations: real gifts from this spec's database, a production build, no provider request.
+const SIZES = [{ width: 1280, height: 800 }, { width: 1440, height: 900 }];
+const FIRST_SCREEN = ['received', 'donor', 'amountCents', 'fund', 'capture', 'state', 'matchedCents', 'waitingCents'];
+const cueText = 'Scroll sideways for more columns: Lines, Vendor, Status, PayPal reference.';
+// GE_STILLS names a directory for the review stills. Unset, nothing is written.
+const geStill = async (page: Page, name: string) => { if (process.env.GE_STILLS) { mkdirSync(process.env.GE_STILLS, { recursive: true }); await page.screenshot({ path: `${process.env.GE_STILLS}/${name}.png`, fullPage: true }); } };
+async function openAt(page: Page, size: { width: number; height: number }) {
+  await page.setViewportSize(size); await page.goto('/donations'); await page.waitForSelector('[role="grid"]'); await page.waitForSelector('.ag-row[row-id]:not(.ag-row-pinned)');
+}
+
+test('GE-07: at 1280 x 800 and 1440 x 900 no donations header, group label, filter cell or cell crosses the grid right edge at scroll 0', async ({ page }) => {
+  await login(page, 'tara');
+  for (const size of SIZES) {
+    await openAt(page, size);
+    const rows = await dataRows(page).count(); expect(rows, 'real gifts are on screen').toBeGreaterThanOrEqual(8);
+    const report = await measureEdge(page, FIELDS);
+    await geStill(page, `donations-${size.width}`);
+    expect(report.crossing, `${size.width} px`).toEqual([]);
+    expect(report.checked.headers).toBe(8); expect(report.checked.groupLabels).toBe(2); expect(report.checked.filterCells).toBe(8); expect(report.checked.cells).toBeGreaterThanOrEqual(rows * 8);
+    // Gift and the first three Trail columns fit: Waiting ends on the edge, so the cut "W" of the old layout is gone. Lines starts at the edge.
+    expect(Math.abs(report.gap.waitingCents!), 'Waiting ends on the edge').toBeLessThanOrEqual(EDGE_TOLERANCE);
+    for (const id of FIRST_SCREEN) expect(report.gap[id]!, id).toBeLessThanOrEqual(EDGE_TOLERANCE);
+    // The pinned total label sits whole in the Received cell.
+    const total = await pinned(page, 'received').evaluate(cell => [cell, ...cell.querySelectorAll('*')].every(node => node.scrollWidth <= node.clientWidth || node.clientWidth === 0));
+    expect(total, 'the pinned total label is not truncated').toBe(true);
+  }
+});
+
+test('GE-08: every donations date floating filter shows its whole mm/dd/yyyy and every text and money filter input is at least 64 px wide', async ({ page }) => {
+  await login(page, 'tara');
+  for (const size of SIZES) {
+    await openAt(page, size);
+    await expect(page.locator('.ag-floating-filter button[aria-label="Open Filter Menu"]:visible')).toHaveCount(0);
+    const seen = new Map<string, Awaited<ReturnType<typeof measureFilters>>['inputs'][number]>();
+    for (const side of ['left', 'right'] as const) { await scrollSideways(page, side); for (const item of (await measureFilters(page)).inputs) seen.set(item.id, item); }
+    await scrollSideways(page, 'left');
+    expect([...seen.keys()].sort(), 'every column was measured').toEqual([...FIELDS].sort());
+    for (const item of seen.values()) {
+      if (item.kind === 'date') { expect(item.needs, `${item.id} copy measured`).toBeGreaterThan(150); expect(item.width, `${item.id} date input ${item.width} of ${item.needs}`).toBeGreaterThanOrEqual(item.needs); }
+      else expect(item.width, `${item.id} ${item.kind} input`).toBeGreaterThanOrEqual(MIN_FILTER_INPUT);
+    }
+    expect([...seen.values()].filter(item => item.kind === 'date').map(item => item.id)).toEqual(['received']);
+  }
+});
+
+test('GE-09: the status line names the columns past the edge exactly when the center viewport scrolls sideways, and never on the phone layout', async ({ page }) => {
+  await login(page, 'tara');
+  const cue = page.getByTestId('gx-more-columns');
+  for (const size of SIZES) {
+    await openAt(page, size);
+    const overflow = await centerOverflow(page);
+    expect(overflow.scrollWidth, `${size.width} px: four columns are past the edge`).toBeGreaterThan(overflow.clientWidth);
+    await expect(cue).toHaveCount(overflow.overflows ? 1 : 0); await expect(cue).toHaveText(cueText);
+    await expect(status(page)).toHaveText(/^Showing \d+ of \d+$/);
+    expect(await cue.evaluate(element => getComputedStyle(element).fontSize)).toBe('14px');
+    await scrollSideways(page, 'right'); await expect(cue).toHaveText(cueText); await scrollSideways(page, 'left');
+  }
+  await page.addStyleTag({ content: '.gx-root { zoom: 0.5; }' });
+  await expect.poll(async () => (await centerOverflow(page)).overflows).toBe(false);
+  await expect(cue).toHaveCount(0);
+  await openDonations(page, 390); await expect(page.getByTestId('gx-phone-extras')).toBeVisible(); await expect(cue).toHaveCount(0);
+});
+
+test('GE-10: an approver with no gifts reads the none copy, and a search or filter that hides every gift reads the filtered copy', async ({ page }) => {
+  const none = page.locator('.ag-overlay-no-rows-center'); const filtered = page.locator('.ag-overlay-no-matching-rows-center');
+  // The real flow: an approver of an organization that has received no gift. The page shows its zero totals and the grid's own overlay.
+  await page.context().addCookies([{ name: 'aidtrace_session', value: await sessionFor('dg-empty-approver'), url: ORIGIN }]);
+  await openDonations(page, 1440);
+  await expect(page.getByTestId('donations-total-count')).toHaveText('0');
+  await expect(status(page)).toHaveText('Showing 0 of 0');
+  await expect(none).toHaveText('No gifts yet. A completed PayPal gift shows here with its receipt match.');
+  await expect(page.locator('.ag-overlay-wrapper')).not.toContainText('No Rows To Show');
+  await geStill(page, 'donations-none-1440');
+  // This organization's approver: a search and then a column filter that match nothing.
+  await page.context().clearCookies(); await login(page, 'tara'); await openDonations(page, 1440);
+  await expect(filtered).toHaveCount(0); await expect(none).toHaveCount(0);
+  await page.getByLabel('Search this table').fill('zzzz-no-such-gift');
+  await expect(status(page)).toHaveText('Showing 0 of 10');
+  await expect(filtered).toHaveText('No gifts match this search or filter.'); await expect(none).toHaveCount(0);
+  await page.getByLabel('Search this table').fill(''); await expect(status(page)).toHaveText('Showing 10 of 10'); await expect(filtered).toHaveCount(0);
+  await page.getByLabel('Donor Filter Input').fill('zzzz-no-such-donor');
+  await expect(status(page)).toHaveText('Showing 0 of 10');
+  await expect(filtered).toHaveText('No gifts match this search or filter.');
+  await page.getByLabel('Donor Filter Input').fill(''); await expect(status(page)).toHaveText('Showing 10 of 10'); await expect(filtered).toHaveCount(0);
 });
 
 // Runs last: every test above visited the view, filtered, sorted, searched, exported and reset. None of it may touch a financial table.

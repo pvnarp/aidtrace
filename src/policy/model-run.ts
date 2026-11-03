@@ -25,7 +25,7 @@ import {
   readComplianceEnvelope, requestDigest, sha256, validateComplianceLines, type ComplianceInput, type ComplianceStep, type ComplianceUsage, type LineVerdict,
 } from "./compliance";
 import { RECEIPT_CLAIM } from "./facts";
-import { sqlState, type PolicyRefusal } from "./service";
+import { sqlState, startedFields, sweepable, type PolicyRefusal, type RunStarter } from "./service";
 
 type Env = Record<string, string | undefined>;
 // Test seams. Production passes none: a real call uses the process environment, the process-wide budget and the fixed-endpoint client.
@@ -56,15 +56,18 @@ type ReadResult =
   | { kind: "skipped"; reason: "NO_RULES" | "NOT_RECEIPT_CLAIM" }
   | { kind: "ready"; claimId: string; claimVersion: number; organizationId: string; pairs: Pair[]; clauses: { fundId: string; policyVersion: number; clauseId: string; text: string }[] };
 
-async function readInputs(db: AppDatabase, decisionHash: string, actorId: string): Promise<ReadResult> {
+async function readInputs(db: AppDatabase, decisionHash: string, starter: RunStarter): Promise<ReadResult> {
   // One snapshot, read only: authorization, decision state, and every fact the request is built from.
   return db.transaction(async tx => {
-    const [user] = await tx.select({ id: s.users.id, role: s.users.role, organizationId: s.users.organizationId }).from(s.users).where(eq(s.users.id, actorId));
-    if (!user || user.role !== "APPROVER") return { kind: "refused" as const, reason: "APPROVER_REQUIRED" as const };
+    const [user] = starter.trigger === "APPROVER"
+      ? await tx.select({ id: s.users.id, role: s.users.role, organizationId: s.users.organizationId }).from(s.users).where(eq(s.users.id, starter.id))
+      : [];
+    if (starter.trigger === "APPROVER" && (!user || user.role !== "APPROVER")) return { kind: "refused" as const, reason: "APPROVER_REQUIRED" as const };
     const [decision] = await tx.select().from(s.allocationDecisions).where(eq(s.allocationDecisions.decisionHash, decisionHash));
-    if (!decision || decision.organizationId !== user.organizationId) return { kind: "refused" as const, reason: "NO_DECISION" as const };
+    if (!decision || (user && decision.organizationId !== user.organizationId)) return { kind: "refused" as const, reason: "NO_DECISION" as const };
     const [claim] = await tx.select().from(s.claims).where(and(eq(s.claims.id, decision.claimId), eq(s.claims.version, decision.claimVersion)));
-    if (!claim || claim.claimantId === user.id) return { kind: "refused" as const, reason: "APPROVER_REQUIRED" as const };
+    if (!claim || (user && claim.claimantId === user.id)) return { kind: "refused" as const, reason: "APPROVER_REQUIRED" as const };
+    if (starter.trigger === "SWEEP" && !(await sweepable(tx, decisionHash, starter.env))) return { kind: "refused" as const, reason: "NOT_SWEEPABLE" as const };
     if (decision.invalidatedAt || decision.recognizedAt) return { kind: "refused" as const, reason: "STALE" as const };
     if (claim.status !== "AWAITING_APPROVAL") return { kind: "refused" as const, reason: "NOT_AWAITING" as const };
     const [existing] = await tx.select({ id: s.policyCheckRuns.id }).from(s.policyCheckRuns).where(and(eq(s.policyCheckRuns.decisionHash, decisionHash), eq(s.policyCheckRuns.kind, "MODEL")));
@@ -160,8 +163,13 @@ async function runPair(pair: Pair, context: Context): Promise<ResultRow[]> {
 // Run the arm C check for one frozen decision, after the rules. Safe to call twice and from two presses at once: there is one model attempt
 // per decision hash. AI off stores nothing and sends nothing. Every failure is stored as NOT_CHECKED, never as OK.
 export async function runModelCheck(db: AppDatabase, decisionHash: string, actor: { id: string }, deps: ModelRunDeps = {}): Promise<ModelRunResult> {
+  return runModelCheckAs(db, decisionHash, { trigger: "APPROVER", id: actor.id }, deps);
+}
+
+// Shared body, exported for src/policy/sweep.ts only. The web route reaches only runModelCheck above, which hard-codes an APPROVER starter.
+export async function runModelCheckAs(db: AppDatabase, decisionHash: string, starter: RunStarter, deps: ModelRunDeps = {}): Promise<ModelRunResult> {
   if (!/^[a-f0-9]{64}$/.test(decisionHash)) return { status: "REFUSED", reason: "INVALID_REQUEST" };
-  const read = await readInputs(db, decisionHash, actor.id);
+  const read = await readInputs(db, decisionHash, starter);
   if (read.kind === "refused") return { status: "REFUSED", reason: read.reason };
   if (read.kind === "exists") return { status: "EXISTS", runId: read.id };
   if (read.kind === "skipped") return { status: "SKIPPED", reason: read.reason };
@@ -177,7 +185,7 @@ export async function runModelCheck(db: AppDatabase, decisionHash: string, actor
   const checks = read.pairs.filter((pair): pair is Extract<Pair, { kind: "CHECK" }> => pair.kind === "CHECK");
   const plan = checks.map(pair => [pair.fundId, pair.policyVersion, ...COMPLIANCE_STEPS.map(step => requestDigest(complianceRequest(step.model, pair.input)))]);
   const runValues = {
-    decisionHash, claimId: read.claimId, claimVersion: read.claimVersion, organizationId: read.organizationId, kind: "MODEL" as const, startedBy: actor.id,
+    decisionHash, claimId: read.claimId, claimVersion: read.claimVersion, organizationId: read.organizationId, kind: "MODEL" as const, ...startedFields(starter),
     settingsVersions: {}, ruleSetVersion: COMPLIANCE_ARM, factsDigest: sha256(JSON.stringify(checks.map(pair => [pair.fundId, pair.policyVersion, complianceUserMessage(pair.input)]))),
     model: COMPLIANCE_STEPS.map(step => step.model).join(">"), effort: COMPLIANCE_EFFORT, promptVersion: COMPLIANCE_PROMPT_VERSION, schemaVersion: COMPLIANCE_SCHEMA_VERSION,
     clauseSetHash: clauseSetHash(read.clauses), requestDigest: sha256(JSON.stringify(plan)),

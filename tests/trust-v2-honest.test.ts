@@ -103,10 +103,32 @@ describe("TV-07 fundMeter turns one snapshot fund into an honest meter", () => {
 const walk = (dir: string): string[] => readdirSync(dir).flatMap(name => { const path = join(dir, name); return statSync(path).isDirectory() ? walk(path) : [path]; });
 describe("TV-08 no unbacked mode or verdict wording under src/app", () => {
   const files = walk("src/app").filter(path => /\.(tsx?|css|md)$/.test(path));
-  it("has no Autopilot, Assisted, Passed every check or Design preview string", () => {
+  it("has no unbacked Autopilot, Assisted, Passed every check or Design preview string", () => {
     expect(files.length).toBeGreaterThan(20);
-    const banned = [/Autopilot/, /Assisted/, /Passed every check/, /Design preview/];
-    for (const path of files) { const text = readFileSync(path, "utf8"); for (const pattern of banned) expect(pattern.test(text), `${path} ${pattern}`).toBe(false); }
+    // IAC-405 PR F (docs/ASSUMPTIONS.md section 76): "Assisted" is allowed in exactly one file, the mode change section, which shows a mode only from the stored view the page reads
+    // with the flag on. "Passed every check" and "Design preview" stay banned everywhere, including that file.
+    const MODE_SECTION = join("src", "app", "rules-ui", "fund-mode-section.tsx");
+    // IAC-405 PR A (docs/ASSUMPTIONS.md section 77): "Assisted" is also allowed in the Assisted queue files, in the two files that wire them and in the claim page, whose one line reads
+    // "Human reviews: 1 of 1, Assisted, no holds found". Each shows a mode only from a server read made with the flag on.
+    // IAC-405 PR P (docs/ASSUMPTIONS.md section 78): "Autopilot" is allowed in exactly three files, the mode change section (it offers Autopilot only with the second flag), the kill switch section and
+    // the claim page trail for a claim recognized by an AUTO_RECOGNIZED record. Each reads stored data only. "Passed every check" and "Design preview" stay banned everywhere.
+    const ASSISTED_FILES = [MODE_SECTION, join("src", "app", "page.tsx"), join("src", "app", "approver-queue", "client.tsx"), join("src", "app", "claims", "[claimId]", "page.tsx"), ...files.filter(path => path.startsWith(join("src", "app", "assisted-queue") + "/"))];
+    const AUTOPILOT_FILES = [MODE_SECTION, join("src", "app", "rules-ui", "automation-switch-section.tsx"), join("src", "app", "claims", "[claimId]", "automated-trail.tsx")];
+    for (const path of files) {
+      const text = readFileSync(path, "utf8");
+      const banned = [...(AUTOPILOT_FILES.includes(path) ? [] : [/Autopilot/]), ...(ASSISTED_FILES.includes(path) ? [] : [/Assisted/]), /Passed every check/, /Design preview/];
+      for (const pattern of banned) expect(pattern.test(text), `${path} ${pattern}`).toBe(false);
+    }
+  });
+  it("shows an Assisted label only from a stored mode, and only with the flag on", () => {
+    const section = readFileSync("src/app/rules-ui/fund-mode-section.tsx", "utf8");
+    expect(section).toContain('import type { FundModeView } from "../../fund-modes/change"');
+    expect(section).toContain("view.mode");
+    const page = readFileSync("src/app/funds/[fundId]/rules/page.tsx", "utf8");
+    expect(page).toMatch(/fundModesEnabled\(\) \? await readFundMode\(/);
+    expect(page).toMatch(/mode\?\.status === "OK" && <FundModeSection/);
+    const others = files.filter(path => path !== join("src", "app", "rules-ui", "fund-mode-section.tsx") && readFileSync(path, "utf8").includes("FundModeSection"));
+    expect(others.map(path => path.replace(/\\/g, "/"))).toEqual(["src/app/funds/[fundId]/rules/page.tsx"]);
   });
   it("keeps src/app/page.tsx free of dollar literals and builds the meters from the snapshot", () => {
     const page = readFileSync("src/app/page.tsx", "utf8");

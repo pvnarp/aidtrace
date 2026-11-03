@@ -20,6 +20,7 @@ import { modelCheckDisclosure } from "../../ai-disclosure";
 // The Run model check control shows only when the rules ran, the model run is absent, the claim has a confirmed receipt review, the compliance AI is on
 // and the viewer can run checks. It posts action run-model to the same endpoint, which calls only the model check.
 // IAC-416 PR 2: the per-row lines say "AI (Sonnet 5.5)". One disclosure line names the models that were asked, built from the stored ids, and the provider (src/app/ai-disclosure.ts). A pair
+// IAC-405 PR A follow-up: footer defaults to the fixed POLICY_FOOTER. The claim page passes a different fixed sentence only for a decision that needs one approval (src/fund-modes/review-copy.ts).
 // refused by the request limit (reason LIMIT) sent nothing, so its model is not named there; with no pair asked the line is absent.
 function ModelRows({ model }: { model: StoredModelRun }) {
   const disclosure = modelCheckDisclosure(model.pairs.filter(pair => pair.state !== "SKIPPED" && pair.reasonCode !== "LIMIT").flatMap(pair => pair.model ? [pair.model] : []));
@@ -41,7 +42,7 @@ function ModelRows({ model }: { model: StoredModelRun }) {
   </>;
 }
 
-export function PolicyChecks({ claimId, decisionHash, run, canRun, aiOff = null, modelEligible, headingLevel = 2 }: { claimId: string; decisionHash: string; run: StoredPolicyRun | null; canRun: boolean; aiOff?: string | null; modelEligible?: boolean; headingLevel?: 2 | 3 }) {
+export function PolicyChecks({ claimId, decisionHash, run, canRun, aiOff = null, modelEligible, headingLevel = 2, footer = POLICY_FOOTER }: { claimId: string; decisionHash: string; run: StoredPolicyRun | null; canRun: boolean; aiOff?: string | null; modelEligible?: boolean; headingLevel?: 2 | 3; footer?: string }) {
   const Heading = headingLevel === 3 ? "h3" : "h2";
   return <section id="policy-checks" aria-labelledby="policy-checks-title" className="receipt-page">
     <Heading id="policy-checks-title">{POLICY_TITLE}</Heading>
@@ -59,6 +60,6 @@ export function PolicyChecks({ claimId, decisionHash, run, canRun, aiOff = null,
     {modelEligible === true && !run?.model && aiOff && <p>{aiOff}</p>}
     {modelEligible === true && run && !run.model && !aiOff && <p>{MODEL_NOT_RUN}</p>}
     {modelEligible === true && run && !run.model && !aiOff && canRun && <ActionForm action="run-model" claimId={claimId} decisionHash={decisionHash} endpoint="policy-checks" button={MODEL_RUN_BUTTON} />}
-    <p className="muted">{POLICY_FOOTER}</p>
+    <p className="muted">{footer}</p>
   </section>;
 }

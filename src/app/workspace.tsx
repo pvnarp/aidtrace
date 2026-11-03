@@ -75,14 +75,14 @@ export function DecisionPanel({ data, split, approvals, payout, actions, more }:
  * decisionFirst (keyless approved claim only): on one column (900 px and below) the Decision panel, which holds the unpaid handoff, moves above the receipt side.
  * statusCards (single layout only, default true): the receipt page passes false because its trace and its own sections already state the AI and PayPal facts (IAC-415 PR 4).
  */
-export function Workspace({ user, stage, summary, state, links, layout = "review", policyBlocked = false, decisionFirst = false, statusCards = true, header, decision, children }: {
+export function Workspace({ user, stage, summary, state, links, layout = "review", policyBlocked = false, decisionFirst = false, statusCards = true, required, header, decision, children }: {
   user: { displayName: string; role: string }; stage: Stage; summary: SummaryData; state: ShellState; links?: TraceLinks;
-  layout?: "review" | "single"; policyBlocked?: boolean; decisionFirst?: boolean; statusCards?: boolean; header?: React.ReactNode; decision?: React.ReactNode; children: React.ReactNode;
+  layout?: "review" | "single"; policyBlocked?: boolean; decisionFirst?: boolean; statusCards?: boolean; required?: 1 | "auto"; header?: React.ReactNode; decision?: React.ReactNode; children: React.ReactNode;
 }) {
   return <><AppHeader user={user} />
     <main className="workspace-page" data-layout={layout}>
       {header}
-      <TraceStepper stage={stage} state={state} reviews={summary.reviews} links={links} policyBlocked={policyBlocked} />
+      <TraceStepper stage={stage} state={state} reviews={summary.reviews} links={links} policyBlocked={policyBlocked} {...(required ? { required } : {})} />
       <div className={`hybrid-shell ${layout}`} data-decision-first={decisionFirst ? "true" : undefined}><div className="hybrid-content">{children}</div>
         {layout === "review"
           ? decision ?? <DecisionPanel data={summary} />

@@ -13,6 +13,7 @@ const DataGrid = dynamic(() => import('../grid/grid'), { ssr: false, loading: ()
 const TOTALS = { label: ledgerTotalLabel, fields: LEDGER_TOTAL_FIELDS };
 const rowId = (row: LedgerRow) => row.id;
 const rowClass = (row: LedgerRow) => (row.verify ? 'gx-row-verify' : undefined);
+const EMPTY = { none: 'No postings yet.', filtered: 'No postings match this search or filter.' };
 
 export function LedgerClient({ view, userId }: { view: LedgerView; userId: string }) {
   const columns = useMemo(() => ledgerColumns(), []);
@@ -38,6 +39,7 @@ export function LedgerClient({ view, userId }: { view: LedgerView; userId: strin
       csv={{ fileBase: 'ledger' }}
       totals={TOTALS}
       getRowClass={rowClass}
+      emptyMessages={EMPTY}
     />
   </>;
 }

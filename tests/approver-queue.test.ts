@@ -10,6 +10,7 @@ import { progressLabel, progressText, queueSteps } from "../src/app/approver-que
 import { TRACE_NAMES } from "../src/app/trace";
 import { leafColumns } from "../src/app/grid/columns";
 import { PhoneExtras } from "../src/app/grid/phone";
+import { frameRows } from "../src/app/approver-queue/client";
 
 // IAC-414 Q1 (docs/plans/GRID_SURFACES_SCOPE.md section 3.2 step A), tests AQ-11 to AQ-20. Pure unit tests and source text checks: no database, no browser.
 const sample = (over: Partial<ApproverQueueRow> = {}): ApproverQueueRow => ({
@@ -189,7 +190,8 @@ describe("AQ-16 static: the queue never writes", () => {
   });
   it("is imported by the home page and the grid files only", () => {
     const importers = walk("src").filter(path => path !== LOADER && /\.(ts|tsx)$/.test(path) && /server\/approver-queue|\.\.\/approver-queue|\.\/approver-queue/.test(source(path))).sort();
-    expect(importers).toEqual([join(DIR, "cells.tsx"), join(DIR, "client.tsx"), join(DIR, "columns.ts"), join("src", "app", "page.tsx")].sort());
+    // IAC-405 PR A adds the two files of the Assisted queue that reuse the queue columns and the row type (docs/ASSUMPTIONS.md section 77).
+    expect(importers).toEqual([join(DIR, "cells.tsx"), join(DIR, "client.tsx"), join(DIR, "columns.ts"), join("src", "app", "page.tsx"), join("src", "app", "assisted-queue", "client.tsx"), join("src", "app", "assisted-queue", "columns.ts")].sort());
   });
 });
 
@@ -265,6 +267,47 @@ describe("AQ-20 static: the home page", () => {
     expect(claimant).toContain("<ExpenseCard"); expect(claimant).not.toMatch(/ApproverQueueClient|loadApproverQueue/);
   });
   it("keeps the empty-state heading and the lede for an empty queue", () => {
-    expect(approver).toContain("approverHeading(0)"); expect(approver).toContain("approverLede(queue.rows.length)");
+    expect(approver).toContain("approverHeading(0)"); expect(approver).toContain("approverLede(queue.rows.length, assisted !== undefined)");
+  });
+});
+
+// Desktop polish (docs/ASSUMPTIONS.md section 74, docs/GATE_REPORT.md section 62), HP-08 and HP-09. The browser geometry is HP-01 to HP-03 and HP-10 in e2e/approver-queue.spec.ts.
+describe("HP-08 the queue frame follows the row count", () => {
+  const rules = source(join(DIR, "approver-queue.css")).replace(/\/\*[\s\S]*?\*\//g, "");
+  it("is one row for one claim, never fewer than one row and never more than twelve", () => {
+    expect([0, 1, 2, 5, 12, 13, 400].map(frameRows)).toEqual([1, 1, 2, 5, 12, 12, 12]);
+  });
+  it("is sized from the row count plus the header, the filter row and 18 px, defaults to one row and keeps its maximum height", () => {
+    expect(rules).toContain("height: calc(44px * (var(--aq-rows, 1) + 2) + 18px)");
+    expect(rules).toContain("max-height: min(70vh, 640px)");
+    expect(rules).not.toMatch(/--aq-rows, 2/);
+  });
+});
+
+describe("HP-09 static: the approver home lays its head text, fund meters and queue out as full-width rows above the phone break", () => {
+  const css = source(join(DIR, "approver-queue.css")).replace(/\/\*[\s\S]*?\*\//g, "");
+  const wide = /@media \(min-width: 901px\)\s*\{([\s\S]*)\}\s*$/.exec(css)![1]!;
+  const line = (selector: string) => wide.split("\n").find(text => text.includes(selector))!;
+  it("puts the head text in row 1 and the fund meters in row 2, both across the whole column", () => {
+    expect(line(".home-head-text")).toMatch(/grid-column: 1 \/ -1; grid-row: 1;/);
+    expect(line("> .funds {")).toMatch(/grid-column: 1 \/ -1; grid-row: 2;/);
+    expect(line("aq-home { grid-template-columns")).toContain("grid-template-columns: minmax(0, 1fr)");
+  });
+  it("lays the meters in one auto-fit row of panels that read the Trust v2 tokens", () => {
+    expect(line("> .funds {")).toContain("grid-template-columns: repeat(auto-fit, minmax(240px, 1fr))");
+    const panel = line("> .funds > *");
+    for (const token of ["var(--paper)", "var(--radius-panel)", "var(--shadow)"]) expect(panel, token).toContain(token);
+  });
+  it("drops the queue's own top margin, so the row gap is the only space between the meters and the queue", () => {
+    expect(line(".aq-queue {")).toContain("margin-top: 0");
+  });
+  it("no longer keeps the fund rail in a second column beside the head text", () => {
+    expect(wide).not.toMatch(/grid-column: 2/);
+  });
+  it("leaves the phone and tablet order to style.css: no max-width rule here, and style.css still orders funds, then the rest", () => {
+    expect(css).not.toContain("max-width");
+    const style = source(join("src", "app", "style.css"));
+    expect(style).toContain(".home-grid > .funds { order: 1; }");
+    expect(style).toContain(".home-grid .home-main > :not(.home-head-text) { order: 2; }");
   });
 });

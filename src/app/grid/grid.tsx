@@ -5,6 +5,7 @@ import type { ColDef, GetRowIdParams, GridApi, GridReadyEvent, GridState, Module
 import { useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import { leafColumns, mapLeaves, type GridColumn } from './columns';
 import { csvExportParams } from './csv';
+import { columnsBeyondEdge, overlayParamsFor, type EmptyMessages } from './edge';
 import { gridModules } from './modules';
 import { sumCents } from './money';
 import { PhoneExtras } from './phone';
@@ -32,6 +33,8 @@ export interface DataGridProps<Row> {
   totals?: { label: (shown: number) => string; fields: readonly string[] };
   getRowClass?: (row: Row) => string | undefined;
   selection?: { onChange: (rows: Row[]) => void; isRowSelectable?: (row: Row) => boolean };
+  /** House copy for the grid's own empty overlays: none when there are no rows at all, filtered when the search or a column filter hides every row. A grid without this keeps AG Grid's default text. */
+  emptyMessages?: EmptyMessages;
 }
 
 const NO_MODULES: readonly Module[] = [];
@@ -48,7 +51,7 @@ function displayedRows<Row>(api: GridApi<Row>): Row[] {
 }
 
 export function DataGrid<Row extends object>(props: DataGridProps<Row>) {
-  const { gridId, userId, ariaLabel, observedAt, rows, getRowId, columns, phoneColumns, csv, totals, getRowClass, selection } = props;
+  const { gridId, userId, ariaLabel, observedAt, rows, getRowId, columns, phoneColumns, csv, totals, getRowClass, selection, emptyMessages } = props;
   const extraModules = props.extraModules ?? NO_MODULES;
   const rootRef = useRef<HTMLDivElement>(null);
   const apiRef = useRef<GridApi<Row> | null>(null);
@@ -62,6 +65,10 @@ export function DataGrid<Row extends object>(props: DataGridProps<Row>) {
   useEffect(() => { const timer = window.setTimeout(() => setAppliedSearch(search), SEARCH_DELAY_MS); return () => window.clearTimeout(timer); }, [search]);
   const [resets, setResets] = useState(0);
   const [derived, setDerived] = useState<Derived<Row>>({ shown: rows.length, pinned: [], visible: [] });
+  // The columns past the right edge at scroll 0. Only a wide layout shows the cue, because the phone layout moves those fields to the details list.
+  const [beyond, setBeyond] = useState<string[]>([]);
+  const noneMessage = emptyMessages?.none; const filteredMessage = emptyMessages?.filtered;
+  const overlayParams = useMemo(() => overlayParamsFor({ none: noneMessage, filtered: filteredMessage }), [noneMessage, filteredMessage]);
   const saved = useMemo(() => loadGridState(userId, gridId), [userId, gridId, resets]);
   const modules = useMemo(() => gridModules(extraModules), [extraModules]);
   const labelField = useMemo(() => leafColumns(columns).find(column => column.field)?.field as string | undefined, [columns]);
@@ -96,6 +103,9 @@ export function DataGrid<Row extends object>(props: DataGridProps<Row>) {
     };
   }), [columns, layoutHidden, totals, labelField]);
 
+  // One object for as long as the selectable rule is the same, so a parent that re-renders on each selection change never hands the grid a new selection setup (IAC-405 PR A).
+  const isRowSelectable = selection?.isRowSelectable; const selecting = Boolean(selection);
+  const rowSelection = useMemo(() => (selecting ? { mode: 'multiRow' as const, isRowSelectable: isRowSelectable ? (node: { data?: Row }) => (node.data ? isRowSelectable(node.data) : false) : undefined } : undefined), [selecting, isRowSelectable]);
   const defaultColDef = useMemo<ColDef<Row>>(() => ({ editable: false, resizable: true, sortable: true, minWidth: 90 }), []);
 
   const recompute = useCallback((api: GridApi<Row>) => {
@@ -109,7 +119,14 @@ export function DataGrid<Row extends object>(props: DataGridProps<Row>) {
     setDerived(previous => (previous.shown === visible.length && JSON.stringify(previous.pinned) === JSON.stringify(pinned) && (!narrow || previous.visible.length === visible.length) ? previous : { shown: visible.length, pinned, visible: narrow ? visible : [] }));
   }, [totals, labelField, narrow]);
 
-  const onGridReady = (event: GridReadyEvent<Row>) => { apiRef.current = event.api; recompute(event.api); };
+  // Column ids default to the field, so the header names are keyed by field.
+  const headerNames = useMemo(() => Object.fromEntries(leafColumns(columns).flatMap(leaf => (typeof leaf.field === 'string' && typeof leaf.headerName === 'string' ? [[leaf.field, leaf.headerName] as const] : []))), [columns]);
+  const measureEdge = useCallback((api: GridApi<Row>) => {
+    const names = columnsBeyondEdge(api, headerNames);
+    setBeyond(previous => (previous.join('\n') === names.join('\n') ? previous : names));
+  }, [headerNames]);
+
+  const onGridReady = (event: GridReadyEvent<Row>) => { apiRef.current = event.api; recompute(event.api); measureEdge(event.api); };
   const onStateUpdated = (event: StateUpdatedEvent<Row>) => { if (event.sources.some(source => source !== 'gridInitializing')) saveGridState(userId, gridId, event.state as Record<string, unknown>); };
   const resetView = () => { clearGridState(userId, gridId); setSearch(''); setAppliedSearch(''); setResets(count => count + 1); };
 
@@ -120,7 +137,10 @@ export function DataGrid<Row extends object>(props: DataGridProps<Row>) {
       {csv && <button type="button" className="secondary" onClick={() => apiRef.current?.exportDataAsCsv(csvExportParams({ fileBase: csv.fileBase, observedAt }))}>Export CSV</button>}
       <button type="button" className="secondary" onClick={resetView}>Reset view</button>
     </div>
-    <p className="gx-status-line" role="status" aria-live="polite" data-testid="gx-status">Showing {derived.shown} of {rows.length}</p>
+    <div className="gx-statusbar">
+      <p className="gx-status-line" role="status" aria-live="polite" data-testid="gx-status">Showing {derived.shown} of {rows.length}</p>
+      {!narrow && beyond.length > 0 && <p className="gx-more-columns" data-testid="gx-more-columns">Scroll sideways for more columns: {beyond.join(', ')}.</p>}
+    </div>
     <div className="gx-frame">
       {theme && <AgGridReact<Row>
         key={`${gridId}:${resets}`}
@@ -138,10 +158,14 @@ export function DataGrid<Row extends object>(props: DataGridProps<Row>) {
         rowHeight={44}
         headerHeight={44}
         tooltipShowDelay={300}
-        rowSelection={selection ? { mode: 'multiRow', isRowSelectable: selection.isRowSelectable ? node => (node.data ? selection.isRowSelectable!(node.data) : false) : undefined } : undefined}
+        rowSelection={rowSelection}
         onSelectionChanged={selection ? event => selection.onChange(event.api.getSelectedRows()) : undefined}
+        overlayComponentParams={overlayParams}
         onGridReady={onGridReady}
-        onModelUpdated={event => recompute(event.api)}
+        onModelUpdated={event => { recompute(event.api); measureEdge(event.api); }}
+        onGridSizeChanged={event => measureEdge(event.api)}
+        onDisplayedColumnsChanged={event => measureEdge(event.api)}
+        onColumnResized={event => measureEdge(event.api)}
         onStateUpdated={onStateUpdated}
       />}
     </div>

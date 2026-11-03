@@ -1,6 +1,9 @@
 import { cookies } from "next/headers";
 import { notFound, redirect } from "next/navigation";
 import { DRAFT_INPUT_MAX_CHARS } from "../../../../rules-draft/draft-validate";
+import { readFundMode } from "../../../../fund-modes/change";
+import { automationFlagOn, fundModesEnabled } from "../../../../fund-modes/flag";
+import { readAutomationSwitch } from "../../../../fund-modes/automation-read";
 import { DRAFT_LIST_LIMIT, readFundRules } from "../../../../rules-draft/drafts";
 import { findSession, SESSION_COOKIE } from "../../../../server/auth";
 import { getDatabase } from "../../../../server/db";
@@ -10,6 +13,8 @@ import { AppHeader } from "../../../app-header";
 import { ruleDraftFormDisclosure } from "../../../ai-disclosure";
 import { CurrentRulesView } from "../../../rules-ui/current-rules";
 import { DraftList } from "../../../rules-ui/draft-list";
+import { FundModeSection } from "../../../rules-ui/fund-mode-section";
+import { AutomationSwitchSection } from "../../../rules-ui/automation-switch-section";
 import { RulesDraftForm } from "../../../rules-ui/draft-form";
 
 // IAC-440 Package B (docs/plans/AI_DRAFTED_RULES_SCOPE.md section 5, docs/ASSUMPTIONS.md section 72). The approver's rules page for one fund: the current approved rules,
@@ -27,6 +32,11 @@ export default async function FundRulesPage({ params, searchParams }: { params: 
   const { view } = result;
   const notice = rulesNotice(await searchParams);
   const restricted = view.fundClass === "RESTRICTED";
+  // Shown only with the fund modes flag on. A flag-off instance renders the page exactly as before.
+  const mode = fundModesEnabled() ? await readFundMode(getDatabase(), { id: user.id }, fundId) : null;
+  // The kill switch section needs the second flag as well. With it off the page is exactly the PR F page.
+  const autopilot = automationFlagOn();
+  const automation = autopilot ? await readAutomationSwitch(getDatabase(), { id: user.id }) : null;
   return <main className="analytics-page reference-page rules-page">
     <AppHeader user={user} />
     <div className="reference-screen rules-screen">
@@ -34,6 +44,9 @@ export default async function FundRulesPage({ params, searchParams }: { params: 
       <h1 className="screen-heading">Rules for {view.fundName}</h1>
       <p className="reference-intro">AI can draft this fund&apos;s rules from its grant agreement. You review every value against the grant, and two different approvers must approve before anything changes. The AI drafts only. It never approves, pays or allocates.</p>
       {notice && <p className={notice.tone === "warning" ? "notice warning" : "notice"} role="status" data-testid="rules-notice">{notice.text}</p>}
+
+      {mode?.status === "OK" && <FundModeSection fundId={view.fundId} view={mode.view} userId={user.id} autopilot={autopilot} />}
+      {automation?.status === "OK" && <AutomationSwitchSection fundId={view.fundId} view={automation.view} userId={user.id} />}
 
       <section className="rules-section" aria-labelledby="rules-current-heading">
         <h2 id="rules-current-heading">Current approved rules, version {view.current.version}</h2>

@@ -67,6 +67,32 @@ services:
       db:
         condition: service_healthy
     command: [pnpm, exec, tsx, scripts/donation-sweep.ts, --loop]
+  # IAC-405 step 2 PR F: opt-in policy sweep for Assisted fund modes. Plain `docker compose up` does not start it: it needs --profile fund-modes.
+  # It reads the same env file as the app service, so it sees the same FUND_MODES_ENABLED and the same Anthropic settings. The flag is deliberately not set here:
+  # the script refuses to start unless that file says exactly true. It records check results and may recognize a decision that already holds its one human
+  # approval. It never approves and never sends a payment. Judge and release sessions are keyless and never run it.
+  fund-modes-worker:
+    profiles: [fund-modes]
+    build: .
+    init: true
+    mem_limit: 512m
+    cpus: 1
+    restart: unless-stopped
+    env_file:
+      - path: ./local/.env
+        required: false
+    environment:
+      DATABASE_URL: postgres://aidtrace@db:5432/aidtrace
+      NEXT_TELEMETRY_DISABLED: "1"
+    volumes:
+      - .:/workspace
+      - node_modules:/workspace/node_modules
+      - pnpm_store:/pnpm/store
+    networks: [default, database]
+    depends_on:
+      db:
+        condition: service_healthy
+    command: [pnpm, exec, tsx, scripts/policy-sweep.ts, --loop]
 volumes:
   postgres_data:
   node_modules:

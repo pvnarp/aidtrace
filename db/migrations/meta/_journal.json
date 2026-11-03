@@ -134,6 +134,20 @@
       "when": 1793555016084,
       "tag": "0018_ai-drafted-rules",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1793621282225,
+      "tag": "0019_fund-modes",
+      "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1793670404567,
+      "tag": "0020_autopilot",
+      "breakpoints": true
     }
   ]
 }

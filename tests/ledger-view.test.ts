@@ -169,14 +169,15 @@ describe("ledger column set", () => {
   });
   it("sets no editable column", () => { for (const leaf of leaves) expect(leaf.editable).not.toBe(true); });
   // Orchestrator addition at the merge, after the 1440 still showed amounts left-aligned under right-aligned headers.
-  it("aligns money right, keeps Debit and Credit inside 1120 px, and gives truncated account and fund names a full-text tooltip", () => {
+  it("aligns money right, ends Credit on the frame edge (1170 px), and gives truncated account and fund names a full-text tooltip", () => {
     for (const name of ["debitCents", "creditCents"]) {
       const money = leaves.find(leaf => leaf.field === name)!;
       expect(money.type).toBe("rightAligned");
       expect(money.cellClass).toEqual(expect.arrayContaining(["gx-cell-num", "ag-right-aligned-cell"]));
     }
     const upToCredit = leaves.slice(0, leaves.findIndex(leaf => leaf.field === "creditCents") + 1);
-    expect(upToCredit.reduce((sum, leaf) => sum + (leaf.width ?? 0), 0)).toBeLessThanOrEqual(1120);
+    const entryAndMoney = upToCredit.reduce((sum, leaf) => sum + (leaf.width ?? 0), 0);
+    expect(entryAndMoney).toBeLessThanOrEqual(1170); expect(entryAndMoney).toBeGreaterThanOrEqual(1168);
     const tip = (field: string, row: Partial<LedgerRow>) => (leaves.find(leaf => leaf.field === field)!.tooltipValueGetter as (params: unknown) => unknown)({ data: row, node: {} });
     expect(tip("account", { account: "3100 Net assets with donor restrictions" })).toBe("3100 Net assets with donor restrictions");
     expect(tip("fund", { fund: "Tallow Creek Robot Kit Initiative", fundTip: "Fund id fund_b." })).toBe("Tallow Creek Robot Kit Initiative. Fund id fund_b.");

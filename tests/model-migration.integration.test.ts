@@ -52,7 +52,10 @@ describe("migration 0017 on a database that already holds retained data", () => 
     expect(await tables()).not.toContain("policy_model_results");
     const claim = await receiptClaim(old.db);
     expect((await approveDecision(old.db, claim.decisionId, "tara", claim.hash)).status).toBe("AWAITING_APPROVAL");
-    expect((await runPolicyChecks(old.db, claim.hash, { id: "tara" })).status).toBe("RAN");
+    // The service now writes the migration 0019 trigger column, which a database at 0016 lacks, so the retained rules run is inserted in its 0016 shape.
+    const [rulesRun] = await old.client`insert into policy_check_runs (decision_hash, claim_id, claim_version, organization_id, kind, started_by, settings_versions, rule_set_version, facts_digest)
+      values (${claim.hash}, ${claim.id}, 1, 'cedar-hollow', 'RULES', 'tara', '{}'::jsonb, 'policy-rules-v1', ${sha256("facts")}) returning id`;
+    await old.client`insert into policy_check_results (run_id, sequence, entry, inputs) values (${rulesRun!.id}, 1, 'RUN_END', '{}'::jsonb)`;
     const existing = (await tables()).filter(name => name !== "__drizzle_migrations");
     const hashes = async () => Object.fromEntries(await Promise.all(existing.map(async name => [name, await tableHash(old.client, name)] as const)));
     const retained = await hashes();
@@ -67,6 +70,8 @@ describe("migration 0017 on a database that already holds retained data", () => 
     expect((await old.client`select count(*)::int as n from fund_policy_clauses`)[0]!.n).toBe(0);
     expect((await old.client`select count(*)::int as n from policy_model_results`)[0]!.n).toBe(0);
 
+    // The current model check writes the migration 0019 trigger column, so it runs once the rest of the chain is applied (tests/fund-modes-db.integration.test.ts).
+    await migrate(old.db, { migrationsFolder: "db/migrations" });
     // The migrated database runs the model check without clauses: the restricted funds are NOT_CHECKED with NO_CLAUSES and no model named, and no request is sent.
     const { client, calls } = unreachable();
     const result = await runModelCheck(old.db, claim.hash, { id: "tara" }, { env: ENV, client });

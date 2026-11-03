@@ -102,7 +102,7 @@ export function centsColumn<Row>(options: CentsColumnOptions<Row>): ColDef<Row> 
       bigintParser: (text: string | null) => (text === null ? null : parseCentsInput(text)),
       bigintFormatter: (value: bigint | null) => (value === null ? null : decimalCents(value)),
     },
-    floatingFilter: true,
+    floatingFilter: true, suppressFloatingFilterButton: true,
     // A column definition's cellClass replaces the one the rightAligned type brings, so the type's right-aligned cell class is
     // named again here; without it the amounts sat left under right-aligned headers.
     cellClass: ['gx-cell-num', 'ag-right-aligned-cell'],

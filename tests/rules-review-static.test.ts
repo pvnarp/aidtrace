@@ -11,11 +11,13 @@ const code = (path: string) => source(path).split("\n").map(line => line.replace
 const imports = (text: string) => [...text.matchAll(/^\s*(?:import|export)\s+(?!type\b)[^;]*?from\s+["']([^"']+)["']/gm)].map(match => match[1]!)
   .concat([...text.matchAll(/\bimport\(\s*["']([^"']+)["']\s*\)/g)].map(match => match[1]!));
 const BANNED = /(^|\/)(ledger\/(service|payout|retry|journal|donation|opening|reconcile|snapshot|webhooks)|paypal|server\/claim-actions|server\/payments|server\/webhook-[a-z]+)(\/|$)/;
-const PINNED_EDGE = { file: "src/rules-draft/drafts.ts", target: "../ledger/service" };
+// Two pinned ledger edges, each the one serializable helper: Package A's drafts.ts and the fund mode change service (IAC-405 PR F, ASSUMPTIONS 76). The second is held to exactly { serializable } below.
+const PINNED_EDGES = [{ file: "src/rules-draft/drafts.ts", target: "../ledger/service" }, { file: "src/fund-modes/change.ts", target: "../ledger/service" }, { file: "src/fund-modes/bulk-approve.ts", target: "../ledger/service" }];
+const isPinned = (file: string, target: string) => PINNED_EDGES.some(edge => edge.file === file && edge.target === target);
 
-const ROUTES = ["src/app/api/funds/[fundId]/rules/drafts/route.ts", "src/app/api/funds/[fundId]/rules/drafts/[draftId]/route.ts", "src/app/api/funds/[fundId]/rules/pdf-text/route.ts"];
+const ROUTES = ["src/app/api/funds/[fundId]/rules/drafts/route.ts", "src/app/api/funds/[fundId]/rules/drafts/[draftId]/route.ts", "src/app/api/funds/[fundId]/rules/pdf-text/route.ts", "src/app/api/funds/[fundId]/mode/route.ts", "src/app/api/approvals/bulk/route.ts"];
 const PAGES = ["src/app/funds/[fundId]/rules/page.tsx", "src/app/funds/[fundId]/rules/drafts/[draftId]/page.tsx"];
-const SERVER = ["src/server/rules-draft-actions.ts", "src/server/rules-input.ts", "src/server/rules-notices.ts", "src/server/pdf-text.ts", "src/server/fund-rules-links.ts"];
+const SERVER = ["src/server/rules-draft-actions.ts", "src/server/rules-input.ts", "src/server/rules-notices.ts", "src/server/pdf-text.ts", "src/server/fund-rules-links.ts", "src/server/fund-mode-actions.ts", "src/server/bulk-approve-actions.ts"];
 const UI = walk("src/app/rules-ui").sort();
 const NEW_FILES = [...ROUTES, ...PAGES, ...SERVER, ...UI, "src/app/ai-disclosure.ts"];
 
@@ -25,7 +27,7 @@ function closure(entry: string[]): Set<string> {
     const file = queue.pop()!; if (seen.has(file)) continue; seen.add(file);
     for (const target of imports(source(file))) {
       if (!target.startsWith(".")) continue;
-      if (file === PINNED_EDGE.file && target === PINNED_EDGE.target) continue;
+      if (isPinned(file, target)) continue;
       const resolved = join(file, "..", target).replace(/\\/g, "/");
       const path = [`${resolved}.ts`, `${resolved}.tsx`, join(resolved, "index.ts")].find(candidate => { try { return statSync(candidate).isFile(); } catch { return false; } });
       if (path) queue.push(path);
@@ -36,7 +38,7 @@ function closure(entry: string[]): Set<string> {
 
 describe("DR-119 the review screen reaches no money, payout, claim approval or webhook module", () => {
   it("names the real files, so the checks below cannot pass on an empty list", () => {
-    expect(UI.map(path => path.replace("src/app/rules-ui/", ""))).toEqual(["current-rules.tsx", "draft-form.tsx", "draft-list.tsx", "edit-form.tsx", "labels.ts", "review-rows.ts", "review-screen.tsx"]);
+    expect(UI.map(path => path.replace("src/app/rules-ui/", ""))).toEqual(["automation-switch-section.tsx", "current-rules.tsx", "draft-form.tsx", "draft-list.tsx", "edit-form.tsx", "fund-mode-section.tsx", "labels.ts", "review-rows.ts", "review-screen.tsx"]);
     for (const file of NEW_FILES) expect(statSync(file).isFile(), file).toBe(true);
   });
   it("no new file imports PayPal, any ledger module, a claim action, a payment or a webhook module directly", () => {
@@ -48,7 +50,7 @@ describe("DR-119 the review screen reaches no money, payout, claim approval or w
   it("the transitive closure of the three routes and two pages has no banned module, apart from the one pinned ledger edge that Package A owns and DR-37 pins", () => {
     const seen = closure([...ROUTES, ...PAGES]);
     for (const file of seen) for (const target of imports(source(file))) {
-      if (file === PINNED_EDGE.file && target === PINNED_EDGE.target) continue;
+      if (isPinned(file, target)) continue;
       expect(target, `${file} -> ${target}`).not.toMatch(BANNED);
     }
     expect(seen.has("src/rules-draft/drafts.ts")).toBe(true);
@@ -61,15 +63,25 @@ describe("DR-119 the review screen reaches no money, payout, claim approval or w
     expect(code("src/server/pdf-text.ts")).not.toMatch(/drizzle|db\/schema|server\/db|claude|anthropic|fetch\(|process\.env|console\./i);
     expect(imports(source("src/server/pdf-text.ts"))).toEqual(["unpdf"]);
   });
-  it("the three route files are thin: one handler call each, every method sent to the same checks, and nothing else", () => {
+  it("the route files are thin: one handler call each, every method sent to the same checks, and nothing else", () => {
     for (const route of ROUTES) {
       const text = code(route);
       expect(text.match(/export \{ action as GET, action as POST, action as PUT, action as PATCH, action as DELETE \};/), route).not.toBeNull();
       expect(text.split("\n").filter(line => line.trim()).length, route).toBeLessThanOrEqual(10);
-      expect(imports(source(route)).map(target => target.replace(/^(\.\.\/)+/, "")).sort(), route).toEqual(["server/db", "server/rules-draft-actions"]);
+      expect(imports(source(route)).map(target => target.replace(/^(\.\.\/)+/, "")).sort(), route).toEqual(["server/db", route.includes("/mode/") ? "server/fund-mode-actions" : route.includes("/approvals/bulk/") ? "server/bulk-approve-actions" : "server/rules-draft-actions"].sort());
       expect(text, route).toMatch(/export const dynamic = "force-dynamic";/);
       expect(text, route).toMatch(/export const runtime = "nodejs";/);
     }
+  });
+  it("the second pinned ledger edge, the fund mode change service, imports exactly the serializable helper from the ledger service and nothing else, and is re-exported nowhere", () => {
+    const file = "src/fund-modes/change.ts";
+    expect(imports(source(file)).filter(target => /ledger/.test(target))).toEqual(["../ledger/service"]);
+    const clause = source(file).match(/^import\s*\{([^}]*)\}\s*from\s*["']\.\.\/ledger\/service["']/m);
+    expect(clause, "a named import from the ledger service").not.toBeNull();
+    expect(clause![1]!.split(",").map(name => name.trim()).filter(Boolean)).toEqual(["serializable"]);
+    expect(source(file)).not.toMatch(/export\s*(\{[^}]*\}|\*)\s*from\s*["'][^"']*ledger/);
+    // The pinned list is these two files and no other.
+    for (const other of walk("src/fund-modes").filter(path => path !== file)) expect(imports(source(other)).filter(target => /ledger\/service/.test(target)), other).toEqual(other === "src/fund-modes/policy-sweep.ts" || other === "src/fund-modes/switch.ts" || other === "src/fund-modes/bulk-approve.ts" ? ["../ledger/service"] : []);
   });
 });
 

@@ -51,7 +51,7 @@ async function readBounded(request: Request, limit: number): Promise<Body> {
 }
 
 const text = (status: number, body: string, extra: Record<string, string> = {}) => new Response(body, { status, headers: { ...HEADERS, ...extra } });
-const redirectTo = (path: string, code: RulesNoticeCode, extra: { v?: number; back?: number; why?: string } = {}) =>
+const redirectTo = (path: string, code: RulesNoticeCode | null, extra: { v?: number; back?: number; why?: string } = {}) =>
   new Response(null, { status: 303, headers: { Location: `${path}${noticeQuery(code, extra)}`, ...HEADERS } });
 
 type Prelude = { ok: true; userId: string } | { ok: false; response: Response };
@@ -157,7 +157,8 @@ export async function handleDraftAction(request: Request, fundId: string, draftI
         return result.status === "WITHDRAWN" ? redirectTo(rulesPath, "withdrawn") : refusedAction(result.reason, reviewPath);
       }
       const result = await approveDraft(deps.db, actor, draftId);
-      if (result.status === "APPROVED") return redirectTo(reviewPath, "approved-1");
+      // The first approval carries no notice code. The review page's own second-approver notice already says it once, and it stays on every later visit.
+      if (result.status === "APPROVED") return redirectTo(reviewPath, null);
       if (result.status === "BOUND") return redirectTo(rulesPath, "bound", { v: result.policyVersion, ...(result.priorityVersion === null ? {} : { back: result.invalidatedDecisions }) });
       return refusedAction(result.reason, reviewPath);
     } catch { return redirectTo(reviewPath, "act-failed"); }

@@ -385,7 +385,10 @@ describe("DR-100 two approvals by two different approvers, and the same approver
     const first = await act("tara", id, { action: "approve" });
     expect(first.status).toBe(303);
     expect(location(first).pathname).toBe(`/funds/${FUND}/rules/drafts/${id}`);
-    expect(noticeOf(first)?.text).toBe("Your approval is recorded. A second, different approver must approve before anything changes.");
+    // HP-07: the first approval redirects with no query at all. The review page says "a second, different approver must approve" once, in its own state notice.
+    expect(location(first).search).toBe("");
+    expect(first.headers.get("location")).toBe(`/funds/${FUND}/rules/drafts/${id}`);
+    expect(noticeOf(first)).toBeNull();
     expect(await count("policy_draft_events", `draft_id = '${id}' and kind = 'APPROVED'`)).toBe(1);
 
     const again = await act("tara", id, { action: "approve" });
@@ -525,7 +528,8 @@ describe("DR-102 an edit saves a new draft that needs its own two approvals, and
     const read = await readDraftReview(ctx.db, { id: "tara" }, child);
     expect(read.status === "OK" && read.review.view.analysis?.missing).toEqual([]);
     expect(read.status === "OK" && read.review.view.changedFields).toEqual(["programs"]);
-    expect(noticeOf(await act("tara", child, { action: "approve" }))?.text).toContain("Your approval is recorded");
+    const approvedOnce = await act("tara", child, { action: "approve" });
+    expect(approvedOnce.status).toBe(303); expect(approvedOnce.headers.get("location")).toBe(`/funds/${FUND}/rules/drafts/${child}`); expect(noticeOf(approvedOnce)).toBeNull();
     expect(noticeOf(await act("tara", child, { action: "approve" }))?.text).toContain("You already approved");
   });
   it("reads a form posted back untouched as no change, and saves no row", async () => {

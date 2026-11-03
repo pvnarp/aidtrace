@@ -108,6 +108,8 @@ async function practiceAllocation(page: Page, headline: string) {
 const reviewUrl = (page: Page) => new URL(page.url()).pathname;
 const draftIdOf = (page: Page) => reviewUrl(page).split("/").pop()!;
 const approveButton = (page: Page, which: "first" | "second") => page.getByRole("button", { name: `Approve (${which} of two)` });
+// HP-04: how many times the text on a page says a second, different approver is needed.
+const secondApproverSentences = (text: string) => (text.match(/A second, different approver must approve/g) ?? []).length;
 // A post made the way the page's own forms post: the cookie jar of the page, the app's own origin, urlencoded fields, no redirect followed.
 const post = (page: Page, path: string, form: Record<string, string>, headers: Record<string, string> = { origin: ORIGIN }) => page.request.post(path, { form, headers, maxRedirects: 0 });
 
@@ -195,9 +197,14 @@ test("DR-130 to DR-133: an approver drafts rules from a PDF and pasted grant, a 
     await expect(page.getByTestId("rules-payorder-warning")).toBeVisible();
     await expect(approveButton(page, "first")).toBeEnabled();
     await approveButton(page, "first").click();
-    await expect(page.getByTestId("rules-notice")).toContainText("Your approval is recorded. A second, different approver must approve before anything changes.");
+    // HP-04: the first approval redirects with no notice code, so the page says "a second, different approver" once, in its persistent state notice.
     await expect(page.getByRole("heading", { name: "Approvals: 1 of 2" })).toBeVisible();
+    expect(new URL(page.url()).search).toBe("");
+    await expect(page.getByTestId("rules-notice")).toHaveCount(0);
     await expect(page.getByTestId("rules-second-approver")).toBeVisible();
+    await expect(page.getByTestId("rules-second-approver")).toHaveText("You approved this draft. A second, different approver must approve it before anything changes.");
+    expect(secondApproverSentences(await page.locator("main").innerText())).toBe(1);
+    if (process.env.RULES_STILLS) await page.screenshot({ path: `${process.env.RULES_STILLS}/hp-review-after-first-approval-1440.png`, fullPage: true });
     await expect(page.getByRole("button", { name: /^Approve \(/ })).toHaveCount(0);
     // The same approver cannot approve again by posting the form by hand either. The refusal is a notice, and the count does not move.
     const again = await post(page, `/api/funds/${FUND}/rules/drafts/${editedId}`, { action: "approve" });
@@ -223,6 +230,7 @@ test("DR-130 to DR-133: an approver drafts rules from a PDF and pasted grant, a 
     await page.locator(`a[href$="/drafts/${editedId}"]`).click(); await page.waitForURL(`**/drafts/${editedId}`);
     await expect(page.getByTestId("rules-state")).toHaveText("In use");
     await expect(page.getByTestId("rules-bound")).toContainText("is in use as version 2 of the fund's rules.");
+    expect(secondApproverSentences(await page.locator("main").innerText())).toBe(0);
     await expect(page.getByRole("heading", { name: "Approvals: 2 of 2" })).toBeVisible();
     await expect(page.getByTestId("rules-edit-form")).toHaveCount(0);
     await expect(page.getByRole("button", { name: /^Approve \(|^Withdraw this draft/ })).toHaveCount(0);
