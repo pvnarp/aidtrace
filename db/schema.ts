@@ -192,7 +192,7 @@ export const receiptPhotoReads = pgTable("receipt_photo_reads", {
   outcome: text().$type<PhotoReadOutcome>().notNull(), stopReason: text("stop_reason"), inputTokens: integer("input_tokens").notNull(), outputTokens: integer("output_tokens").notNull(),
   arithmeticOk: boolean("arithmetic_ok"), prefillSha256: text("prefill_sha256"), createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 }, t => [check("photo_read_sha256", sql`${t.photoSha256} ~ '^[a-f0-9]{64}$'`), check("photo_read_model", sql`${t.model} in ('claude-haiku-5-5','claude-sonnet-5-5')`),
-  check("photo_read_versions", sql`${t.promptVersion} = 'receipt-photo-v1' and ${t.schemaVersion} = 'receipt-transcript-v1'`),
+  check("photo_read_versions", sql`${t.promptVersion} in ('receipt-photo-v1','receipt-photo-v2') and ${t.schemaVersion} = 'receipt-transcript-v1'`),
   check("photo_read_outcome", sql`${t.outcome} in ('READ','UNREADABLE','REFUSED','FAILED')`),
   check("photo_read_stop_reason", sql`${t.stopReason} is null or ${t.stopReason} ~ '^[a-z_]{1,32}$'`),
   check("photo_read_tokens", sql`${t.inputTokens} between 0 and 10000000 and ${t.outputTokens} between 0 and 10000000`),

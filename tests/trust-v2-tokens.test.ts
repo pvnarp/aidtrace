@@ -1,51 +1,17 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
+import { css, declarations, rootBlocks, rules, squash, tokens } from "./support/trust-v2-css";
 
 // TV-01 to TV-05 (IAC-415 Trust v2 port PR 1, docs/plans/TRUST_V2_PORT_SCOPE.md section 5.2, docs/GATE_REPORT.md section 44).
-// Static checks of src/app/style.css and docs/DESIGN_LANGUAGE.md. No database, no network, no browser.
+// Static checks of src/app/style.css. No database, no network, no browser. The two TV-01 checks that read docs/DESIGN_LANGUAGE.md moved to the owner-only
+// tests/trust-v2-token-table.test.ts (IAC-442): that document is not in the judge export. The stylesheet model is in tests/support/trust-v2-css.ts.
 // The browser checks that need a running app (TV-09 to TV-17) arrive in PR 2 and PR 3.
-const css = readFileSync("src/app/style.css", "utf8").replace(/\/\*[\s\S]*?\*\//g, "");
-const doc = readFileSync("docs/DESIGN_LANGUAGE.md", "utf8");
 
-const squash = (text: string) => text.replace(/\s+/g, " ").trim();
-const rules = [...css.matchAll(/([^{}]+)\{([^{}]*)\}/g)].map(match => ({ selector: squash(match[1]!), body: match[2]! }));
-const rootBlocks = rules.filter(rule => rule.selector === ":root");
-const declarations = (body: string) => body.split(";").map(part => part.trim()).filter(Boolean).map(part => {
-  const colon = part.indexOf(":");
-  return [part.slice(0, colon).trim(), squash(part.slice(colon + 1))] as const;
-});
-const tokens = new Map<string, string>();
-for (const block of rootBlocks) for (const [name, value] of declarations(block.body)) if (name.startsWith("--")) tokens.set(name, value);
-
-function tableTokens(): Map<string, string> {
-  const start = doc.search(/^<!-- tokens:start -->$/m), end = doc.search(/^<!-- tokens:end -->$/m);
-  expect(start).toBeGreaterThanOrEqual(0); expect(end).toBeGreaterThan(start);
-  const rows = doc.slice(start, end).split("\n").filter(line => line.startsWith("|")).slice(2);
-  const table = new Map<string, string>();
-  for (const row of rows) {
-    const cells = row.split("|").map(cell => cell.trim());
-    const name = cells[2]!.replace(/`/g, ""), value = squash(cells[3]!.replace(/`/g, ""));
-    expect(name.startsWith("--")).toBe(true); expect(table.has(name)).toBe(false);
-    table.set(name, value);
-  }
-  return table;
-}
-
-describe("TV-01 the :root properties equal the token table in docs/DESIGN_LANGUAGE.md", () => {
-  const table = tableTokens();
-  it("reads a table and a stylesheet of the expected size", () => {
-    expect(table.size).toBeGreaterThanOrEqual(30); expect(tokens.size).toBeGreaterThanOrEqual(30); expect(rootBlocks.length).toBeGreaterThanOrEqual(1);
-  });
+describe("TV-01 the :root properties are defined once", () => {
   it("has no custom property defined twice with different values across :root blocks", () => {
     const seen = new Map<string, string>(); const clashes: string[] = [];
     for (const block of rootBlocks) for (const [name, value] of declarations(block.body)) { if (name.startsWith("--") && seen.has(name) && seen.get(name) !== value) clashes.push(name); seen.set(name, value); }
     expect(clashes).toEqual([]);
-  });
-  it("has no missing, extra or changed value", () => {
-    const missing = [...table.keys()].filter(name => !tokens.has(name));
-    const extra = [...tokens.keys()].filter(name => !table.has(name));
-    const changed = [...table].filter(([name, value]) => tokens.has(name) && tokens.get(name) !== value).map(([name, value]) => `${name}: table ${value}, css ${tokens.get(name)}`);
-    expect({ missing, extra, changed }).toEqual({ missing: [], extra: [], changed: [] });
   });
 });
 

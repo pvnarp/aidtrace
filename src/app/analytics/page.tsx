@@ -21,6 +21,7 @@ export default async function AnalyticsPage() {
         <h1 className="screen-heading">Follow funding and book cash.</h1>
         <p className="reference-intro">A read-only snapshot of fund balances and book cash. This page makes no payment, approval or balance request.</p>
         <p className="snapshot-time">Snapshot observed <time dateTime={snapshot.observedAt}>{reviewTime(new Date(snapshot.observedAt))}</time>. <a href="/analytics">Reload snapshot</a></p>
+        <div className="reference-links"><a className="button-link secondary" href="/analytics/report" data-testid="report-link">Open the funder report</a></div>
         <AnalyticsClient snapshot={snapshot} aiOff={ai.on ? null : AI_OFF_MESSAGES[ai.reason]}/>
       </div>
       <footer>Accounting-inspired model, pending nonprofit accountant review. This dashboard uses local journal facts and does not verify current PayPal available funds.</footer>

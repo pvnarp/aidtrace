@@ -3,6 +3,8 @@ export const QUESTIONS = {
   funding: 'What funding is available?',
   cash: 'How does book cash relate to recorded activity?',
   payable: 'What remains payable?',
+  whyAuto: 'Why were some claims paid automatically?',
+  whyPeople: 'Why did some claims go to people?',
 } as const;
 export type Question = keyof typeof QUESTIONS;
 export type Fact = { id: string; text: string; source: string };
@@ -17,6 +19,8 @@ export const FACT_IDS: Record<Question, readonly string[]> = {
   funding: ['restricted', 'general', 'reserved', 'availability'],
   cash: ['cash', 'opening', 'activity', 'cash-limit'],
   payable: ['payable', 'tie-out', 'cash-limit'],
+  whyAuto: ['auto-count', 'auto-rule', 'auto-versions', 'auto-sampled'],
+  whyPeople: ['people-signed', 'people-held', 'people-refused', 'people-off'],
 };
 export const isQuestion = (value: unknown): value is Question => typeof value === 'string' && Object.hasOwn(QUESTIONS, value);
 export function usd(cents: string | bigint) {

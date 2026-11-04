@@ -122,7 +122,8 @@ describe("TV-08 no unbacked mode or verdict wording under src/app", () => {
   });
   it("shows an Assisted label only from a stored mode, and only with the flag on", () => {
     const section = readFileSync("src/app/rules-ui/fund-mode-section.tsx", "utf8");
-    expect(section).toContain('import type { FundModeView } from "../../fund-modes/change"');
+    // A regex, not a quoted import text: the export guard reads a quoted relative specifier in a test file as an import of the test itself (IAC-442). Same line, same strength.
+    expect(section).toMatch(/import type \{ FundModeView \} from "\.\.\/\.\.\/fund-modes\/change"/);
     expect(section).toContain("view.mode");
     const page = readFileSync("src/app/funds/[fundId]/rules/page.tsx", "utf8");
     expect(page).toMatch(/fundModesEnabled\(\) \? await readFundMode\(/);

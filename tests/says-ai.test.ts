@@ -37,8 +37,8 @@ const notFieldName = (list: string[]) => list.filter(entry => !/^[^:]+: ["'`]con
 
 describe("AW-01 the screens say AI", () => {
   it("the scanner sees a planted Claude string, a planted fictional string and JSX text, so an empty result means something", () => {
-    const planted = visibleLiterals('const tag = "Claude AI + PayPal"; export const x = <p>Fictional vendor</p>; import { y } from "../ai/claude-client";');
-    expect(planted).toContain('"Claude AI + PayPal"'); expect(planted.some(text => /Fictional vendor/.test(text))).toBe(true); expect(planted.some(text => /claude-client/.test(text))).toBe(false);
+    const planted = visibleLiterals('const tag = "Claude AI + PayPal"; export const x = <p>Fictional vendor</p>; import { y } from "../src/ai/claude-receipt";');
+    expect(planted).toContain('"Claude AI + PayPal"'); expect(planted.some(text => /Fictional vendor/.test(text))).toBe(true); expect(planted.some(text => /claude-receipt/.test(text))).toBe(false);
     expect(visibleLiterals("const a = `Model ${CLAUDE_NAMES[x]}. Sent to Anthropic.`;").some(text => /claude/i.test(text))).toBe(false); expect(visibleLiterals("const a = `Claude ${x}`;").some(text => /claude/i.test(text))).toBe(true);
     expect(appFiles.length).toBeGreaterThan(30); expect(appFiles.some(path => path.endsWith("shell-copy.ts"))).toBe(true); expect(appFiles.some(path => path.endsWith("ai-disclosure.ts"))).toBe(true);
   });

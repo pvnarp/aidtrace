@@ -726,3 +726,19 @@ fieldset.rules-field-group { padding: 0; }
   .photo-layout .photo-reader { grid-row: 1; }
   .photo-layout #receipt-entry { grid-row: 2; }
 }
+
+/* IAC-405 step 5 funder report (docs/plans/FUNDER_REPORT_SCOPE.md). Tokens only, no color written here. Print styles keep the three sections and the boundary lines and hide the chrome. */
+.report-section { padding: 22px 24px; margin: 24px 0; }
+.report-section h2 { margin-top: 0; }
+.report-table td, .report-table th { white-space: normal; }
+.report-table tfoot th, .report-table tfoot td { border-top: 2px solid var(--navy); font-weight: 700; }
+.report-amount { font-weight: 700; white-space: nowrap; }
+.report-back { margin: 0 0 8px; }
+@media print {
+  header.top, .report-back { display: none; }
+  .report-page { max-width: none; padding: 0; }
+  .report-section, .report-boundary { break-inside: avoid; box-shadow: none; border: 1px solid var(--line); }
+  .report-table { font-size: 11px; }
+  .rules-scroll { overflow: visible; }
+  .report-page a { color: inherit; text-decoration: none; }
+}

@@ -1,9 +1,9 @@
 import { and, desc, eq, isNull } from "drizzle-orm";
 import * as s from "../../../../db/schema";
-import { usd } from "../../../analytics/model";
 import { fundAutopilotEnabled } from "../../../fund-modes/flag";
 import { getDatabase } from "../../../server/db";
 import { ActionForm } from "./action-form";
+import { lineOf, money, type Result } from "./automated-trail-copy";
 import { paymentLine } from "./payment-line";
 
 // IAC-405 step 3 PR P (docs/ASSUMPTIONS.md section 78). Shown only for a claim whose current decision was recognized by an AUTO_RECOGNIZED record, that is, with no human approval.
@@ -11,25 +11,6 @@ import { paymentLine } from "./payment-line";
 // payee_email_history reads "demo history". "Disagree" shows for an approver who is not the claimant once the payment was sent, with the second flag on; it turns automation off and reverses nothing.
 // Server component. All values are stored decimal strings, closed codes or ids, rendered as escaped text.
 export const AUTOPILOT_TRAIL_HEADING = "Approved under Autopilot guardrails";
-type Result = { pass?: boolean } & Record<string, unknown>;
-const str = (value: unknown): string => (typeof value === "string" ? value : typeof value === "number" || typeof value === "boolean" ? String(value) : "none");
-const money = (value: unknown): string => (typeof value === "string" && /^[0-9]{1,15}$/.test(value) ? usd(value) : "unknown");
-const day = (value: unknown): string => (typeof value === "string" ? value.slice(0, 10) : "none");
-
-function lineOf(id: string, r: Result): string {
-  switch (id) {
-    case "G1": return `Rules and AI agreed on every line (${str(r.okLines)} lines, ${str(r.checkedPairs)} checks).`;
-    case "G2": return `${str(r.lines)} lines, each within its cap: supplies up to ${money(r.suppliesCapCents)}, equipment up to ${money(r.equipmentCapCents)}.`;
-    case "G3": return `Fund total for the UTC day stays within ${money(r.capCents)} (${Array.isArray(r.funds) ? r.funds.length : 0} paying funds).`;
-    case "G4": return `This claimant's automated total over 7 days was ${money(r.usedCents)} before this claim of ${money(r.claimCents)}; the limit is ${money(r.capCents)}.`;
-    case "G5": return `Earlier claim by the same claimant, paid after two human approvals: ${str(r.priorClaim)}.`;
-    case "G6": return r.demoHistory === true
-      ? `Payout email unchanged for ${str(r.days)} days, from demo history first seen ${day(r.anchorSeenAt)}.`
-      : `Payout email unchanged for ${str(r.days)} days, first seen ${day(r.anchorSeenAt)}.`;
-    case "G7": return `Audit draw ${str(r.draw)} of 0 to 99; a draw below ${str(r.samplePercent)} goes to two approvers, so this claim was not sampled.`;
-    default: return "The automation switch was on and no automated payment was unresolved.";
-  }
-}
 const NAMES: Record<string, string> = { G1: "Rules and AI agree", G2: "Line caps", G3: "Fund per day", G4: "Claimant per week", G5: "Earlier human-approved claim", G6: "Payout email history", G7: "Random audit", G8: "Automation switch" };
 
 export async function AutomatedTrail({ claimId, viewer }: { claimId: string; viewer: { id: string; role: string } }) {

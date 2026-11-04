@@ -192,7 +192,7 @@ describe("PH-14 a good read", () => {
     expect(text).not.toContain(Buffer.from(pngBytes()).toString("base64")); expect(text).not.toContain(PNG_MARKER); expect(text).not.toContain(FAKE_KEY);
     const rows = await reads();
     expect(rows).toHaveLength(1);
-    expect(rows[0]).toMatchObject({ id: body.readId, organization_id: "cedar-hollow", user_id: "maria", model: "claude-haiku-5-5", prompt_version: "receipt-photo-v1", schema_version: "receipt-transcript-v1",
+    expect(rows[0]).toMatchObject({ id: body.readId, organization_id: "cedar-hollow", user_id: "maria", model: "claude-haiku-5-5", prompt_version: "receipt-photo-v2", schema_version: "receipt-transcript-v1",
       outcome: "READ", stop_reason: "end_turn", input_tokens: 812, output_tokens: 57, arithmetic_ok: true });
     const { createHash } = await import("node:crypto");
     expect(rows[0]!.photo_sha256).toBe(createHash("sha256").update(pngBytes()).digest("hex"));

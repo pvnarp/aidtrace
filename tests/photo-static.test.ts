@@ -141,8 +141,8 @@ describe("PH-26 migration 0021", () => {
     expect(sql).toMatch(/receipt_photo_unchanged_needs_link/);
     expect(sql).toMatch(/ADD COLUMN IF NOT EXISTS "prefill_sha256"|"prefill_sha256" text/);
   });
-  it("is listed in the journal as the next entry", () => {
+  it("is listed in the journal as entry 21, followed by 0022", () => {
     const journal = JSON.parse(source("db/migrations/meta/_journal.json")) as { entries: { idx: number; tag: string }[] };
-    expect(journal.entries.at(-1)).toMatchObject({ idx: 21, tag: "0021_receipt-photo" });
+    expect(journal.entries[21]).toMatchObject({ idx: 21, tag: "0021_receipt-photo" }); expect(journal.entries[22]).toMatchObject({ idx: 22, tag: "0022_photo-prompt-v2" });
   });
 });

@@ -5,6 +5,8 @@ import type { AppDatabase } from '../server/db';
 import { reconcile } from '../ledger/reconcile';
 import { fixtureNotStarted } from '../server/fixture-state';
 import { usd, type AnalyticsSnapshot, type Fact } from './model';
+import { whyFacts } from './why-facts';
+import { loadWhyRows } from './why-rows';
 export class AnalyticsAccessError extends Error {
   constructor(public readonly status: 403 | 503) { super(status === 403 ? 'Approver access required' : 'Single-organization accounting required'); }
 }
@@ -20,6 +22,7 @@ export async function loadAnalyticsSnapshot(db: AppDatabase, actorId: string): P
     const names = await tx.select({ id: s.funds.id, name: s.funds.name }).from(s.funds).where(eq(s.funds.organizationId, actor.organizationId));
     const report = await reconcile(tx, actor.organizationId);
     const notStarted = await fixtureNotStarted(tx, actor.organizationId);
+    const why = whyFacts(await loadWhyRows(tx, actor.organizationId));
     const reserved = report.fundBalances.reduce((sum, fund) => sum + fund.reservedCents, 0n);
     const available = report.fundBalances.reduce((sum, fund) => sum + fund.availableCents, 0n);
     const facts: Fact[] = [
@@ -33,6 +36,7 @@ export async function loadAnalyticsSnapshot(db: AppDatabase, actorId: string): P
       { id: 'payable', text: `Open reimbursement payable is ${usd(report.openPayableCents)}.`, source: 'Journal account 2010 credit balance' },
       { id: 'tie-out', text: notStarted ? 'Opening journals have not been created yet. No ledger tie-out is claimed for this untouched fixture.' : report.matches ? 'Fund balances match the corresponding ledger balances.' : 'Fund balances do not match the corresponding ledger balances. Review is required.', source: 'Existing ledger reconciliation and explicit fixture initialization check' },
       { id: 'cash-limit', text: 'These are local accounting records, not a current PayPal available balance. No provider request was made.', source: 'Snapshot boundary' },
+      ...why,
     ];
     const content = {
       source: 'LOCAL_APPLICATION_DATABASE' as const, organization: organization.name, fixture: organization.isFixture, matches: report.matches, fixtureNotStarted: notStarted,

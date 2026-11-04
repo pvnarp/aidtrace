@@ -79,3 +79,20 @@ test('AN-F03: native requests admit one call and reject altered, stale and empty
   }
   expect(calls).toBe(4);expect(modelCalls).toBe(before);expect(await financialHash()).toBe(originalHash);
 });
+test('FR-24: an approver opens the funder report from analytics and sees its three sections; a claimant gets the access page',async({page})=>{
+  const errors:string[]=[];page.on('pageerror',error=>errors.push(error.message));
+  await login(page,'tara');await page.goto('/analytics');
+  await page.getByRole('link',{name:'Open the funder report'}).click();await page.waitForURL(url=>url.pathname==='/analytics/report');
+  for(const name of ['Funder report.','Spending by decision path','Automation accountability','Kill switch log','What automation can and cannot do'])await expect(page.getByRole('heading',{name,exact:true})).toBeVisible();
+  await expect(page.getByTestId('report-spending-empty')).toHaveText('No claim has been recognized yet.');
+  await expect(page.getByTestId('report-tie-out')).toContainText('Tie-out: the columns total $0.00, which matches the fund debits of the same claims, $0.00.');
+  await expect(page.getByTestId('report-accountability-empty')).toBeVisible();await expect(page.getByTestId('report-switch-empty')).toHaveText('The switch has never been turned on. Automation is off.');
+  const boundary=page.getByTestId('report-boundary');
+  for(const line of ['AI never approves or pays on its own.','An automatic payment needed every rule to pass and zero compliance flags, under the fund cap.','Sampled and refused claims went to two people.','These are local records, not a PayPal balance.'])await expect(boundary).toContainText(line);
+  expect(await page.locator('main form').count()).toBe(0);expect(await page.locator('main button').count()).toBe(0);
+  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
+  await page.emulateMedia({media:'print'});await expect(page.locator('header.top')).toBeHidden();await expect(page.getByRole('heading',{name:'Kill switch log',exact:true})).toBeVisible();await expect(boundary).toBeVisible();await page.emulateMedia({media:'screen'});
+  expect(errors).toEqual([]);expect(await financialHash()).toBe(originalHash);
+  await page.getByRole('button',{name:'Sign out'}).click();await login(page,'maria');await page.goto('/analytics/report');
+  await expect(page.getByRole('heading',{name:'Approver access required.'})).toBeVisible();await expect(page.getByRole('heading',{name:'Spending by decision path'})).toHaveCount(0);
+});
