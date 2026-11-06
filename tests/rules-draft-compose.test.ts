@@ -6,7 +6,7 @@ import { describe, expect, it } from "vitest";
 // November 5 owner decision (docs/decisions.md, "Rule drafts and the photo reader on in judge sessions"):
 // exactly one compose file, by full path, may turn AI_RULE_DRAFTS_ENABLED on. Every other compose file, script and tracked environment example must not.
 // An export flattens release/judge into the root and has no release/judge folder. In the repository a missing judge compose must fail, so the mode comes from the folder, not from the file.
-const EXPORT_MODE = !existsSync("release/judge");
+import { EXPORT_MODE } from "./support/export-mode";
 const JUDGE_SESSION = EXPORT_MODE ? "compose.session.yaml" : "release/judge/compose.session.yaml";
 const walk = (dir: string): string[] => readdirSync(dir).flatMap(name => { const path = join(dir, name); return statSync(path).isDirectory() ? walk(path) : [path]; });
 const source = (path: string) => readFileSync(path, "utf8");
@@ -61,7 +61,7 @@ describe("DR-139 no script, workflow or Dockerfile turns the flag on", () => {
   });
   it("DR-140 each allowance is exactly one line and a look-alike line is not allowed", () => {
     for (const [file, pattern] of [["scripts/check-judge-preparation.mjs", ON_TEXT], ["scripts/support/rules-draft-eval.ts", ON_TEXT]] as const) {
-      if (!existsSync(file)) continue; // not exported
+      if (EXPORT_MODE && !existsSync(file)) continue; // not exported; in the owner tree a missing file fails when it is read
       const hits = source(file).split("\n").filter(line => pattern.test(line));
       expect(hits.filter(line => allowed(file, line)), file).toHaveLength(1); expect(hits, file).toHaveLength(1);
     }

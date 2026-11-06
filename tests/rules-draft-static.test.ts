@@ -1,6 +1,7 @@
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
+import { EXPORT_MODE } from "./support/export-mode";
 
 // IAC-440 Package A static checks (docs/GATE_REPORT.md section 58, DR-37): who may write the policy tables, what the model path can reach, and that
 // no money, claim-approval, payout or PayPal path reaches the draft module. Source text only. The folder is src/rules-draft because
@@ -103,10 +104,10 @@ describe("DR-37 nothing outside the draft package reaches the draft module in Pa
     ];
     // scripts/prepare-judge-export.mjs names the owner-only test files tests/rules-draft-eval.test.ts and tests/rules-draft-schema-harness.test.ts (IAC-442); it imports nothing from the draft module.
     // scripts/check-judge-preparation.mjs names only the ignore glob **/rules-draft.spec.ts in the judge ui-check ignore list (November 5, IAC-232, JX-05); it imports nothing from the draft module.
-    expect(importers).toEqual(["db/schema.ts", "scripts/check-judge-preparation.mjs", "scripts/prepare-judge-export.mjs", "scripts/rules-draft-eval.ts", "scripts/support/rules-draft-eval.ts", ...reviewScreen].filter(path => owners.includes(path)).sort());
-    // The judge export omits the export script, so the pin runs where the script exists, as the filter above does; in the owner tree it always runs.
-    if (owners.includes("scripts/check-judge-preparation.mjs")) expect([...code("scripts/check-judge-preparation.mjs").matchAll(/[\w./*-]*rules-draft[\w./-]*/g)].map(match => match[0])).toEqual(["**/rules-draft.spec.ts"]);
-    if (owners.includes("scripts/prepare-judge-export.mjs")) expect([...code("scripts/prepare-judge-export.mjs").matchAll(/[\w./-]*rules-draft[\w./-]*/g)].map(match => match[0])).toEqual(["tests/rules-draft-eval.test.ts", "tests/rules-draft-schema-harness.test.ts"]);
+    expect(importers).toEqual(["db/schema.ts", "scripts/check-judge-preparation.mjs", "scripts/prepare-judge-export.mjs", "scripts/rules-draft-eval.ts", "scripts/support/rules-draft-eval.ts", ...reviewScreen].filter(path => !EXPORT_MODE || owners.includes(path)).sort());
+    // The judge export omits the export script, so the pin runs where the script exists, as the filter above does; in the owner tree (release/judge present) it always runs and a missing script fails.
+    if (!EXPORT_MODE || owners.includes("scripts/check-judge-preparation.mjs")) expect([...code("scripts/check-judge-preparation.mjs").matchAll(/[\w./*-]*rules-draft[\w./-]*/g)].map(match => match[0])).toEqual(["**/rules-draft.spec.ts"]);
+    if (!EXPORT_MODE || owners.includes("scripts/prepare-judge-export.mjs")) expect([...code("scripts/prepare-judge-export.mjs").matchAll(/[\w./-]*rules-draft[\w./-]*/g)].map(match => match[0])).toEqual(["tests/rules-draft-eval.test.ts", "tests/rules-draft-schema-harness.test.ts"]);
     for (const file of owners.filter(path => path.startsWith("src/"))) expect(code(file), file).not.toMatch(/policyDrafts|policyDraftEvents|policy_drafts|policy_draft_events/);
   });
   it("no money, approval, payout, PayPal or claim path names the draft module, its tables or its flag", () => {

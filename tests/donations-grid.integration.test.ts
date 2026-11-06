@@ -204,7 +204,10 @@ describe("GT-28 access: only an approver reads the grid, and only gifts of the a
       values ('DG_OTHER_ORDER', 'dg-other', 'dg_fund_x', 4242, 'DG_OTHER_CAPTURE', 'COMPLETED', 'COMPLETED', 4242, 0, 4242, date '2026-10-22', 'dg-approver')`;
     const mine = await loadDonationsGrid(db, "tara"); const theirs = await loadDonationsGrid(db, "dg-approver");
     expect(mine.organization).toBe("Lanternfield Community Alliance"); expect(mine.rows.map(row => row.amountCents).sort()).toEqual(["1000", "1500"]);
-    expect(mine.total).toBe(2); expect(mine.totals.amountCents).toBe("2500"); expect(json(mine.rows)).not.toMatch(/4242|Other organization fund/); expect(json(mine)).not.toContain("Private other organization");
+    // The other organization's amount is matched as a whole JSON value ("4242" or a bare 4242 number): gift ids derive from random capture ids and may contain 4242 (MEM-52).
+    const OTHER_AMOUNT = /"4242"|:4242[,}\]]/;
+    expect('{"amountCents":"4242"}').toMatch(OTHER_AMOUNT); expect('{"total":4242}').toMatch(OTHER_AMOUNT); expect('{"id":"gift-a98442423e7a"}').not.toMatch(OTHER_AMOUNT);
+    expect(mine.total).toBe(2); expect(mine.totals.amountCents).toBe("2500"); expect(json(mine.rows)).not.toMatch(OTHER_AMOUNT); expect(json(mine.rows)).not.toMatch(/Other organization fund/); expect(json(mine)).not.toContain("Private other organization");
     expect(theirs.organization).toBe("Private other organization"); expect(theirs.rows).toHaveLength(1); expect(theirs.total).toBe(1);
     expect(theirs.rows[0]).toMatchObject({ amountCents: "4242", fund: "Other organization fund", waitingCents: "4242", capture: "APTURE" });
     expect(theirs.totals.amountCents).toBe("4242"); expect(json(theirs.rows)).not.toMatch(/1000|1500|Tallow Creek/);

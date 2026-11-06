@@ -48,7 +48,7 @@ describe("PH-23 no file under src writes image bytes anywhere", () => {
 
 // November 5 owner decision (docs/decisions.md, "Rule drafts and the photo reader on in judge sessions"): exactly one file, by full path, may turn the flag on.
 // An export flattens release/judge into the root and has no release/judge folder. In the repository a missing judge compose must fail, so the mode comes from the folder, not from the file.
-const EXPORT_MODE = !existsSync("release/judge");
+import { EXPORT_MODE } from "./support/export-mode";
 const JUDGE_SESSION = EXPORT_MODE ? "compose.session.yaml" : "release/judge/compose.session.yaml";
 const ON_TEXT = /AI_RECEIPT_PHOTO_ENABLED\s*[:=]\s*["']?(true|\$\{[^}]*:?[-+]\s*["']?true)/;
 const flagOnOutsideJudgeSession = (path: string, text: string) => path !== JUDGE_SESSION && ON_TEXT.test(text);
@@ -97,7 +97,7 @@ describe("PH-24 the flag is read in one place and is off in every compose file e
     for (const file of everywhere()) expect(withoutAllowedLines(file), file).not.toMatch(OFF_TEXT);
   });
   it("PH-89 the preparation script allowance is one exact assertion line and nothing else in that file matches", () => {
-    if (!existsSync("scripts/check-judge-preparation.mjs")) return; // not exported
+    if (EXPORT_MODE && !existsSync("scripts/check-judge-preparation.mjs")) return; // not exported; in the owner tree a missing script fails when it is read
     const lines = source("scripts/check-judge-preparation.mjs").split("\n").filter(line => OFF_TEXT.test(line));
     expect(lines).toHaveLength(1); expect(lines[0]).toMatch(PREPARATION_ASSERT);
     expect("assert(read('release/judge/compose.session.yaml').includes('AI_RECEIPT_PHOTO_ENABLED: \"true\"')); process.env.AI_RECEIPT_PHOTO_ENABLED=true").not.toMatch(PREPARATION_ASSERT);

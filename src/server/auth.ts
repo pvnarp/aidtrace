@@ -3,6 +3,7 @@ import { compare, hash } from "bcryptjs";
 import { and, eq, gt, sql } from "drizzle-orm";
 import { loginWindows, sessions, users } from "../../db/schema";
 import { getDatabase, type AppDatabase } from "./db";
+import { hostedJudgeFlag, hostedSession } from "./hosted-mode";
 
 export const SESSION_COOKIE = "aidtrace_session";
 const SESSION_SECONDS = 8 * 60 * 60;
@@ -10,6 +11,12 @@ const dummyHash = hash("synthetic-login-timing-value", 12);
 const digest = (token: string) => createHash("sha256").update(token).digest("hex");
 export function appOrigin() {
   const origin = process.env.APP_ORIGIN;
+  // HOST-01: hosted mode (AIDTRACE_HOSTED=true, set only by release/hosted/compose.yaml) admits exactly one https://<host> origin: lowercase DNS name with a
+  // dot and a letter in the last label, no port, path, user or query. It replaces the loopback rule, and it requires a judge session so it can never be payable.
+  if (hostedSession()) {
+    if (!hostedJudgeFlag() || !origin || !/^https:\/\/(?=.{1,253}$)([a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]([a-z0-9-]{0,61}[a-z0-9])?$/.test(origin)) throw new Error("APP_ORIGIN must be the one hosted https origin");
+    return origin;
+  }
   // IAC-418 (owner approval, October 31): the owner instance accepts the same extra loopback ports as a judge session, so a second owner-mode
   // instance (the recording instance on 3120) can sign in. Port 3101 stays refused; the mock viewer holds it.
   const extraOrigin = /^http:\/\/127\.0\.0\.1:([1-9][0-9]{3,4})$/.exec(origin ?? "");
@@ -22,10 +29,10 @@ export function sessionToken(request: Request) {
   return request.headers.get("cookie")?.split(";").map(v => v.trim()).find(v => v.startsWith(`${SESSION_COOKIE}=`))?.slice(SESSION_COOKIE.length + 1);
 }
 export function sessionCookie(token: string, expires: Date) {
-  // The permitted app origins are loopback HTTP. HTTPS hosting is outside this package.
-  return `${SESSION_COOKIE}=${token}; Path=/; HttpOnly; SameSite=Strict; Max-Age=${SESSION_SECONDS}; Expires=${expires.toUTCString()}`;
+  // Loopback HTTP origins carry no Secure flag. HOST-02: hosted mode (HTTPS) sets it.
+  return `${SESSION_COOKIE}=${token}; Path=/; HttpOnly; SameSite=Strict; Max-Age=${SESSION_SECONDS}; Expires=${expires.toUTCString()}${hostedSession() ? "; Secure" : ""}`;
 }
-export const expiredSessionCookie = `${SESSION_COOKIE}=; Path=/; HttpOnly; SameSite=Strict; Max-Age=0`;
+export const expiredSessionCookie = () => `${SESSION_COOKIE}=; Path=/; HttpOnly; SameSite=Strict; Max-Age=0${hostedSession() ? "; Secure" : ""}`;
 export async function authenticate(username: string, password: string, db: AppDatabase = getDatabase()) {
   if (!/^[a-z][a-z0-9_]{0,31}$/.test(username) || password.length < 1 || Buffer.byteLength(password, "utf8") > 72) return null;
   // Atomic per-account limit: ten attempts per fifteen minutes, shared across app instances.

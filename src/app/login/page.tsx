@@ -1,6 +1,7 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { findSession, SESSION_COOKIE } from "../../server/auth";
+import { hostedSession } from "../../server/hosted-mode";
 import { BRAND } from "../brand";
 import { AppHeader } from "../app-header";
 
@@ -25,6 +26,7 @@ export default async function Login({ searchParams }: { searchParams: Promise<{ 
             <button type="submit">Sign in</button>
           </form>
           <p className="reference-caption">Each account has its own generated password, supplied with your setup. Sign in separately for each role.</p>
+          {hostedSession() && <p className="reference-caption" data-testid="hosted-notice">All data in this workspace is sample data with no real personal details. AI requests are limited per workspace; when the limit is reached the manual path still works.</p>}
         </article>
         <article className="reference-note" aria-labelledby="people-title"><h2 id="people-title">Three people, distinct responsibilities</h2>
           <p><strong>Maria</strong> (username maria) enters the receipt, checks AI suggestions and freezes the split.</p>

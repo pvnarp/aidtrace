@@ -1,13 +1,15 @@
-import { existsSync, readFileSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import { beforeAll, describe, expect, it } from "vitest";
 import { WORKSHOP_EXAMPLE } from "../src/app/receipts/examples";
+import { EXPORT_MODE } from "./support/export-mode";
 
 // IAC-384 demo receipt photo, DR-01 to DR-04 (docs/GATE_REPORT.md section 81, docs/ASSUMPTIONS.md section 88). The generator is owner-only: the judge export omits scripts/, so
 // these checks run where the module exists (the owner tree) and skip elsewhere, as tests/rules-draft-static.test.ts does for the export script.
 const MODULE = "scripts/support/demo-receipt-photo.mjs", ENTRY = "scripts/demo-receipt-photo.mjs";
-const owner = existsSync(MODULE) && existsSync(ENTRY);
+// In the owner tree both files must exist (a missing one fails the tests below by path); only an export stands down.
+const owner = !EXPORT_MODE;
 const source = (path: string) => readFileSync(path, "utf8");
 const code = (path: string) => source(path).split("\n").map(line => line.replace(/^\s*\/\/.*$/, "")).join("\n");
 const imports = (text: string) => [...text.matchAll(/^\s*import\s+(?:type\s+)?[^;]*?from\s+["']([^"']+)["']/gm)].map(match => match[1]!);

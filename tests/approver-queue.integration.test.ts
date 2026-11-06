@@ -87,7 +87,10 @@ describe("AQ-04 the queue is scoped to the approver's organization", () => {
   it("never lists another organization's claim, and lists that organization's claim only for its own approver", async () => {
     const tara = await loadApproverQueue(ctx.db, "tara"); const other = await loadApproverQueue(ctx.db, "aq-approver");
     expect(tara.rows.map(row => row.id)).not.toContain(planted.other!.id);
-    expect(JSON.stringify(tara)).not.toMatch(/Private other organization|Aq other organization shop|Other Claimant|4242/);
+    // The other organization's amount is matched as a whole JSON value ("4242" or a bare 4242 number), so a random claim id that happens to contain 4242 cannot fail this test.
+    const OTHER_AMOUNT = /"4242"|:4242[,}\]]/;
+    expect('{"amountCents":"4242"}').toMatch(OTHER_AMOUNT); expect('{"total":4242}').toMatch(OTHER_AMOUNT); expect('{"id":"R-a98442423e7a"}').not.toMatch(OTHER_AMOUNT);
+    expect(JSON.stringify(tara)).not.toMatch(/Private other organization|Aq other organization shop|Other Claimant/); expect(JSON.stringify(tara)).not.toMatch(OTHER_AMOUNT);
     expect(other.rows).toHaveLength(1);
     // No frozen terms exist for this claim, so the fund falls back to the claim's program and the age is unknown.
     expect(other.rows[0]).toMatchObject({ id: "R-aq-other", vendor: "Aq other organization shop", claimant: "Other Claimant", amountCents: "4242", approvalCount: 0, waitingSince: "", age: "Unknown" });
