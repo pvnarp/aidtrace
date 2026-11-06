@@ -139,8 +139,9 @@ export function GiveClient({ funds, clientId, nonce }: { funds: readonly GiveFun
         </div>
         {choice === "custom" && <label htmlFor="give-custom">Other amount in USD<input id="give-custom" inputMode="decimal" autoComplete="off" placeholder="0.00" maxLength={14} value={custom} onChange={event => { setCustom(event.target.value); changed(); }} aria-invalid={custom !== "" && cents === null} /></label>}
       </fieldset>
-      <label htmlFor="give-name">Name for your thank-you note (optional)
-        <input id="give-name" maxLength={40} autoComplete="off" value={name} onChange={event => { setName(event.target.value); changed(); }} /></label>
+      <label htmlFor="give-name">Your first name, to address your thank-you note (optional)
+        <input id="give-name" maxLength={40} autoComplete="off" aria-describedby="give-name-hint" value={name} onChange={event => { setName(event.target.value); changed(); }} /></label>
+      <p id="give-name-hint" className="muted">For example, Alex. This is not a message.</p>
     </form>
     <p data-testid="give-summary">{cents !== null && fundName ? `You are giving ${formatUsd(cents)} to ${fundName}.` : "Choose a fund and an amount greater than zero."}</p>
     {done === null ? <>

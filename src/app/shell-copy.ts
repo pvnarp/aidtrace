@@ -63,7 +63,7 @@ export function aiModelLabel(name: string): string {
 }
 /** The name before "suggests:" on a per-line suggestion. A vendor-named model reads "AI"; the retired label ("Earlier AI") passes through. */
 export function aiSuggesterName(short: string): string { return VENDOR_MODEL_NAME.test(short) ? "AI" : short; }
-export const FOOTER_PROMISE = "AI suggests. People decide. PayPal pays.";
+export const FOOTER_PROMISE = "AI suggests. Rules and people decide. PayPal pays.";
 
 /** Splits text around the word PayPal so the component can color exactly that word. */
 export function paypalParts(text: string): { text: string; paypal: boolean }[] {
@@ -89,8 +89,10 @@ export type AiCard = { key: AiKey; state: string; rail: string; model: string | 
 export const AI_NOTE = "No financial tools. It cannot approve, choose funds or pay.";
 
 export function aiCard(input: AiInput): AiCard {
-  const configured = input.configured ? `Configured model: ${aiModelLabel(input.configured.name)}` : null;
-  const saved = input.savedModel ? `Model: ${aiModelLabel(input.savedModel)}` : null;
+  // November 5: a stored display name of the form "Vendor Family 5.5" (from CLAUDE_NAMES) reads "Powered by <name>." This file cannot import src/ai (GT-30 closure), so it checks the shape only. Any other name, for example the retired-model label, keeps the plain "Model:" line.
+  const modelLine = (name: string) => VENDOR_MODEL_NAME.test(name) ? `Powered by ${name}.` : `Model: ${aiModelLabel(name)}`;
+  const configured = input.configured ? modelLine(input.configured.name) : null;
+  const saved = input.savedModel ? modelLine(input.savedModel) : null;
   if (!input.applicable) return { key: "not-applicable", state: "Not used. Preclassified example", rail: "Not used", model: null, note: AI_NOTE };
   if (input.confirmed) {
     if (input.aiAccepted) return { key: "confirmed", state: "Suggestion confirmed by a person", rail: "Confirmed by a person", model: saved, note: AI_NOTE };
@@ -160,12 +162,14 @@ export function paypalCard(input: PayPalInput): PayPalCard {
 // ---- Rail lines ----
 // IAC-384: the Receipt step when the current revision of the receipt links a photo read. Every other page keeps its old words.
 export const RAIL_RECEIPT_PHOTO = "Read from a photo";
+// IAC-384 (RS): the new receipt page when the photo reader is on, before any receipt exists. A saved photo link (photoReceipt) wins over this hint.
+export const RAIL_RECEIPT_PHOTO_OR_TYPED = "Photo or typed text";
 export type RailLine = { name: (typeof STAGES)[number]; tag?: "AI" | "PayPal"; state: string };
-export function railLines(input: { stage: Stage; typedReceipt: boolean; photoReceipt?: boolean; ai: AiCard; approvals: number | null; paypal: PayPalCard; required?: 1 | "auto" }): RailLine[] {
+export function railLines(input: { stage: Stage; typedReceipt: boolean; photoReceipt?: boolean; photoIntake?: boolean; ai: AiCard; approvals: number | null; paypal: PayPalCard; required?: 1 | "auto" }): RailLine[] {
   // IAC-405 PR A (docs/ASSUMPTIONS.md section 77 item 13): required is 1 only for a decision that needs one approval (no holds found), read by the server from the stored decision. Absent, every line is as it always was.
   const one = input.required === 1;
   const lines: RailLine[] = [
-    { name: "Receipt", state: input.photoReceipt ? RAIL_RECEIPT_PHOTO : input.typedReceipt ? "Typed text and amounts" : "Preclassified example" },
+    { name: "Receipt", state: input.photoReceipt ? RAIL_RECEIPT_PHOTO : input.photoIntake ? RAIL_RECEIPT_PHOTO_OR_TYPED : input.typedReceipt ? "Typed text and amounts" : "Preclassified example" },
     { name: "AI review", tag: "AI", state: input.ai.rail },
     { name: "Funding", state: "Rules, not AI" },
     // Say it once (IAC-415 PR 4, PR 5): while a claim awaits approval (stage 4) the count lives in the title and the approvals section, and before the freeze (stages 1 to 3)

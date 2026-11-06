@@ -17,14 +17,14 @@ function Cash({ snapshot }: { snapshot: AnalyticsSnapshot }) {
   </article>;
 }
 export default function AccountingDashboard({ snapshot, aiOff = null }: { snapshot: AnalyticsSnapshot; aiOff?: string | null }) {
-  const [answer, setAnswer] = useState(''); const [selection, setSelection] = useState(''); const [busy, setBusy] = useState(false); const [notice, setNotice] = useState('');
+  const [answer, setAnswer] = useState(''); const [selection, setSelection] = useState(''); const [busy, setBusy] = useState(false); const [notice, setNotice] = useState(''); const [poweredBy, setPoweredBy] = useState('');
   const active = useRef<AbortController | null>(null);
   useEffect(() => () => { active.current?.abort(); active.current = null; }, [snapshot.digest]);
   async function ask(question: Question) {
     if (active.current) return;
     const controller = new AbortController(); active.current = controller;
     const timer = setTimeout(() => controller.abort(), 45000);
-    setBusy(true); setNotice(''); setAnswer(''); setSelection('');
+    setBusy(true); setNotice(''); setAnswer(''); setSelection(''); setPoweredBy('');
     try {
       const response = await fetch('/api/analytics/explain', { method: 'POST', credentials: 'same-origin', cache: 'no-store',
         headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ question, snapshotDigest: snapshot.digest }), signal: controller.signal });
@@ -35,7 +35,7 @@ export default function AccountingDashboard({ snapshot, aiOff = null }: { snapsh
       const body = await response.json();
       const text = snapshotAnswer(snapshot, question, body);
       // snapshotAnswer has validated body.facts; the offered count is the fixed set for this question.
-      if (active.current === controller && !controller.signal.aborted) { setAnswer(text); setSelection(`AI selected ${body.facts.length} of ${questionFacts(snapshot, question).length} verified facts offered for this question.`); }
+      if (active.current === controller && !controller.signal.aborted) { setAnswer(text); setPoweredBy(typeof body.poweredBy === 'string' && body.poweredBy.startsWith('Powered by ') ? body.poweredBy : ''); setSelection(`AI selected ${body.facts.length} of ${questionFacts(snapshot, question).length} verified facts offered for this question.`); }
     } catch {
       if (active.current === controller) setNotice('AI is unavailable or its answer could not be verified. Read the snapshot facts below.');
     } finally {
@@ -48,7 +48,7 @@ export default function AccountingDashboard({ snapshot, aiOff = null }: { snapsh
     <section className="analytics-explain" aria-labelledby="explanation-title"><h2 id="explanation-title">Explain this snapshot</h2><p>AI selects relevant, exact snapshot facts. AidTrace formats every amount and validates every selected quote. AI has no financial tools.</p>
       <div className="analytics-questions">{(Object.keys(QUESTIONS) as Question[]).map(question => <button key={question} className="secondary" disabled={busy || Boolean(aiOff)} onClick={() => ask(question)}>{QUESTIONS[question]}</button>)}</div>
       <p role="status" data-testid="analytics-status">{busy ? 'Checking snapshot facts...' : notice || (answer ? 'Verified snapshot facts selected by AI.' : aiOff ? `${aiOff} Read the snapshot facts below.` : 'Choose a question, or read the facts without AI.')}</p>
-      <output className="analytics-answer" data-testid="analytics-answer">{answer}</output>{selection && <p data-testid="analytics-selection">{selection}</p>}
+      <output className="analytics-answer" data-testid="analytics-answer">{answer}</output>{selection && <p data-testid="analytics-selection">{selection}</p>}{poweredBy && <p data-testid="analytics-powered-by">{poweredBy}</p>}
       <details data-testid="snapshot-facts"><summary>Read all snapshot facts without AI</summary><ul>{snapshot.facts.map(fact => <li key={fact.id}><p>{fact.text}</p><small className="fact-source">Source: {fact.source}</small></li>)}</ul></details>
     </section>
   </>;

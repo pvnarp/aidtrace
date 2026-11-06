@@ -207,10 +207,10 @@ test("FO-02: each Claude suggestion quote shows once outside the receipt evidenc
   const suggested = find(out, "receipt suggested");
   for (const quote of QUOTES) expect(count(suggested.text, quote), `"${quote}" in the suggested page`).toBe(1);
   expect(suggested.text).toContain("Suggested a category for 3 of 3 lines.");
-  expect(suggested.modelLines).toEqual([`Model: ${storedName}. The receipt text was sent to Anthropic for these suggestions.`]);
+  expect(suggested.modelLines).toEqual([`Powered by ${storedName}. The receipt text was sent to Anthropic for these suggestions.`]);
   // After confirmation the one model line sits in the confirmation section and names the model from the stored audit row, not the environment.
   const confirmed = find(out, "receipt confirmed");
-  expect(confirmed.modelLines, "confirmed page model lines").toEqual([`Model: ${storedName}. The receipt text was sent to Anthropic for these suggestions.`]);
+  expect(confirmed.modelLines, "confirmed page model lines").toEqual([`Powered by ${storedName}. The receipt text was sent to Anthropic for these suggestions.`]);
   expect(confirmed.text).toContain("Human accepted an AI suggestion");
 });
 

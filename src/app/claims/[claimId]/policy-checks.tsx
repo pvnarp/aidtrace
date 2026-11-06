@@ -19,11 +19,15 @@ import { modelCheckDisclosure } from "../../ai-disclosure";
 // "Checks" h2 and passes 3, so the page has one Checks heading and "Policy checks" reads as its sub-heading.
 // The Run model check control shows only when the rules ran, the model run is absent, the claim has a confirmed receipt review, the compliance AI is on
 // and the viewer can run checks. It posts action run-model to the same endpoint, which calls only the model check.
-// IAC-416 PR 2: the per-row lines say "AI (Sonnet 5.5)". One disclosure line names the models that were asked, built from the stored ids, and the provider (src/app/ai-disclosure.ts). A pair
+// IAC-416 PR 2: the per-row lines say "AI (Sonnet 5.5)". One "Powered by" line names the models that were sent a request, built from the stored CALL rows, and the provider (src/app/ai-disclosure.ts). A pair
 // IAC-405 PR A follow-up: footer defaults to the fixed POLICY_FOOTER. The claim page passes a different fixed sentence only for a decision that needs one approval (src/fund-modes/review-copy.ts).
 // refused by the request limit (reason LIMIT) sent nothing, so its model is not named there; with no pair asked the line is absent.
+// November 5 (Pavan: "Powered by [model name]" wherever a model is used): the models named in the "Powered by" line and of each fund's "Checked by" line come from the stored CALL rows
+// (calledModels, called), so Haiku, which is asked first, is named whenever it was sent a request, and a model that was never sent one is not. A pair refused by the request
+// limit (reason LIMIT) stores no CALL row, so it is named nowhere.
+const askedModels = (pair: StoredModelRun["pairs"][number]): string[] => pair.called;
 function ModelRows({ model }: { model: StoredModelRun }) {
-  const disclosure = modelCheckDisclosure(model.pairs.filter(pair => pair.state !== "SKIPPED" && pair.reasonCode !== "LIMIT").flatMap(pair => pair.model ? [pair.model] : []));
+  const disclosure = modelCheckDisclosure(model.calledModels);
   return <>
     <p><strong>{MODEL_STATUS_TEXT[model.status]}</strong></p>
     {model.state === "RUNNING" && <p>{MODEL_RUNNING}</p>}
@@ -31,7 +35,7 @@ function ModelRows({ model }: { model: StoredModelRun }) {
     {disclosure && <p>{disclosure}</p>}
     {model.pairs.map(pair => <div key={pair.fundId}>
       {pair.state === "SKIPPED" ? <p>{modelSkipped(pair.fundName)}</p> : <>
-        <p><strong>{pair.fundName}</strong>{pair.model && pair.effort ? <>{" "}{pair.state === "CHECKED" ? modelCheckedBy(pair.model, pair.effort) : modelAskedBy(pair.model, pair.effort)}</> : null}</p>
+        <p><strong>{pair.fundName}</strong>{pair.effort && askedModels(pair).length > 0 ? <>{" "}{pair.state === "CHECKED" ? modelCheckedBy(askedModels(pair), pair.effort) : modelAskedBy(askedModels(pair), pair.effort)}</> : null}</p>
         {pair.state === "NOT_CHECKED" && <p>{modelNotChecked(pair.reasonCode)}</p>}
         {pair.state === "CHECKED" && <ul className="reasons">{pair.lines.filter(line => line.verdict !== "OK").map(line => {
           const shown = modelLineText(line);

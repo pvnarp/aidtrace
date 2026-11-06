@@ -19,9 +19,11 @@ Windows users need an existing WSL2 POSIX shell with Docker integration.
 Native ARM app execution has evidence. Physical Docker Desktop, a fresh full AMD64 app
 installation, another machine/network and Safari remain unverified. See [access requirements](docs/ACCESS.md).
 
-AI suggestions come from the hosted Claude API and need your own Anthropic API key, read
-from the shell that starts a session. No key is required to review the app: without one,
-AI suggestions are off and the manual path works end to end.
+AI features come from the hosted Claude API and need your own Anthropic API key, read
+from the shell that starts a session: category suggestions, AI-drafted fund rules, the
+receipt photo reader, the policy model check and analytics fact selection. No key is
+required to review the app: without one, the AI features are off and the manual path works
+end to end. [What a session shows with and without a key](docs/JUDGING.md) lists each one.
 
 From this extracted folder, prepare dependencies once:
 
@@ -45,11 +47,16 @@ sh scripts/aidtrace judge-up review-one
 ```
 
 To turn AI suggestions on, export your key in the same shell first (export ANTHROPIC_API_KEY
-with your own value, typed at your prompt, not saved in a file) and then run judge-up. The
-launcher passes the variable by name to the session app container only. It is never written to
-session.env or any file and is never printed. Without it the app says AI suggestions are off in
-this session and everything except suggestions still works. One process allows at most 60 Claude
-requests in total, then AI turns itself off until the app restarts.
+with your own value, not saved in a file) and then run judge-up. Typing the value on the command
+line stores it in your shell history file. To avoid that, run `read -rs ANTHROPIC_API_KEY` (bash
+or zsh) and paste the value, then `export ANTHROPIC_API_KEY`, or delete the history line afterwards. The
+launcher passes the variable by name to the session app container only. The launcher never
+writes it to session.env or any other file and never prints it. The container engine keeps the
+value in the app container's configuration, including after judge-stop, until that container is
+recreated or removed. Without it the app says AI suggestions are off in
+this session and everything except the AI features still works. One process allows at most 60 Claude
+requests in total, then AI turns itself off until the app restarts. The session turns the rule draft
+and photo reader flags on, and leaves fund modes and Autopilot off.
 
 Open http://127.0.0.1:3102/login. Private generated passwords are in
 local/judge-sessions/review-one/session.env. Use SEED_PASSWORD_MARIA, SEED_PASSWORD_TARA
@@ -70,7 +77,8 @@ The shared dependency volume is read-only; each session has its own database and
 
 ## 3. Review Maria's receipt: finish at the unpaid handoff
 
-Sign in as maria. Choose Review Maria's $500 receipt. Create the default fictional receipt:
+[JUDGING.md](docs/JUDGING.md) gives the full keyed path, with AI-drafted rules first, and names what is shown only in the
+video. The shorter receipt path: sign in as maria. Choose Review Maria's $500 receipt. Create the default fictional receipt:
 USD 280 kits, USD 150 notebooks and USD 70 refreshments. Select Prepare expense proposal
 once. Check the Claude suggestions (or choose each category yourself when AI is off) against highlighted saved receipt text, confirm each
 category and choose View allocation. The fresh unchanged example computes Tallow Creek Robot Kit Initiative USD 200,
@@ -117,7 +125,8 @@ To switch AI off, restart the session from a shell without ANTHROPIC_API_KEY. Ma
 [The detailed access guide](docs/ACCESS.md) covers failure recovery and independent access.
 The native analytics dashboard is available to tara/ben at /analytics; its facts come from
 local journals, not current PayPal cash. AI selects validated snapshot facts with a manual
-fallback. This variant contains no Studio SDK and makes no AG Studio sponsor-use claim.
+fallback. This variant contains no Studio SDK. It uses AG Grid Community (MIT) for the ledger, donations
+and queue views, and release/variant.json records sponsorUseClaimed true for that package only (docs/LICENSING.md section 6).
 
 The owner's separately observed sandbox payout, capture and webhook evidence is not this
 session's payment history. Its private database, identifiers, keys and media are excluded.

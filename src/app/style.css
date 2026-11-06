@@ -735,7 +735,7 @@ fieldset.rules-field-group { padding: 0; }
 .report-amount { font-weight: 700; white-space: nowrap; }
 .report-back { margin: 0 0 8px; }
 @media print {
-  header.top, .report-back { display: none; }
+  header.top, .report-back, .report-copy-hint { display: none; }
   .report-page { max-width: none; padding: 0; }
   .report-section, .report-boundary { break-inside: avoid; box-shadow: none; border: 1px solid var(--line); }
   .report-table { font-size: 11px; }

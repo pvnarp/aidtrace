@@ -11,6 +11,7 @@ import type { PolicyReader } from "../policy/facts";
 import { fundModesEnabled, type FlagEnv } from "./flag";
 import { modeAtRecognition } from "./modes";
 import { noHoldsFor } from "./no-holds";
+import { autoRecognizedSent } from "./recorded-path";
 
 export type ReviewLineMode = "MANUAL" | "ASSISTED_NO_HOLDS" | "ASSISTED_HOLD" | "AUTO_RECOGNIZED_SENT" | "AUTO_RECOGNIZED_PEOPLE";
 
@@ -24,7 +25,7 @@ export async function reviewLineMode(tx: PolicyReader, decision: { id: string; d
     if (auto) {
       const [person] = await tx.select({ id: s.approvals.id }).from(s.approvals).where(eq(s.approvals.decisionHash, decision.decisionHash)).limit(1);
       const [paid] = await tx.select({ id: s.disbursements.id }).from(s.disbursements).where(eq(s.disbursements.decisionHash, decision.decisionHash)).limit(1);
-      return !person && paid ? "AUTO_RECOGNIZED_SENT" : "AUTO_RECOGNIZED_PEOPLE";
+      return autoRecognizedSent(Boolean(person), Boolean(paid)) ?"AUTO_RECOGNIZED_SENT" : "AUTO_RECOGNIZED_PEOPLE";
     }
   }
   if (!decision || decision.invalidatedAt || !fundModesEnabled(options.env)) return "MANUAL";

@@ -5,6 +5,7 @@ import type { PayoutTransport } from "../paypal/adapter";
 import type { LedgerTransaction } from "./journal";
 import { serializable } from "./service";
 import { attemptFor, transmitPrepared } from "./payout";
+import { openHistoricalReviews } from "./historical-review";
 
 type Attempt = typeof s.disbursementAttempts.$inferSelect;
 export function isRetryableAttempt(attempt: Pick<Attempt, "state" | "itemStatus" | "batchStatus" | "lastErrorCode" | "payoutBatchId" | "payoutItemId">) {
@@ -15,6 +16,7 @@ export function isRetryableAttempt(attempt: Pick<Attempt, "state" | "itemStatus"
 async function retryContext(tx: LedgerTransaction, claimId: string, actorId: string, expectedHash: string) {
   const current = await attemptFor(tx, claimId, actorId);
   const { claim, disbursement, attempt } = current;
+  if ((await openHistoricalReviews(tx, claim.id)).length) throw new Error("An open historical PayPal event review prevents retry; reconcile it first");
   const [decision] = await tx.select().from(s.allocationDecisions).where(eq(s.allocationDecisions.decisionHash, expectedHash));
   if (!decision?.recognizedAt || decision.invalidatedAt || decision.claimId !== claim.id || decision.claimVersion !== claim.version || disbursement.decisionHash !== expectedHash) throw new Error("Recognized claim decision required for retry");
   if (claim.status !== "PAYOUT_ISSUE" || !isRetryableAttempt(attempt)) throw new Error("Latest payout is not retryable; reconcile or keep polling");

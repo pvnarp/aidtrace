@@ -188,12 +188,13 @@ test('DON-10 keyed (stubbed SDK): form, nonce CSP, hydration and layout at 375 a
   expect(await violations(page)).toEqual([]); expect(watched.errors).toEqual([]); expect(watched.external).toEqual([]);
 });
 
-test('DON-10 keyed (stubbed SDK, canned API): completed gift shows only the recorded capture tail and offers Give again', async ({ page }) => {
+test('DON-10 keyed, WD-03 (stubbed SDK, canned API): completed gift shows only the recorded capture tail and offers Give again', async ({ page }) => {
   await startServer(KEYED_ENV);
   const { watched, posts, api } = await keyedPage(page);
   api.create = () => ({ json: created() });
   api.capture = () => ({ json: { id: ROW, status: 'COMPLETED', messageKey: 'COMPLETED', message: 'Thank you. Your gift is recorded.', captureTail: 'ABC123' } });
-  await page.getByLabel('$10.00').check(); await page.getByLabel('Name for your thank-you note (optional)').fill('Pat Example');
+  await page.getByLabel('$10.00').check(); await page.getByLabel('Your first name, to address your thank-you note (optional)').fill('Pat Example');
+  await expect(page.getByLabel('Your first name, to address your thank-you note (optional)')).toHaveAccessibleDescription(/This is not a message/); // WD-03
   await page.locator('#stub-pay').click();
   await expect(page.getByTestId('give-done')).toContainText('Capture ID ending in ABC123.');
   await expect(status(page)).toHaveText('Thank you. Your gift is recorded.');

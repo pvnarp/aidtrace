@@ -1,6 +1,7 @@
 import { and, desc, eq, inArray, sql } from "drizzle-orm";
 import * as s from "../../db/schema";
 import type { AppDatabase } from "../server/db";
+import { readRecordedApprovalPaths, type ApprovalPath } from "../fund-modes/recorded-path";
 import { readGiftAttribution } from "./attribution-reader";
 import { maskTail } from "./display";
 import { cleanText, formatUsd, longDate, payoutNoteStatus, readGiftNotes, THANKS_FIRST_PAYOUT_WORDING, type PayoutNoteStatus } from "./note";
@@ -18,7 +19,10 @@ export type TrailState = "WAITING" | "MATCHED" | "APPROVED" | "PAYING" | "PAID";
 export interface TrailApplication {
   lineDescription: string; vendor: string; appliedCents: bigint; lineCents: bigint;
   approvalCount: number; payout: PayoutNoteStatus; batchId: string | null;
+  // IAC-405 PR GT: the approval path the decision recorded (src/fund-modes/recorded-path.ts). Absent reads as TWO_PEOPLE when two approvals exist and as not approved otherwise.
+  approvalPath?: ApprovalPath | null;
 }
+export type TrailApproval = ApprovalPath | "MIXED";
 export interface TrailInput { grossCents: bigint; unspentCents: bigint; fundName: string; effectiveOn: string; applications: readonly TrailApplication[]; }
 export type PayoutRollup = PayoutNoteStatus | "PARTLY_PAID";
 export type StepState = "done" | "cur" | "fut";
@@ -29,6 +33,8 @@ export interface TrailLine {
 }
 export interface Trail {
   state: TrailState; stateSentence: string;
+  // How every applied line was approved, or null while any line is not approved (or there are no lines).
+  approval: TrailApproval | null;
   gift: { amount: string; fundName: string; received: string };
   steps: TrailStep[]; lines: TrailLine[];
   grossCents: bigint; matchedCents: bigint; unspentCents: bigint; waiting: string | null;
@@ -39,13 +45,44 @@ export class TrailInvariantError extends Error {
   constructor(message: string) { super(message); this.name = "TrailInvariantError"; }
 }
 
-export const GIFT_STATE_SENTENCES: Record<TrailState, string> = {
+// How the approval is worded for each recorded path. The donor page names no person, no model output and, for Autopilot, no count of people.
+export const APPROVAL_PHRASES: Record<TrailApproval, string> = {
+  TWO_PEOPLE: "approved by two people", AUTOPILOT: "approved under Autopilot guardrails", ONE_PERSON: "approved by one person after AI checks", MIXED: "approved",
+};
+// Step 3 once every line is approved. The title before approval stays "Approved by two people" (STEP3_PENDING_TITLE).
+export const STEP3_PENDING_TITLE = "Approved by two people";
+export const STEP3_APPROVED: Record<Exclude<TrailApproval, "MIXED">, { title: string; detail: string }> = {
+  TWO_PEOPLE: { title: "Approved by two people", detail: "Two people approved" },
+  AUTOPILOT: { title: "Approved under Autopilot guardrails", detail: "Every rule passed. No person was needed" },
+  ONE_PERSON: { title: "Approved by one person after AI checks", detail: "One person approved, no holds found" },
+};
+export const step3Approved = (approval: TrailApproval, totalLines: number): { title: string; detail: string } =>
+  approval === "MIXED" ? { title: "Approved", detail: `All ${totalLines} lines approved` } : STEP3_APPROVED[approval];
+export const donorSentenceApproval: Record<TrailApproval, string> = {
+  TWO_PEOPLE: "Two people approved it.", AUTOPILOT: "It was approved under Autopilot guardrails.", ONE_PERSON: "One person approved it after AI checks.", MIXED: "It was approved.",
+};
+const stateSentences = (approval: TrailApproval): Record<TrailState, string> => ({
   WAITING: "Your gift has arrived. It is waiting for a matching receipt.",
   MATCHED: "Your gift was applied to a receipt line. It is waiting for approvals.",
-  APPROVED: "Your gift was applied to a receipt line and approved by two people.",
-  PAYING: "Your gift was applied and approved by two people. The payout is not complete yet.",
-  PAID: "Your gift was applied, approved by two people and paid through PayPal.",
+  APPROVED: `Your gift was applied to a receipt line and ${APPROVAL_PHRASES[approval]}.`,
+  PAYING: `Your gift was applied and ${APPROVAL_PHRASES[approval]}. The payout is not complete yet.`,
+  PAID: `Your gift was applied, ${APPROVAL_PHRASES[approval]} and paid through PayPal.`,
+});
+// The two person words, as before this change.
+export const GIFT_STATE_SENTENCES: Record<TrailState, string> = stateSentences("TWO_PEOPLE");
+export const GIFT_STATE_SENTENCES_BY_PATH: Record<TrailApproval, Record<TrailState, string>> = {
+  TWO_PEOPLE: GIFT_STATE_SENTENCES, AUTOPILOT: stateSentences("AUTOPILOT"), ONE_PERSON: stateSentences("ONE_PERSON"), MIXED: stateSentences("MIXED"),
 };
+
+const pathOf = (row: TrailApplication): ApprovalPath | null => row.approvalPath !== undefined ? row.approvalPath : row.approvalCount >= 2 ? "TWO_PEOPLE" : null;
+// null when there are no lines or any line is not approved; the common path when all agree; MIXED otherwise.
+function rollupApproval(applications: readonly TrailApplication[]): TrailApproval | null {
+  if (applications.length === 0) return null;
+  const paths = applications.map(pathOf);
+  if (paths.some(path => path === null)) return null;
+  const distinct = new Set(paths as ApprovalPath[]);
+  return distinct.size === 1 ? [...distinct][0]! : "MIXED";
+}
 // The owner-accepted method sentence of renderThanksFirst (src/donation/note.ts). A test keeps the two equal.
 export const GIFT_METHOD_SENTENCE = "Gifts are applied to approved lines oldest first. This is a narrative, not a trace of a specific purchase.";
 export const MAX_DESCRIPTION_CHARACTERS = 120;
@@ -91,7 +128,8 @@ export function buildGiftTrail(input: TrailInput): Trail {
   const rollup = rollupPayout(applications.map(row => row.payout));
   const paidLines = applications.filter(row => row.payout === "PAID").length;
   const totalLines = applications.length;
-  const approved = totalLines > 0 && applications.every(row => row.approvalCount >= 2);
+  const approval = rollupApproval(applications);
+  const approved = approval !== null;
   const matched = totalLines > 0;
   const amount = formatUsd(grossCents); const fundName = clean(input.fundName, MAX_VENDOR_CHARACTERS, "the fund"); const received = longDate(input.effectiveOn);
 
@@ -116,13 +154,13 @@ export function buildGiftTrail(input: TrailInput): Trail {
   const steps: TrailStep[] = [
     { id: 1, state: "done", title: "Gift received", detail: `${amount} to ${fundName}, ${received}` },
     matched ? { id: 2, state: "done", title: "Matched to a receipt", detail: matchDetail } : { id: 2, state: "cur", title: "Matched to a receipt", detail: "Waiting for a matching receipt" },
-    !matched ? { id: 3, state: "fut", title: "Approved by two people", detail: "Not started" }
-      : approved ? { id: 3, state: "done", title: "Approved by two people", detail: "Two people approved" } : { id: 3, state: "cur", title: "Approved by two people", detail: "Waiting for approvals" },
+    !matched ? { id: 3, state: "fut", title: STEP3_PENDING_TITLE, detail: "Not started" }
+      : approval ? { id: 3, state: "done", ...step3Approved(approval, totalLines) } : { id: 3, state: "cur", title: STEP3_PENDING_TITLE, detail: "Waiting for approvals" },
     step4,
   ];
   const waiting = unspentCents > 0n ? `Still waiting: ${formatUsd(unspentCents)} of your gift has no matching receipt yet.` : null;
   return {
-    state, stateSentence: GIFT_STATE_SENTENCES[state], gift: { amount, fundName, received }, steps, lines,
+    state, stateSentence: GIFT_STATE_SENTENCES_BY_PATH[approval ?? "TWO_PEOPLE"][state], approval, gift: { amount, fundName, received }, steps, lines,
     grossCents, matchedCents, unspentCents, waiting, payout: { status: rollup, paidLines, totalLines, batchTail },
   };
 }
@@ -136,7 +174,7 @@ export function donorPageSentence(trail: Trail): string | null {
   const { status, paidLines, totalLines } = trail.payout;
   const payout = status === "PAID" ? (totalLines === 1 ? trail.lines[0]!.payoutSentence : `Paid. All ${totalLines} lines were paid.`)
     : status === "PARTLY_PAID" ? `Paid for ${paidLines} of ${totalLines} lines.` : THANKS_FIRST_PAYOUT_WORDING[status];
-  return `${opening} ${applied}. Two people approved it. ${payout}`;
+  return `${opening} ${applied}. ${donorSentenceApproval[trail.approval ?? "TWO_PEOPLE"]} ${payout}`;
 }
 
 // ---- Facts loader (SELECT only, set based) ----
@@ -170,9 +208,8 @@ export async function loadGiftTrailFacts(db: Db, organizationId: string, capture
   const decisionHash = new Map<string, string>();
   for (const row of decisionRows) if (row.recognizedAt !== null && row.invalidatedAt === null && !decisionHash.has(pair(row.claimId, row.claimVersion))) decisionHash.set(pair(row.claimId, row.claimVersion), row.decisionHash);
   const hashes = [...new Set(decisionHash.values())];
-  const approvalRows = hashes.length ? await db.select({ decisionHash: s.approvals.decisionHash, count: sql<number>`count(*)::int` }).from(s.approvals)
-    .where(inArray(s.approvals.decisionHash, hashes)).groupBy(s.approvals.decisionHash) : [];
-  const approvalCount = new Map(approvalRows.map(row => [row.decisionHash, row.count]));
+  // IAC-405 PR GT: approvals, automated decisions and disbursements of the hashes already selected for this organization's gifts, read as stored (no flag, no live check).
+  const recorded = await readRecordedApprovalPaths(db, hashes);
   const disbursementRows = claimIds.length ? await db.select({ id: s.disbursements.id, claimId: s.disbursements.claimId, claimVersion: s.disbursements.claimVersion }).from(s.disbursements)
     .where(inArray(s.disbursements.claimId, claimIds)) : [];
   const attemptRows = disbursementRows.length ? await db.select({ disbursementId: s.disbursementAttempts.disbursementId, state: s.disbursementAttempts.state, itemStatus: s.disbursementAttempts.itemStatus,
@@ -202,7 +239,7 @@ export async function loadGiftTrailFacts(db: Db, organizationId: string, capture
           const payout = payoutOf(row.claimId, row.claimVersion);
           const hash = decisionHash.get(pair(row.claimId, row.claimVersion));
           return { lineDescription: line.description, vendor: payout.vendor, appliedCents: row.appliedCents, lineCents: line.amountCents,
-            approvalCount: hash ? approvalCount.get(hash) ?? 0 : 0, payout: payout.status, batchId: payout.batchId };
+            approvalCount: hash ? recorded.get(hash)?.approvalCount ?? 0 : 0, approvalPath: hash ? recorded.get(hash)?.path ?? null : null, payout: payout.status, batchId: payout.batchId };
         }),
       },
     };

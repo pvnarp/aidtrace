@@ -11,10 +11,15 @@ import type { StoredPolicyRun } from "../src/policy/service";
 const HASH = "a".repeat(64);
 const text = (markup: string) => markup.replace(/<[^>]+>/g, " ").replace(/&quot;/g, "\"").replace(/&#x27;/g, "'").replace(/&amp;/g, "&").replace(/\s+/g, " ");
 const line = (over: Partial<StoredModelLine> = {}): StoredModelLine => ({ lineId: "L2", description: "Classroom markers", verdict: "OK", clauseId: null, clauseText: null, ...over });
-const pair = (over: Partial<StoredModelPair> = {}): StoredModelPair => ({ fundId: "fund_a", fundName: "Fund A", policyVersion: 1, state: "CHECKED", reasonCode: null, model: "claude-haiku-5-5", effort: "low", lines: [line()], ...over });
-const modelRun = (state: ModelRunState, pairs: StoredModelPair[]): StoredModelRun => ({
+// PB-: a pair stores the models of its CALL rows (called). By default a checked pair, or a failed pair that was answered, timed out or came back invalid, was sent one request to its own model; a LIMIT, NO_CLAUSES or General fund pair was sent none.
+const pair = (over: Partial<StoredModelPair> = {}): StoredModelPair => {
+  const base = { fundId: "fund_a", fundName: "Fund A", policyVersion: 1, state: "CHECKED" as const, reasonCode: null, model: "claude-haiku-5-5", effort: "low", lines: [line()], ...over };
+  const sent = base.model !== null && base.state !== "SKIPPED" && base.reasonCode !== "LIMIT" && base.reasonCode !== "NO_CLAUSES" && base.reasonCode !== "GENERAL_FUND";
+  return { ...base, called: over.called ?? (sent ? [base.model!] : []) };
+};
+const modelRun = (state: ModelRunState, pairs: StoredModelPair[], calledModels: string[] = [...new Set(pairs.flatMap(item => item.called))]): StoredModelRun => ({
   id: "run-1", startedAt: new Date("2026-10-31T12:00:00Z"), model: "claude-haiku-5-5>claude-sonnet-5-5", effort: "low", promptVersion: "compliance-v1", schemaVersion: "compliance-lines-v1",
-  clauseSetHash: "b".repeat(64), state, status: modelStatusOf(state, pairs), pairs,
+  clauseSetHash: "b".repeat(64), state, status: modelStatusOf(state, pairs), pairs, calledModels,
 });
 const rules = (model: StoredModelRun | null | undefined, flags: StoredPolicyRun["flags"] = []): StoredPolicyRun => ({
   id: "rules-1", startedAt: new Date("2026-10-31T11:59:00Z"), startedByName: "Tara", ruleSetVersion: "rules-v1", settingsVersions: { fund_a: 1 }, complete: true, flags, notChecked: [], ...(model === undefined ? {} : { model }),
@@ -95,11 +100,12 @@ describe("PC-14 the model rows on the claim page", () => {
 
   it("each NOT_CHECKED reason shows its fixed sentence, names the model that failed when there is one, and the skipped General fund says so", () => {
     for (const reason of ["TIMEOUT", "UNAVAILABLE", "INVALID", "LIMIT", "NO_CLAUSES", "GENERAL_FUND"] as const) {
-      const failed = reason !== "NO_CLAUSES";
-      const body = text(render({ run: rules(modelRun("DONE", [pair({ state: "NOT_CHECKED", reasonCode: reason, model: failed ? "claude-sonnet-5-5" : null, effort: failed ? "low" : null, lines: [] })])) }));
+      const failed = reason !== "NO_CLAUSES"; const sent = failed && reason !== "LIMIT";
+      const body = text(render({ run: rules(modelRun("DONE", [pair({ state: "NOT_CHECKED", reasonCode: reason, model: failed ? "claude-sonnet-5-5" : null, effort: failed ? "low" : null, lines: [], called: sent ? ["claude-sonnet-5-5"] : [] })])) }));
       expect(body).toContain(copy.modelNotChecked(reason));
       expect(body).toContain(copy.MODEL_STATUS_TEXT.HOLD);
-      if (failed) expect(body).toContain("Asked AI (Sonnet 5.5) at low effort."); expect(body).not.toMatch(failed ? /Checked by/ : /Checked by|Asked /);
+      // PB-: a LIMIT pair stored no CALL row, so no model was sent a request and the row does not say it was asked.
+      if (sent) expect(body).toContain("Asked AI (Sonnet 5.5) at low effort."); expect(body).not.toMatch(sent ? /Checked by/ : /Checked by|Asked /);
     }
     const skipped = text(render({ run: rules(modelRun("DONE", [pair({ fundId: "fund_g", fundName: "General fund", state: "SKIPPED", reasonCode: "GENERAL_FUND", model: null, effort: null, lines: [] })])) }));
     expect(skipped).toContain("General fund: not checked by the model. The General fund has no clauses to check.");
@@ -117,25 +123,25 @@ describe("PC-14 the model rows on the claim page", () => {
   it("the model check section carries one disclosure line naming the provider and each asked model once, and the rows say AI", () => {
     const both = text(render({ run: rules(modelRun("DONE", [pair(), pair({ fundId: "fund_b", fundName: "Fund B", model: "claude-sonnet-5-5" }), pair({ fundId: "fund_c", fundName: "Fund C", model: "claude-haiku-5-5" })])) }));
     expect(both.match(/Claim line and clause text was sent to Anthropic\./g)).toHaveLength(1);
-    expect(both).toContain("Model check: Claude Haiku 5.5 and Claude Sonnet 5.5. Claim line and clause text was sent to Anthropic.");
+    expect(both).toContain("Powered by Claude Haiku 5.5 and Claude Sonnet 5.5. Claim line and clause text was sent to Anthropic.");
     expect(both).toContain("Checked by AI (Haiku 5.5) at low effort."); expect(both).toContain("Checked by AI (Sonnet 5.5) at low effort.");
     expect(both.match(/Claude/g)).toHaveLength(2);
     const one = text(render({ run: rules(modelRun("DONE", [pair()])) }));
-    expect(one).toContain("Model check: Claude Haiku 5.5. Claim line and clause text was sent to Anthropic.");
+    expect(one).toContain("Powered by Claude Haiku 5.5. Claim line and clause text was sent to Anthropic.");
   });
   it("a pair that sent no request is not named: a request-limit refusal, a skipped General fund, a pair with no model and a run with no pair asked add no disclosure", () => {
     const limited = text(render({ run: rules(modelRun("DONE", [pair({ state: "NOT_CHECKED", reasonCode: "LIMIT", model: "claude-sonnet-5-5", lines: [] })])) }));
-    expect(limited).toContain("Asked AI (Sonnet 5.5) at low effort."); expect(limited).not.toMatch(/sent to Anthropic|Claude/);
+    expect(limited).not.toMatch(/Asked AI|sent to Anthropic|Claude|Powered by/);
     const skipped = text(render({ run: rules(modelRun("DONE", [pair({ fundId: "fund_g", fundName: "General fund", state: "SKIPPED", reasonCode: "GENERAL_FUND", model: null, effort: null, lines: [] })])) }));
     expect(skipped).not.toMatch(/sent to Anthropic|Claude/);
     const noClauses = text(render({ run: rules(modelRun("DONE", [pair({ state: "NOT_CHECKED", reasonCode: "NO_CLAUSES", model: null, effort: null, lines: [] })])) }));
     expect(noClauses).not.toMatch(/sent to Anthropic|Claude/);
     // A limit-refused pair beside an asked pair names only the asked model.
     const mixed = text(render({ run: rules(modelRun("DONE", [pair(), pair({ fundId: "fund_b", fundName: "Fund B", state: "NOT_CHECKED", reasonCode: "LIMIT", model: "claude-sonnet-5-5", lines: [] })])) }));
-    expect(mixed).toContain("Model check: Claude Haiku 5.5. Claim line and clause text was sent to Anthropic."); expect(mixed).not.toContain("Claude Sonnet");
+    expect(mixed).toContain("Powered by Claude Haiku 5.5. Claim line and clause text was sent to Anthropic."); expect(mixed).not.toContain("Claude Sonnet");
     // A timed-out request was sent, so its pair is named.
     const timedOut = text(render({ run: rules(modelRun("DONE", [pair({ state: "NOT_CHECKED", reasonCode: "TIMEOUT", model: "claude-sonnet-5-5", lines: [] })])) }));
-    expect(timedOut).toContain("Model check: Claude Sonnet 5.5. Claim line and clause text was sent to Anthropic.");
+    expect(timedOut).toContain("Powered by Claude Sonnet 5.5. Claim line and clause text was sent to Anthropic.");
   });
   it("stored descriptions, clause text, fund names and flag text render as escaped text, never markup", () => {
     const evil = "<script>alert(1)</script><img src=x onerror=alert(2)>";

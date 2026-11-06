@@ -96,11 +96,14 @@ describe("PC-13 arm C routing: Haiku 5.5 low first, Sonnet 5.5 low unless Haiku 
     const html = markup(hash, id, await storedPolicy(hash));
     expect(html).toContain(copy.modelSkipped("General Operating"));
     expect(html).toContain(copy.modelCheckedBy(HAIKU, "low"));
+    // PB-07: Haiku alone was sent requests, so the line names Haiku alone, from the stored CALL rows.
+    expect(view.calledModels).toEqual([HAIKU]); expect(view.pairs.map(pair => pair.called)).toEqual([[HAIKU], [HAIKU], []]);
+    expect(html).toContain("Powered by Claude Haiku 5.5. Claim line and clause text was sent to Anthropic."); expect(html).not.toContain("Sonnet");
     expect(html).toContain(copy.MODEL_STATUS_TEXT.NO_CONFLICT_FOUND);
   });
 
   it("Haiku valid with a line that is not OK: Sonnet is called for that fund only and Sonnet's rows are stored instead of Haiku's", async () => {
-    const { hash } = await setup();
+    const { id, hash } = await setup();
     const { client, seen } = stub((call, input) => isAshmere(input) && call.model === HAIKU ? conflict(call, input) : allOk(call, input));
     const result = await runModelCheck(ctx.db, hash, { id: "tara" }, model(client));
     expect(result).toMatchObject({ status: "RAN", requests: 3, checked: 2, notChecked: 0, skipped: 1 });
@@ -109,6 +112,11 @@ describe("PC-13 arm C routing: Haiku 5.5 low first, Sonnet 5.5 low unless Haiku 
     expect(rows.entries).toEqual(["CALL", "CALL", "LINE", "CALL", "LINE", "SKIPPED", "RUN_END"]);
     expect(rows.lines).toEqual([["fund_a", "L2", "OK", null, SONNET, "low"], ["fund_b", "L1", "OK", null, HAIKU, "low"]]);
     expect(rows.calls.map(row => [row.fundId, row.model, row.effort])).toEqual([["fund_a", HAIKU, "low"], ["fund_a", SONNET, "low"], ["fund_b", HAIKU, "low"]]);
+    // PB-08: the page names both models that were sent a request, Haiku first, and the escalated fund says so. Before November 5 it named only the stored pair (Sonnet).
+    const view = (await stored(hash))!; const html = markup(hash, id, await storedPolicy(hash));
+    expect(view.calledModels).toEqual([HAIKU, SONNET]); expect(view.pairs.map(pair => pair.called)).toEqual([[HAIKU, SONNET], [HAIKU], []]);
+    expect(html).toContain("Powered by Claude Haiku 5.5 and Claude Sonnet 5.5. Claim line and clause text was sent to Anthropic.");
+    expect(html).toContain(copy.modelCheckedBy([HAIKU, SONNET], "low")); expect(html).toContain("Checked by AI (Haiku 5.5, then Sonnet 5.5) at low effort."); expect(html).toContain(copy.modelCheckedBy(HAIKU, "low"));
   });
 
   it("Haiku UNSURE also escalates, and Sonnet's CONFLICT is stored with its clause id and shown with the stored clause text (PC-11)", async () => {
@@ -157,7 +165,7 @@ describe("PC-13 arm C routing: Haiku 5.5 low first, Sonnet 5.5 low unless Haiku 
     const view = (await stored(hash))!;
     expect(view.status).toBe("NO_CONFLICT_FOUND");
     expect(view.pairs[0]).toMatchObject({ fundId: "fund_a", state: "CHECKED", model: SONNET });
-    expect(markup(hash, id, await storedPolicy(hash))).toContain(copy.modelCheckedBy(SONNET, "low"));
+    expect(markup(hash, id, await storedPolicy(hash))).toContain(copy.modelCheckedBy([HAIKU, SONNET], "low"));
   });
 
   it("Haiku fails and Sonnet answers CONFLICT: Sonnet's CONFLICT is stored with its clause id and the status is Hold", async () => {

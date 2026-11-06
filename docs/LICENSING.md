@@ -71,11 +71,26 @@ Public repository creation, push, hosting, video upload and submission are unper
 The owner authorized this separate Studio-free fallback on October 23, 2026. Ordinary React
 replaces the Studio presentation and client harness; server authentication, exact snapshots,
 model validators and financial boundaries remain unchanged. The locked dependency tree and
-installed declared-license inventory contain no named AG packages or Commercial declarations.
+installed declared-license inventory then contained no named AG packages or Commercial declarations (see the AG Grid note below for the current state).
 That bounded inspection is not exhaustive provenance, legal or binary/image clearance.
 
 The original Studio checkout retains its packages, notices, private evaluation and unresolved
 IAC-240 licensing question. Its export guard continues to refuse absent clearance. This
-fallback does not set publicJudgingApproved, fabricate sponsor evidence or claim AG prize
-eligibility. It needs no Studio key. Its source preparation still requires final owner
+fallback does not set publicJudgingApproved or fabricate sponsor evidence. It claims no Studio clearance.
+It needs no Studio key. Its source preparation still requires final owner
 review, a separately selected public destination and independent judging-access validation.
+
+## 6. State the AG Grid Community claim: one package pair, no Studio
+
+The app now uses two AG Grid Community packages for the ledger, donations and approver queue
+views: ag-grid-community 36.2.0 and ag-grid-react 36.2.0, both declared MIT in
+DEPENDENCY_LICENSES.json. That file currently lists 100 installed packages, including
+development dependencies, with 227 notice-file entries. The earlier 82 package and 208 notice
+count above belongs to the October 23 fallback and is superseded by this inventory.
+
+release/variant.json has kind STUDIO_FREE_COMMUNITY_GRID with sponsorUseClaimed true,
+studioClearanceClaimed false and publicationAuthorized false. The owner chose that wording on
+November 2 (docs/decisions.md in the owner repository, "Flip sponsorUseClaimed for the AG Grid
+Community variant", IAC-380).
+The claim covers AG Grid Community only. It makes no Studio, Enterprise or charts claim and does
+not say a prize is won or likely.

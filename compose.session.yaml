@@ -27,10 +27,11 @@ services:
       NODE_ENV: production
       NEXT_TELEMETRY_DISABLED: "1"
       AI_RECEIPT_ENABLED: "true"
+      AI_RECEIPT_PHOTO_ENABLED: "true"
       AI_ANALYTICS_ENABLED: "true"
       AI_EXPENSE_PROPOSALS_ENABLED: "true"
       AI_COMPLIANCE_ENABLED: "true"
-      AI_RULE_DRAFTS_ENABLED: "false"
+      AI_RULE_DRAFTS_ENABLED: "true"
       PAYPAL_BASE_URL: https://api-m.sandbox.paypal.com
       PAYPAL_CLIENT_ID: ""
       PAYPAL_CLIENT_SECRET: ""
@@ -41,7 +42,8 @@ services:
       PAYPAL_SANDBOX_PAYEE_EMAIL: judge-demo@example.invalid
       PAYEE_ALLOWLIST: judge-demo@example.invalid
       MAX_DEMO_PAYOUT_CENTS: "50000"
-      # Name only: Compose copies the value from the launching shell. It is never written to session.env or any file.
+      # Name only: Compose copies the value from the launching shell. The launcher never writes it to session.env or any other file;
+      # the engine keeps it in this container's configuration until the container is recreated or removed.
       ANTHROPIC_API_KEY:
     volumes:
       - .:/workspace

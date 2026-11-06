@@ -28,7 +28,7 @@ describe("FT-04 the AI recommendation header carries the one 'request a new revi
   });
   it("keeps the rest of the header: model line, count, limits and saved record", () => {
     const html = header({ editable: true });
-    expect(html).toContain("Model: Claude Haiku 5.5. The receipt text was sent to Anthropic for these suggestions.");
+    expect(html).toContain("Powered by Claude Haiku 5.5. The receipt text was sent to Anthropic for these suggestions.");
     expect(html).toContain("Suggested a category for 1 of 2 lines."); expect(html).toContain("A person confirms each category."); expect(html).toContain("Saved record: model AI (Haiku 5.5), schema receipt-s1.");
   });
   it("does not add the instruction to the idle strip, which is not a READY header", () => {

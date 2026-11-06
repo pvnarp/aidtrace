@@ -17,6 +17,8 @@ import { fundAutopilotEnabled } from "../src/fund-modes/flag";
 import { proposeFundMode } from "../src/fund-modes/change";
 import { g2Lines, g3FundDay, g4ClaimantWeek, g5PriorHumanClaim, g6EmailUnchanged } from "../src/fund-modes/guardrails";
 import { readAutomationSwitch } from "../src/fund-modes/automation-read";
+import { automationAllowed, automationState } from "../src/fund-modes/automation-state";
+import { resolveHistoricalReview } from "../src/ledger/historical-review";
 import { confirmAutomationOn, proposeAutomationOn, recordDisagreement, turnAutomationOff } from "../src/fund-modes/switch";
 import { runPolicySweep } from "../src/fund-modes/policy-sweep";
 import { ORIGIN, RECEIPT_PAYEE, createPolicyDatabase, insertClaim, receiptClaim, sessionFor, type PolicyDatabase, type ReceiptLineSpec } from "./support/policy-db";
@@ -1137,5 +1139,43 @@ describe("AU-51 the title of a recognized claim that has not gone out", () => {
     expect(page.match(/const autoWaiting = [^;]+;/g)).toEqual(['const autoWaiting = view.reviewMode === "AUTO_RECOGNIZED_PEOPLE" && claim.status === "APPROVED" && approvals.length < 2;']);
     expect(page).toContain('autoWaiting ? `${usd(total)} ${TITLE_AUTO_NOT_SENT}` : handoffReady ? `${usd(total)} approved. PayPal handoff ready. Unpaid.` : `${usd(total)} approved. Payment is a separate decision.`');
     expect(page).not.toMatch(/Payment did not go out/);
+  });
+});
+
+describe("HWR-08 an open historical PayPal event review holds Autopilot", () => {
+  // Plants a disbursement with two attempts and a review for the first, with the triggers off for this one transaction. origin is an automated decision or a human signer.
+  async function plantReview(claim: { id: string; hash: string }, origin: "AUTOMATED" | "HUMAN") {
+    return ctx.client.begin(async q => {
+      await q`set local session_replication_role = replica`;
+      const [row] = await q`insert into disbursements (claim_id, claim_version, decision_hash, payee_email, amount_cents) values (${claim.id}, 1, ${claim.hash}, ${RECEIPT_PAYEE}, 100::bigint) returning id`;
+      if (origin === "AUTOMATED") {
+        const [auto] = await q`insert into automated_decisions (decision_hash, kind, inputs) values (${claim.hash}, 'AUTO_SENT', '{}'::jsonb) returning id`;
+        await q`insert into automated_decisions (decision_hash, kind, inputs) values (${claim.hash}, 'AUTO_SEND_CONFIRMED', '{}'::jsonb)`;
+        await q`insert into disbursement_origins (disbursement_id, automated_decision_id) values (${row!.id}, ${auto!.id})`;
+      } else await q`insert into disbursement_origins (disbursement_id, signed_by) values (${row!.id}, 'tara')`;
+      const [first] = await q`insert into disbursement_attempts (disbursement_id, attempt_number, sender_batch_id, sender_item_id, amount_cents, payee_email, state) values (${row!.id}, 1, ${`AT-${row!.id}-1`}, ${`AT-${row!.id}-1-1`}, 100::bigint, ${RECEIPT_PAYEE}, 'FAILED') returning id`;
+      const [latest] = await q`insert into disbursement_attempts (disbursement_id, attempt_number, sender_batch_id, sender_item_id, amount_cents, payee_email, state) values (${row!.id}, 2, ${`AT-${row!.id}-2`}, ${`AT-${row!.id}-2-1`}, 100::bigint, ${RECEIPT_PAYEE}, 'PENDING') returning id`;
+      const [event] = await q`insert into provider_events (event_id, event_type, verification_status) values (${`WH-HWR-${claim.id}`}, 'PAYMENT.PAYOUTS-ITEM.SUCCEEDED', 'SUCCESS') returning id`;
+      const [review] = await q`insert into historical_event_reviews (provider_event_id, claim_id, claim_version, disbursement_id, event_attempt_id, latest_attempt_id, latest_state_at_event) values (${event!.id}, ${claim.id}, 1, ${row!.id}, ${first!.id}, ${latest!.id}, 'PENDING') returning id`;
+      return review!.id as string;
+    });
+  }
+  const read = () => readAutomationSwitch(ctx.db, { id: "ben" }, { env: AUTO_ENV });
+
+  it("HWR-08: an open review on an automated disbursement sets unknownOutstanding and blocks automation, and resolving it clears that term", async () => {
+    await ready(); const planted = await claimN(2);
+    expect(await read()).toMatchObject({ view: { on: true, unknownOutstanding: false } });
+    const reviewId = await plantReview(planted, "AUTOMATED");
+    expect(await read()).toMatchObject({ view: { on: true, unknownOutstanding: true } });
+    const state = await automationState(ctx.db, ORG); expect(state.unknownOutstanding).toBe(true); expect(automationAllowed(state)).toBe(false);
+    await resolveHistoricalReview(ctx.db, reviewId, "ben", "Checked both attempts in the PayPal sandbox activity page.");
+    const after = await automationState(ctx.db, ORG); expect(after.unknownOutstanding).toBe(false); expect(automationAllowed(after)).toBe(true);
+    expect(await read()).toMatchObject({ view: { on: true, unknownOutstanding: false } });
+  });
+
+  it("HWR-08: an open review on a human-signed disbursement does not set unknownOutstanding", async () => {
+    await ready(); const planted = await claimN(2);
+    await plantReview(planted, "HUMAN");
+    const state = await automationState(ctx.db, ORG); expect(state.unknownOutstanding).toBe(false); expect(automationAllowed(state)).toBe(true);
   });
 });

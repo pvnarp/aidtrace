@@ -1,8 +1,10 @@
-import { afterAll, beforeAll, expect, it } from "vitest";
-import { eq } from "drizzle-orm";
+import { afterAll, beforeAll, expect, it, vi } from "vitest";
+import { and, eq, isNotNull, isNull } from "drizzle-orm";
 import * as s from "../db/schema";
 import { readGiftAttribution } from "../src/donation/attribution-reader";
+import { recordDesignatedDonation } from "../src/ledger/donation";
 import { approveDecision, freezeDecision, rejectClaim } from "../src/ledger/service";
+import type { DonationObservation, DonationReader } from "../src/paypal/adapter";
 import { createTestDatabase, extraClaim, pause, recognizeClaim, recordGift, type TestDatabase } from "./support/attribution-db";
 
 // DON-05 integration (docs/plans/DONATION_LOOP_SCOPE.md sections 5 and 10, IAC-379 step 2). Real Postgres, stubbed
@@ -107,4 +109,35 @@ it("excludes a recognized decision whose claim version also has a rejection row 
   expect(inside.applications).toEqual([]);
   expect(inside.unspent.map(row => row.captureId).sort()).toEqual([g1, g2, g3].sort());
   expect(await rowCounts()).toEqual(before);
+});
+
+// DON-05b (docs/ASSUMPTIONS.md section 94, IAC-379 step 2 follow-up). The gift stored PENDING in the first test completes only now, after
+// C-104 was recognized. Its donation_receipts.recorded_at keeps the PENDING insert time, which is before the recognition, so ordering by that
+// column alone would apply it to C-104's fund_b line. Its paypal_capture fund credit is recorded now, after the recognition, so it stays unspent.
+// Runs last because it completes the shared PENDING gift.
+it("DON-05b a gift first stored PENDING and completed after a recognition does not attach to that claim", async () => {
+  const [stored] = await db.select().from(s.donationReceipts).where(eq(s.donationReceipts.captureId, pending));
+  expect(stored).toMatchObject({ status: "PENDING", fundId: "fund_b", expectedAmountCents: 900n });
+  const [recognized] = await db.select().from(s.allocationDecisions)
+    .where(and(eq(s.allocationDecisions.claimId, "C-104"), isNotNull(s.allocationDecisions.recognizedAt), isNull(s.allocationDecisions.invalidatedAt)));
+  const recognizedAt = recognized!.recognizedAt!;
+  expect(stored!.recordedAt.getTime()).toBeLessThan(recognizedAt.getTime());
+  // The C-104 fund_b edges have room past the USD 25 gift, so ordering by the PENDING insert time would apply this USD 9 gift to them.
+  const fundB = (await db.select().from(s.allocationEdges).where(eq(s.allocationEdges.decisionId, recognized!.id))).filter(edge => edge.fundId === "fund_b");
+  expect(fundB.reduce((sum, edge) => sum + edge.amountCents, 0n)).toBeGreaterThan(2500n + 900n);
+  await pause(25);
+  const orderId = stored!.orderId;
+  const data: DonationObservation = { httpStatus: 200, orderId, intent: "CAPTURE", status: "COMPLETED", units: [{ fundId: "fund_b", amountCents: 900n }],
+    captures: [{ captureId: pending, status: "COMPLETED", amountCents: 900n, grossCents: 900n, feeCents: 0n, netCents: 900n, effectiveOn: "2026-10-22" }] };
+  const provider = { donationOrder: vi.fn<DonationReader["donationOrder"]>(async () => data) };
+  expect(await recordDesignatedDonation(db, "tara", { orderId, captureId: pending, fundId: "fund_b", amountCents: 900n }, provider)).toMatchObject({ status: "COMPLETED", posted: true });
+  const [after] = await db.select().from(s.donationReceipts).where(eq(s.donationReceipts.captureId, pending));
+  expect(after!.status).toBe("COMPLETED"); expect(after!.recordedAt.getTime()).toBe(stored!.recordedAt.getTime());
+  const credits = await db.select().from(s.fundCredits).where(and(eq(s.fundCredits.sourceType, "paypal_capture"), eq(s.fundCredits.sourceId, pending)));
+  expect(credits).toHaveLength(1); expect(credits[0]!.fundId).toBe("fund_b");
+  expect(credits[0]!.recordedAt.getTime()).toBeGreaterThan(recognizedAt.getTime());
+  const result = await readGiftAttribution(db, ORG);
+  expect(result.applications.some(row => row.captureId === pending)).toBe(false);
+  expect(result.applications).toEqual([{ captureId: g1, claimId: "C-104", claimVersion: 1, lineId: "L1", fundId: "fund_b", appliedCents: 2500n }]);
+  expect(result.unspent).toContainEqual({ captureId: pending, fundId: "fund_b", remainingCents: 900n });
 });

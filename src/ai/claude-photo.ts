@@ -96,6 +96,20 @@ export function checkArithmetic(transcript: Transcript): Arithmetic {
   return { ok: linesPlusTaxMatchesTotal && subtotalMatchesLines, linesCents, taxCents, totalCents: transcript.totalCents, subtotalCents: transcript.subtotalCents, linesPlusTaxMatchesTotal, subtotalMatchesLines };
 }
 
+// IAC-384 (docs/ASSUMPTIONS.md section 87, orchestrator decision P1). A hand-added amount (a tip) can sit after the printed subtotal and inside the total. When the receipt fails
+// only the subtotal check, lines plus tax match the total, and the subtotal equals the sum of the first k lines, the amounts after those k lines are named so the page can say so.
+// Pure and display-only: checkArithmetic and the stored arithmetic_ok are unchanged. The largest k below lines.length wins; k is never lines.length (that is the ok case).
+export function afterSubtotal(transcript: Transcript, arithmetic: Arithmetic): { printedCount: number; afterCents: number } | null {
+  if (arithmetic.ok || !arithmetic.linesPlusTaxMatchesTotal || transcript.subtotalCents === null) return null;
+  const amounts = transcript.lines.map(line => line.amountCents);
+  for (let k = amounts.length - 1; k >= 1; k--) {
+    if (amounts.slice(0, k).reduce((sum, cents) => sum + cents, 0) !== transcript.subtotalCents) continue;
+    const afterCents = amounts.slice(k).reduce((sum, cents) => sum + cents, 0);
+    return afterCents > 0 ? { printedCount: k, afterCents } : null;
+  }
+  return null;
+}
+
 // ---- The call ----
 export type PhotoOutcome = "READ" | "UNREADABLE" | "REFUSED" | "FAILED";
 export type PhotoCallFacts = { model: ClaudeModel; promptVersion: string; schemaVersion: string; photoSha256: string; stopReason: string | null; inputTokens: number; outputTokens: number };

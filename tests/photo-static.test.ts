@@ -1,4 +1,4 @@
-import { readdirSync, readFileSync, statSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
@@ -46,7 +46,14 @@ describe("PH-23 no file under src writes image bytes anywhere", () => {
   });
 });
 
-describe("PH-24 the flag is read in one place and is off in every compose file", () => {
+// November 5 owner decision (docs/decisions.md, "Rule drafts and the photo reader on in judge sessions"): exactly one file, by full path, may turn the flag on.
+// An export flattens release/judge into the root and has no release/judge folder. In the repository a missing judge compose must fail, so the mode comes from the folder, not from the file.
+const EXPORT_MODE = !existsSync("release/judge");
+const JUDGE_SESSION = EXPORT_MODE ? "compose.session.yaml" : "release/judge/compose.session.yaml";
+const ON_TEXT = /AI_RECEIPT_PHOTO_ENABLED\s*[:=]\s*["']?(true|\$\{[^}]*:?[-+]\s*["']?true)/;
+const flagOnOutsideJudgeSession = (path: string, text: string) => path !== JUDGE_SESSION && ON_TEXT.test(text);
+
+describe("PH-24 the flag is read in one place and is off in every compose file except the judge session compose", () => {
   it("only src/ai/provider.ts names AI_RECEIPT_PHOTO_ENABLED, and it reads it with one comparison", () => {
     expect(SRC.filter(path => code(path).includes("AI_RECEIPT_PHOTO_ENABLED"))).toEqual(["src/ai/provider.ts"]);
     expect((code("src/ai/provider.ts").match(/env\.AI_RECEIPT_PHOTO_ENABLED/g) ?? []).length).toBe(1);
@@ -54,21 +61,46 @@ describe("PH-24 the flag is read in one place and is off in every compose file",
   });
   it("the route handler and the page ask receiptPhotoEnabled and nothing else", () => {
     expect(code("src/server/receipt-photo-actions.ts")).toMatch(/receiptPhotoEnabled\(env\)/);
-    expect(code("src/app/receipts/new/page.tsx")).toMatch(/receiptPhotoEnabled\(\)/);
+    expect(code("src/app/receipts/new/page.tsx")).toMatch(/receiptPhotoStatus\(\)\.on/);
   });
   it("no compose file, script or tracked environment file turns it on", () => {
     const files = readdirSync(".").filter(name => /^compose.*\.ya?ml$/.test(name)).concat(walk("release").filter(path => /\.ya?ml$/.test(path)));
-    for (const file of files) expect(source(file), file).not.toMatch(/AI_RECEIPT_PHOTO_ENABLED:\s*["']?true/);
+    for (const file of files.filter(path => path !== JUDGE_SESSION)) expect(source(file), file).not.toMatch(/AI_RECEIPT_PHOTO_ENABLED:\s*["']?true/);
+  });
+  it("PH-87 the judge session compose turns the photo flag on exactly once, beside the receipt flag, and no other compose file does", () => {
+    const text = source(JUDGE_SESSION);
+    expect(text.match(/AI_RECEIPT_PHOTO_ENABLED/g)).toHaveLength(1);
+    expect(text).toMatch(/^\s+AI_RECEIPT_ENABLED: "true"\n\s+AI_RECEIPT_PHOTO_ENABLED: "true"$/m);
+    const files = readdirSync(".").filter(name => /^compose.*\.ya?ml$/.test(name)).concat(walk("release").filter(path => /\.ya?ml$/.test(path)));
+    expect(files).toContain(JUDGE_SESSION);
+    expect(files.filter(path => flagOnOutsideJudgeSession(path, source(path)))).toEqual([]);
+    expect(files.filter(path => ON_TEXT.test(source(path)))).toEqual([JUDGE_SESSION]);
+  });
+  it("PH-88 a second compose file with the flag on is caught, in every form, while the judge session path is the only one allowed", () => {
+    for (const path of ["compose.yaml", "compose.owner-preview.yaml", "compose.review.yaml", "release/judge/compose.ui.yaml", "release/judge/compose.setup.yaml", "release/judge/compose.session-subnet.yaml", "release/judge/compose.session.yaml.copy", "release/judge/other/compose.session.yaml", "./release/judge/compose.session.yaml"]) {
+      for (const text of ["AI_RECEIPT_PHOTO_ENABLED: \"true\"", "AI_RECEIPT_PHOTO_ENABLED: true", "- AI_RECEIPT_PHOTO_ENABLED=true", "AI_RECEIPT_PHOTO_ENABLED: ${AI_RECEIPT_PHOTO_ENABLED:-true}"]) expect(flagOnOutsideJudgeSession(path, text), `${path} ${text}`).toBe(true);
+      expect(flagOnOutsideJudgeSession(path, "AI_RECEIPT_PHOTO_ENABLED: \"false\""), path).toBe(false);
+    }
+    expect(flagOnOutsideJudgeSession(JUDGE_SESSION, "AI_RECEIPT_PHOTO_ENABLED: \"true\"")).toBe(false);
   });
   // PH-24, extended: the map form, the list form, an interpolation default, an env_file reference and every script, workflow and Dockerfile.
   const OFF_TEXT = /AI_RECEIPT_PHOTO_ENABLED\s*[:=]\s*["']?(true|\$\{[^}]*:?[-+]\s*["']?true)/;
   const everywhere = () => {
     const roots = [".github", "scripts", "release", "docker", "ops"].filter(path => { try { return statSync(path).isDirectory(); } catch { return false; } });
     const top = readdirSync(".").filter(name => /^(compose.*\.ya?ml|Dockerfile.*|\.env\.example|.*\.sh)$/.test(name));
-    return top.concat(roots.flatMap(walk)).filter(path => !/\.(png|jpg|jpeg|webp|woff2?|ttf|zip|gz|sqlite)$/.test(path) && !/photo-static\.test/.test(path));
+    return top.concat(roots.flatMap(walk)).filter(path => !/\.(png|jpg|jpeg|webp|woff2?|ttf|zip|gz|sqlite)$/.test(path) && !/photo-static\.test/.test(path) && path !== JUDGE_SESSION);
   };
+  // The one script that names the flag as "true" does so only inside an assertion that the judge session compose says so. Every other matching line still fails.
+  const PREPARATION_ASSERT = /^assert\(read\('release\/judge\/compose\.session\.yaml'\)\.includes\('AI_RECEIPT_PHOTO_ENABLED: "true"'\)\);$/;
+  const withoutAllowedLines = (file: string) => source(file).split("\n").filter(line => !(file === "scripts/check-judge-preparation.mjs" && PREPARATION_ASSERT.test(line))).join("\n");
   it("no file turns the flag on in map form, list form, an interpolation default or a shell assignment", () => {
-    for (const file of everywhere()) expect(source(file), file).not.toMatch(OFF_TEXT);
+    for (const file of everywhere()) expect(withoutAllowedLines(file), file).not.toMatch(OFF_TEXT);
+  });
+  it("PH-89 the preparation script allowance is one exact assertion line and nothing else in that file matches", () => {
+    if (!existsSync("scripts/check-judge-preparation.mjs")) return; // not exported
+    const lines = source("scripts/check-judge-preparation.mjs").split("\n").filter(line => OFF_TEXT.test(line));
+    expect(lines).toHaveLength(1); expect(lines[0]).toMatch(PREPARATION_ASSERT);
+    expect("assert(read('release/judge/compose.session.yaml').includes('AI_RECEIPT_PHOTO_ENABLED: \"true\"')); process.env.AI_RECEIPT_PHOTO_ENABLED=true").not.toMatch(PREPARATION_ASSERT);
   });
   it("the detector itself catches each form it is meant to catch", () => {
     for (const bad of ["AI_RECEIPT_PHOTO_ENABLED: true", "AI_RECEIPT_PHOTO_ENABLED: \"true\"", "      - AI_RECEIPT_PHOTO_ENABLED=true", "AI_RECEIPT_PHOTO_ENABLED: ${AI_RECEIPT_PHOTO_ENABLED:-true}", "AI_RECEIPT_PHOTO_ENABLED=${X:-true}", "export AI_RECEIPT_PHOTO_ENABLED=true", "AI_RECEIPT_PHOTO_ENABLED=\"true\""]) expect(bad, bad).toMatch(OFF_TEXT);

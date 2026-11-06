@@ -84,7 +84,7 @@ test("GB-02: 375-pixel receipt quotes, explicit confirmation, allocation and edi
   await expect(page.locator(".receipt-evidence .muted")).toContainText("No AI suggestion is saved yet"); await expect(page.locator(".receipt-evidence")).not.toContainText("Claude Haiku 5.5");
   await page.getByRole("button", { name: "Request AI suggestions" }).click();
   await expect(page.locator(".notice")).toContainText("AI suggestions are ready"); expect(modelCalls).toBe(1);
-  await expect(page.locator(".receipt-evidence .muted")).toContainText("AI (Haiku 5.5). Text in, category suggestions out. No PayPal tools or approval access.");
+  await expect(page.locator(".receipt-evidence .muted")).toHaveText("Text in, category suggestions out. No PayPal tools or approval access."); await expect(page.locator(".ai-recommendation .ai-model-line")).toContainText("Powered by Claude Haiku 5.5.");
   await expect(page.locator(".ai-label").first()).toContainText("AI suggests:");
   await expect(page.locator("blockquote")).toHaveCount(3); await noOverflow(page);
   await expect(page.locator(".ai-recommendation")).toContainText("A person confirms each category."); await expect(page.locator(".category-choice .ai-tag")).toHaveCount(3);
@@ -147,17 +147,17 @@ test("CAI-35: the receipt page names the provider and model from the stored audi
   // Direct inserts of stored suggestions only. This server runs with no model variable, so a Claude name here can only come from the audit.
   const check = async (attempt: number, audit: Record<string, string | number>, columns: { provider: "local" | "claude"; model: string }, model: string, label: string, recommendation: string) => {
     await connection.db.insert(s.receiptSuggestions).values({ reviewId: review!.id, attempt, status: "READY", proposals, audit, ...columns }); await page.reload();
-    await expect(page.locator(".receipt-evidence .muted")).toContainText(`${model}. Text in, category suggestions out. No PayPal tools or approval access.`);
+    await expect(page.locator(".receipt-evidence .muted")).toHaveText("Text in, category suggestions out. No PayPal tools or approval access."); expect(model).toBeTruthy();
     await expect(page.locator(".ai-label").first()).toContainText(`${label} suggests:`); await expect(page.locator("blockquote")).toHaveCount(3);
     await expect(page.locator(".ai-recommendation .ai-model-line")).toContainText(recommendation);
   };
   // The idle strip names the configured Claude model: a key is set and no model variable is set, so the Haiku default.
-  await expect(page.locator(".ai-recommendation.ai-strip .ai-model-line")).toContainText("Model: Claude Haiku 5.5. The receipt text goes to Anthropic.");
-  await check(1, claude("claude-haiku-5-5"), { provider: "claude", model: "claude-haiku-5-5" }, "AI (Haiku 5.5)", "AI", "Model: Claude Haiku 5.5. The receipt text was sent to Anthropic for these suggestions.");
-  await check(2, claude("claude-sonnet-5-5"), { provider: "claude", model: "claude-sonnet-5-5" }, "AI (Sonnet 5.5)", "AI", "Model: Claude Sonnet 5.5. The receipt text was sent to Anthropic for these suggestions.");
-  await check(3, { sourceSha256: sha, requestSha256: hash("a"), responseSha256: hash("b"), modelSha256: hash("c"), modelRevision: "d".repeat(40), promptVersion: "receipt-category-v1" }, { provider: "local", model: "d".repeat(40) }, "Earlier AI model, since retired", "Earlier AI", "Model: Earlier AI model, since retired. This suggestion was saved before AidTrace changed AI models.");
+  await expect(page.locator(".ai-recommendation.ai-strip .ai-model-line")).toContainText("Powered by Claude Haiku 5.5. The receipt text goes to Anthropic.");
+  await check(1, claude("claude-haiku-5-5"), { provider: "claude", model: "claude-haiku-5-5" }, "Powered by Claude Haiku 5.5.", "AI", "Powered by Claude Haiku 5.5. The receipt text was sent to Anthropic for these suggestions.");
+  await check(2, claude("claude-sonnet-5-5"), { provider: "claude", model: "claude-sonnet-5-5" }, "Powered by Claude Sonnet 5.5.", "AI", "Powered by Claude Sonnet 5.5. The receipt text was sent to Anthropic for these suggestions.");
+  await check(3, { sourceSha256: sha, requestSha256: hash("a"), responseSha256: hash("b"), modelSha256: hash("c"), modelRevision: "d".repeat(40), promptVersion: "receipt-category-v1" }, { provider: "local", model: "d".repeat(40) }, "Earlier AI model, since retired.", "Earlier AI", "Model: Earlier AI model, since retired. This suggestion was saved before AidTrace changed AI models.");
   // The database check refuses a provider the audit contradicts, so the unrecognized case is an audit the columns accept but the reader refuses (effort outside the stored contract).
-  await check(4, { ...claude("claude-haiku-5-5"), effort: "high" }, { provider: "claude", model: "claude-haiku-5-5" }, "Unrecognized AI record", "AI", "the saved AI record is not recognized");
+  await check(4, { ...claude("claude-haiku-5-5"), effort: "high" }, { provider: "claude", model: "claude-haiku-5-5" }, "Unrecognized AI record.", "AI", "the saved AI record is not recognized");
   expect(modelCalls).toBe(0); expect(await connection.db.select().from(s.disbursements)).toHaveLength(0);
 });
 test("IAC-351: proposal-disabled manual-review link reaches an editable category without posting", async ({ page }) => {

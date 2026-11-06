@@ -58,7 +58,7 @@ describe("AW-01 the screens say AI", () => {
     expect(aiSuggesterName("Claude Haiku 5.5")).toBe("AI"); expect(aiSuggesterName(RETIRED_MODEL_LABEL.short)).toBe(RETIRED_MODEL_LABEL.short);
     for (const name of Object.values(CLAUDE_NAMES)) expect(aiModelLabel(name), name).not.toMatch(/claude/i);
     const card = aiCard({ applicable: true, suggestion: "READY", confirmed: false, aiAccepted: false, savedModel: "Claude Haiku 5.5", configured: { name: "Claude Haiku 5.5", shellName: "Claude Haiku" } });
-    expect(card.model).toBe("Model: AI (Haiku 5.5)"); expect(aiCard({ applicable: true, suggestion: "NONE", confirmed: false, aiAccepted: false, savedModel: null, configured: { name: "Claude Haiku 5.5", shellName: "Claude Haiku" } }).model).toBe("Configured model: AI (Haiku 5.5)");
+    expect(card.model).toBe("Powered by Claude Haiku 5.5."); expect(aiCard({ applicable: true, suggestion: "NONE", confirmed: false, aiAccepted: false, savedModel: null, configured: { name: "Claude Haiku 5.5", shellName: "Claude Haiku" } }).model).toBe("Powered by Claude Haiku 5.5.");
   });
   it("says AI in the model check rows and keeps the full model name for the one disclosure line", () => {
     for (const id of ["claude-haiku-5-5", "claude-sonnet-5-5"]) { expect(modelCheckedBy(id, "low")).not.toMatch(/claude/i); expect(modelAskedBy(id, "low")).not.toMatch(/claude/i); }
@@ -74,25 +74,26 @@ describe("AW-01 the screens say AI", () => {
 
 describe("AW-01 the provider is named where text leaves the app, and only there", () => {
   it("the model check disclosure names each asked model once, in first-seen order, and the provider", () => {
-    expect(modelCheckDisclosure(["claude-haiku-5-5"])).toBe("Model check: Claude Haiku 5.5. Claim line and clause text was sent to Anthropic.");
-    expect(modelCheckDisclosure(["claude-haiku-5-5", "claude-sonnet-5-5", "claude-haiku-5-5"])).toBe("Model check: Claude Haiku 5.5 and Claude Sonnet 5.5. Claim line and clause text was sent to Anthropic.");
-    expect(modelCheckDisclosure(["claude-sonnet-5-5", "claude-haiku-5-5", "claude-opus-5-5"])).toBe("Model check: Claude Sonnet 5.5, Claude Haiku 5.5 and Claude Opus 5.5. Claim line and clause text was sent to Anthropic.");
+    expect(modelCheckDisclosure(["claude-haiku-5-5"])).toBe("Powered by Claude Haiku 5.5. Claim line and clause text was sent to Anthropic.");
+    expect(modelCheckDisclosure(["claude-haiku-5-5", "claude-sonnet-5-5", "claude-haiku-5-5"])).toBe("Powered by Claude Haiku 5.5 and Claude Sonnet 5.5. Claim line and clause text was sent to Anthropic.");
+    // A model the table cannot name is never guessed at: the line is empty rather than a partial list.
+    expect(modelCheckDisclosure(["claude-sonnet-5-5", "claude-haiku-5-5", "claude-opus-5-5"])).toBe("");
     expect(modelCheckDisclosure([])).toBe("");
   });
   it("the saved suggestion line and the idle strip name the model and Anthropic, and the retired and unrecognized records name no provider", () => {
     const audit = { provider: "claude", model: "claude-haiku-5-5", responseModel: "claude-haiku-5-5", effort: "low", promptVersion: "receipt-category-claude-v2", schemaVersion: "receipt-s1" } as unknown as ReceiptAudit;
-    expect(aiModelLine(audit)).toBe("Model: Claude Haiku 5.5. The receipt text was sent to Anthropic for these suggestions.");
+    expect(aiModelLine(audit)).toBe("Powered by Claude Haiku 5.5. The receipt text was sent to Anthropic for these suggestions.");
     expect(aiModelLine(null)).toBe("Model: the saved AI record is not recognized, so no provider is named.");
     expect(aiModelLine({ provider: "local" } as unknown as ReceiptAudit)).toBe("Model: Earlier AI model, since retired. This suggestion was saved before AidTrace changed AI models.");
     const idle = renderToStaticMarkup(createElement(AiRecommendation, { lines: [], ready: false, audit: null, configured: { name: "Claude Haiku 5.5" }, running: false }));
-    expect(idle).toContain("Model: Claude Haiku 5.5. The receipt text goes to Anthropic.");
+    expect(idle).toContain("Powered by Claude Haiku 5.5. The receipt text goes to Anthropic.");
     expect(renderToStaticMarkup(createElement(AiRecommendation, { lines: [], ready: false, audit: null, configured: null, aiOff: AI_OFF_MESSAGES.NO_KEY, running: false }))).not.toMatch(/Anthropic/);
     const ready = renderToStaticMarkup(createElement(AiRecommendation, { lines: [], ready: true, audit, configured: { name: "Claude Haiku 5.5" }, running: false }));
     expect(ready).toContain("sent to Anthropic"); expect(ready).toContain("Saved record: model AI (Haiku 5.5), schema receipt-s1."); expect(ready).not.toContain("receipt-category-claude-v2");
   });
   it("the claim page model check section wires the disclosure, which refuses to name a pair that sent no request", () => {
     const section = stripComments(readFileSync("src/app/claims/[claimId]/policy-checks.tsx", "utf8"));
-    expect(section).toContain("modelCheckDisclosure("); expect(section).toContain('pair.state !== "SKIPPED"'); expect(section).toContain('pair.reasonCode !== "LIMIT"');
+    expect(section).toContain("modelCheckDisclosure(model.calledModels)"); expect(section).not.toContain("pair.model");
     expect(visibleLiterals(readFileSync("src/app/ai-disclosure.ts", "utf8")).some(text => /sent to Anthropic/.test(text))).toBe(true);
   });
 });

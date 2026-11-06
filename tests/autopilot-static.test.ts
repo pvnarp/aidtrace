@@ -72,6 +72,21 @@ describe("AU-22 only the ledger sends, and nothing on the web reaches the automa
   });
 });
 
+// AU-23 helper. The body of one exported handler, bounded by the next top-level export, so a check deleted from
+// handleFundAutomation cannot be satisfied by the copy in handleClaimDisagree below it.
+const ROUTE_ORDER = ["fundAutopilotEnabled(deps.env)", "request.method", "isSameOrigin", "findSession", '"APPROVER"'];
+const handlerBody = (source: string, name: string) => {
+  const start = source.indexOf(`export async function ${name}`); if (start === -1) return "";
+  const end = source.indexOf("\nexport ", start + 1); return source.slice(start, end === -1 ? undefined : end);
+};
+const routeOrderProblems = (source: string, name: string): string[] => {
+  const body = handlerBody(source, name); if (!body) return [`${name} not found`];
+  const positions = ROUTE_ORDER.map(needle => body.indexOf(needle));
+  const problems = ROUTE_ORDER.filter((_, index) => positions[index] === -1).map(needle => `${name} lacks ${needle}`);
+  for (let index = 1; index < positions.length; index++) if (positions[index - 1]! > -1 && positions[index]! > -1 && positions[index - 1]! > positions[index]!) problems.push(`${name}: ${ROUTE_ORDER[index - 1]} after ${ROUTE_ORDER[index]}`);
+  return problems;
+};
+
 describe("AU-23 the kill switch routes", () => {
   it("AU-23: each route is a thin wrapper over one handler and the handler answers 404 before anything else when the second flag is off", () => {
     for (const [path, handler] of [["src/app/api/funds/[fundId]/automation/route.ts", "handleFundAutomation"], ["src/app/api/claims/[claimId]/automation/route.ts", "handleClaimDisagree"]] as const) {
@@ -80,14 +95,26 @@ describe("AU-23 the kill switch routes", () => {
       expect(importsOf(path).filter(spec => spec.startsWith("."))).toEqual(["../../../../../server/db", expect.stringMatching(/server\/automation-actions$/)]);
     }
     const actions = text("src/server/automation-actions.ts");
-    for (const name of ["handleFundAutomation", "handleClaimDisagree"]) {
-      const body = actions.slice(actions.indexOf(`export async function ${name}`));
-      expect(body.indexOf("fundAutopilotEnabled(deps.env)")).toBeGreaterThan(-1);
-      expect(body.indexOf("fundAutopilotEnabled(deps.env)")).toBeLessThan(body.indexOf("request.method"));
-      expect(body.indexOf("request.method")).toBeLessThan(body.indexOf("isSameOrigin"));
-      expect(body.indexOf("isSameOrigin")).toBeLessThan(body.indexOf("findSession"));
-      expect(body.indexOf("findSession")).toBeLessThan(body.indexOf('"APPROVER"'));
-    }
+    for (const name of ["handleFundAutomation", "handleClaimDisagree"]) expect(routeOrderProblems(actions, name), name).toEqual([]);
+    // The bound holds: handleFundAutomation's body stops before handleClaimDisagree starts.
+    const fundBody = handlerBody(actions, "handleFundAutomation");
+    expect(fundBody).not.toContain("export async function handleClaimDisagree"); expect(fundBody.length).toBeLessThan(actions.length - actions.indexOf("export async function handleFundAutomation"));
+  });
+
+  it("AU-23: the helper fails a handler that lacks a check even when the next handler still has it", () => {
+    const handler = (name: string, lines: string[]) => [`export async function ${name}(request: Request, id: string, deps: AutomationRouteDeps): Promise<Response> {`, ...lines.map(line => `    ${line}`), "}"].join("\n");
+    const flag = 'if (!fundAutopilotEnabled(deps.env)) return text(404, "Not found");', method = 'if (request.method !== "POST") return text(405, "Method not allowed", { Allow: "POST" });';
+    const origin = 'if (!isSameOrigin(request)) return text(403, "Request origin rejected");', session = "const user = await findSession(sessionToken(request), deps.db);", role = 'if (user.role !== "APPROVER") return text(403, "Approver access required");';
+    const withoutOrigin = [handler("handleFundAutomation", [flag, method, session, role]), handler("handleClaimDisagree", [flag, method, origin, session, role])].join("\n\n");
+    expect(routeOrderProblems(withoutOrigin, "handleFundAutomation")).toEqual(["handleFundAutomation lacks isSameOrigin"]);
+    expect(routeOrderProblems(withoutOrigin, "handleClaimDisagree")).toEqual([]);
+    // The old unbounded slice ran to the end of the file and found the next handler's copy, which is why it passed.
+    expect(withoutOrigin.slice(withoutOrigin.indexOf("export async function handleFundAutomation"))).toContain("isSameOrigin");
+    const withoutRole = [handler("handleFundAutomation", [flag, method, origin, session]), handler("handleClaimDisagree", [flag, method, origin, session, role])].join("\n\n");
+    expect(routeOrderProblems(withoutRole, "handleFundAutomation")).toEqual(['handleFundAutomation lacks "APPROVER"']);
+    const reordered = [handler("handleFundAutomation", [flag, method, session, origin, role])].join("\n");
+    expect(routeOrderProblems(reordered, "handleFundAutomation")).toEqual(["handleFundAutomation: isSameOrigin after findSession"]);
+    expect(routeOrderProblems(reordered, "handleMissing")).toEqual(["handleMissing not found"]);
   });
 });
 

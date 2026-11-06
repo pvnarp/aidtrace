@@ -7,7 +7,7 @@ createServer((incoming, outgoing) => {
   const upstream = request({ hostname: "app", port: 3000, path: incoming.url, method: incoming.method, headers }, response => {
     outgoing.writeHead(response.statusCode ?? 502, response.headers); response.pipe(outgoing);
   });
-  upstream.setTimeout(90000, () => upstream.destroy());
+  upstream.setTimeout(200000, () => upstream.destroy());
   upstream.on("error", () => { if (!outgoing.headersSent) outgoing.writeHead(502); outgoing.end("The local session is not ready."); });
   incoming.on("aborted", () => upstream.destroy());
   outgoing.on("close", () => { if (!outgoing.writableFinished) upstream.destroy(); });

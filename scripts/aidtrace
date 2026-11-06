@@ -38,7 +38,8 @@ case "${1:-}" in
       fi
     }
     # The Claude key is read from the launching shell by name only (compose.session.yaml lists ANTHROPIC_API_KEY with no value).
-    # It is never written to session.env or any file and never printed. Only the final app start receives it:
+    # This launcher never writes it to session.env or any other file and never prints it. The engine keeps it in the app container's
+    # configuration, also after judge-stop, until that container is recreated or removed. Only the final app start receives it:
     # build, migrate, init and the production build run without it.
     without_key() ( unset ANTHROPIC_API_KEY; "$@" )
     case "$operation" in
@@ -94,6 +95,7 @@ case "${1:-}" in
     ;;
   ui-check)
     compose up -d --wait db
+    (umask 077; mkdir -p local)
     ui_source=$(mktemp -d "$root/local/ui-source-XXXXXX")
     compose run --rm --no-deps app node scripts/snapshot-judge.mjs "${ui_source#"$root/"}"
     export AIDTRACE_UI_SOURCE="$ui_source"

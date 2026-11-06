@@ -4,6 +4,7 @@ import { loadAnalyticsSnapshot, AnalyticsAccessError } from '../analytics/snapsh
 import { isQuestion, questionFacts } from '../analytics/model';
 import { createAnalyticsSelector, AnalyticsModelError, type AnalyticsSelector } from '../analytics/explain';
 import { AI_OFF_MESSAGES, claudeAiStatus } from '../ai/provider';
+import { poweredByLine } from '../app/ai-disclosure';
 const select = createAnalyticsSelector();
 export const analyticsHeaders = { 'Cache-Control': 'no-store, private', Vary: 'Cookie' };
 const json = (value: unknown, status = 200) => Response.json(value, { status, headers: analyticsHeaders });
@@ -32,7 +33,7 @@ export async function handleAnalytics(request: Request, deps: { db: AppDatabase;
     // Revalidate at the request boundary, including any future selector implementation.
     const allowed = questionFacts(snapshot, body.question);
     if (!result.facts.length || result.facts.length > 3 || new Set(result.facts.map(f => f.id)).size !== result.facts.length || result.facts.some(f => !allowed.some(a => a.id === f.id && a.text === f.text && a.source === f.source))) throw new AnalyticsModelError('VALIDATION');
-    return json({ snapshotDigest: snapshot.digest, observedAt: snapshot.observedAt, facts: result.facts, model: result.model, toolsOffered: 0 });
+    return json({ snapshotDigest: snapshot.digest, observedAt: snapshot.observedAt, facts: result.facts, model: result.model, poweredBy: poweredByLine([result.model.id]), toolsOffered: 0 });
   } catch (error) {
     if (error instanceof AnalyticsAccessError) return json({ error: error.message }, error.status);
     if (error instanceof AnalyticsModelError) return json({ error: 'No verified AI explanation is available. Read the snapshot facts below.', code: error.code }, error.code === 'BUSY' ? 429 : 503);

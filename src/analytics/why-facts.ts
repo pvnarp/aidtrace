@@ -38,7 +38,7 @@ export function whyFacts(rows: WhyRows): Fact[] {
     { id: 'auto-rule', text: 'An automatic payment needed every rule to pass and zero compliance flags, under the fund cap.', source: 'Autopilot guardrail rules' },
     { id: 'auto-versions', text: latest === null
       ? 'No automatic approval is recorded yet, so no rule set, model or prompt version is shown.'
-      : `The most recent automatic approval recorded these versions. Rule set: ${versionText(latest.ruleSetVersion)}. Model: ${versionText(latest.model, true)}. Prompt: ${versionText(latest.promptVersion)}.`, source: 'Stored versions on the most recent automatic approval record' },
+      : `The most recent automatic approval recorded these versions. Check rules: ${versionText(latest.ruleSetVersion)}. Model: ${versionText(latest.model, true)}. Prompt: ${versionText(latest.promptVersion)}.`, source: 'Stored versions on the most recent automatic approval record' },
     { id: 'auto-sampled', text: `${plural(has(rows, 'AUDIT_SAMPLED'), 'claim was', 'claims were')} drawn for the random audit and went to two people.`, source: 'Automated decision records, audit sampled' },
     { id: 'people-signed', text: `People signed ${plural(rows.signedPayouts.length, 'payout', 'payouts')}, totaling ${usd(signedCents)}.`, source: 'Disbursements with a human signer' },
     { id: 'people-held', text: `${plural(has(rows, 'HELD'), 'claim was', 'claims were')} held for people after AI checks.`, source: 'Automated decision records, held' },

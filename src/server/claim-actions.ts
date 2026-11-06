@@ -1,10 +1,11 @@
 import type { AppDatabase } from "./db";
 import { desc, eq } from "drizzle-orm";
-import { allocationDecisions, claims, users } from "../../db/schema";
+import { allocationDecisions, claims, historicalEventReviews, users } from "../../db/schema";
 import { findSession, isSameOrigin, sessionToken } from "./auth";
 import { approveAutoRecognized, approveDecision, freezeDecision, rejectClaim } from "../ledger/service";
 import { refreshClaimPayout, sendClaimPayout } from "../ledger/payout";
 import { authorizePayoutRetry, sendAuthorizedPayoutRetry } from "../ledger/retry";
+import { resolveHistoricalReview } from "../ledger/historical-review";
 import type { PayoutTransport } from "../paypal/adapter";
 import { claimFailureNotice } from "./claim-notices";
 import { approveGiftNote } from "../donation/note-approval";
@@ -28,7 +29,7 @@ export async function handleClaimAction(request: Request, claimId: string, depen
   }
   const body = new URLSearchParams(Buffer.concat(chunks).toString("utf8"));
   const action = body.get("action");
-  if (dependencies.judgeSession && (!claimId.startsWith("R-") || ["send", "refresh", "retry", "authorize-retry", "takeover"].includes(action ?? ""))) return new Response("This judging session cannot request or change a payment. Continue the unpaid receipt review.", { status: 403 });
+  if (dependencies.judgeSession && (!claimId.startsWith("R-") || ["send", "refresh", "retry", "authorize-retry", "resolve-historical", "takeover"].includes(action ?? ""))) return new Response("This judging session cannot request or change a payment. Continue the unpaid receipt review.", { status: 403 });
   if ((action === "freeze" && user.role !== "CLAIMANT") || (action !== "freeze" && user.role !== "APPROVER")) return new Response("This action requires the appropriate signed-in role", { status: 403 });
   const redirect = (notice: string) => new Response(null, { status: 303, headers: { Location: `/claims/${claimId}?notice=${notice}`, "Cache-Control": "no-store" } });
   try {
@@ -71,6 +72,15 @@ export async function handleClaimAction(request: Request, claimId: string, depen
       if (action === "authorize-retry") { await authorizePayoutRetry(dependencies.db, claimId, user.id, hash, id); return redirect("retry-authorized"); }
       const result = await sendAuthorizedPayoutRetry(dependencies.db, claimId, user.id, hash, id, dependencies.provider());
       return redirect(result.state === "UNKNOWN" ? "unknown" : result.state === "FUNDING_REJECTED" ? "funding" : "submitted");
+    }
+    if (action === "resolve-historical") {
+      // A person records that both attempts were checked in PayPal. It writes one resolution row and moves no money. The server checks that the review belongs to this claim.
+      const reviewId = body.get("reviewId") ?? "";
+      if (!/^[a-f0-9-]{36}$/.test(reviewId)) return new Response("Valid review required", { status: 400 });
+      const [review] = await dependencies.db.select({ claimId: historicalEventReviews.claimId }).from(historicalEventReviews).where(eq(historicalEventReviews.id, reviewId));
+      if (review?.claimId !== claimId) return new Response("Review does not belong to this claim", { status: 403 });
+      await resolveHistoricalReview(dependencies.db, reviewId, user.id, body.get("note") ?? "");
+      return redirect("historical-resolved");
     }
     return new Response("Unknown action", { status: 400 });
   } catch (error) { return redirect(claimFailureNotice(error)); }

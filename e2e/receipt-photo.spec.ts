@@ -18,7 +18,7 @@ const STILLS = "local/rules-ui-artifacts";
 let admin: ReturnType<typeof postgres>, connection: ReturnType<typeof connectDatabase>;
 let server: ChildProcess | undefined, model: Server | undefined, name: string;
 let passwords: Record<"maria" | "tara" | "ben", string>;
-let photoMode: "good" | "mismatch" | "refused" = "good";
+let photoMode: "good" | "mismatch" | "tip" | "refused" = "good";
 let photoRequests: { model: string; mediaType: string; dataLength: number; system: string }[] = [];
 let otherRequests = 0;
 let printedDate = "2026-10-12";
@@ -45,7 +45,7 @@ async function start(photoFlag: "true" | "false") {
     if (Array.isArray(content)) {
       const image = content.find((block: { type: string }) => block.type === "image");
       photoRequests.push({ model: body.model, mediaType: image.source.media_type, dataLength: image.source.data.length, system: body.system });
-      text = JSON.stringify(transcript(photoMode === "mismatch" ? 2881 : 2880));
+      text = JSON.stringify(photoMode === "tip" ? { ...transcript(2880), subtotal_cents: 1730 } : transcript(photoMode === "mismatch" ? 2881 : 2880));
       if (photoMode === "refused") stop = "refusal";
     } else {
       otherRequests++;
@@ -139,6 +139,16 @@ test("PH-40 to PH-44: a claimant reads a photo into the draft form, sees a misma
     await page.screenshot({ path: `${STILLS}/ph-mismatch.png`, fullPage: true });
   });
 
+  await test.step("PH-86: an amount after the printed subtotal shows the neutral note and no warning", async () => {
+    await page.goto("/receipts/new");
+    photoMode = "tip";
+    await page.getByTestId("photo-input").setInputFiles({ name: "receipt-tip.png", mimeType: "image/png", buffer: png });
+    await expect(page.getByTestId("photo-note")).toHaveText("The subtotal $17.30 covers the first 2 lines. The $11.50 after it, such as a tip added by hand, is in the total of $28.80. Check that line against the photo.");
+    await expect(page.getByTestId("photo-mismatch")).toHaveCount(0);
+    await expect(page.getByTestId("photo-status")).not.toHaveClass(/warning/);
+    await expect(page.locator("#total")).toHaveValue("28.80");
+  });
+
   await test.step("PH-43: a failed read pre-fills nothing and says so in the fixed words", async () => {
     await page.goto("/receipts/new");
     photoMode = "refused";
@@ -159,12 +169,16 @@ test("PH-40 to PH-44: a claimant reads a photo into the draft form, sees a misma
   await test.step("PH-44: submitting the filled form reaches the draft, which says it was read from a photo, and the person's confirmation is recorded after the existing flow", async () => {
     photoMode = "good";
     await page.goto("/receipts/new");
+    // PB-09: the photo control names the model before the photo is sent, and the status names the model that read it.
+    await expect(page.getByTestId("photo-powered-by")).toHaveText("Powered by Claude Haiku 5.5.");
     await page.getByTestId("photo-input").setInputFiles({ name: "receipt4.png", mimeType: "image/png", buffer: png });
     await expect(page.getByTestId("photo-status")).toContainText("AI read this photo.");
+    await expect(page.getByTestId("photo-powered-by")).toHaveText("Powered by Claude Haiku 5.5.");
     await page.getByLabel("This receipt is sample data with no real personal details.").check();
     await page.getByRole("button", { name: "Create receipt draft", exact: true }).click();
     await expect(page.getByRole("status").first()).toContainText("Unpaid draft created");
     await expect(page.getByTestId("photo-evidence")).toHaveText("Pre-filled from a photo by AI (Haiku 5.5). The claimant made no changes.");
+    await expect(page.getByTestId("photo-powered-by")).toHaveText("Powered by Claude Haiku 5.5.");
     await expect(page.locator(".receipt-source")).toContainText("Acrylic paint set $12.50");
     expect(otherRequests).toBe(0);
     await page.getByRole("button", { name: "Request AI suggestions" }).click(); await expect(page.locator(".notice")).toContainText("AI suggestions are ready");
@@ -174,7 +188,7 @@ test("PH-40 to PH-44: a claimant reads a photo into the draft form, sees a misma
     await page.screenshot({ path: `${STILLS}/ph-claim-evidence.png`, fullPage: true });
     const [claims] = await connection.client`select count(*)::int as n from claims where id like 'R-%'`; expect(claims!.n).toBe(1);
     const reads = await connection.client`select outcome from receipt_photo_reads order by created_at`;
-    expect(reads.map(row => row.outcome)).toEqual(["READ", "READ", "REFUSED", "READ"]);
+    expect(reads.map(row => row.outcome)).toEqual(["READ", "READ", "READ", "REFUSED", "READ"]);
     const [linked] = await connection.client`select count(*)::int as n from receipt_reviews where photo_read_id is not null`; expect(linked!.n).toBe(1);
     for (const table of ["approvals", "disbursements", "disbursement_attempts", "allocation_decisions"]) { const [row] = await connection.client.unsafe(`select count(*)::int as n from ${table}`); expect(row!.n, table).toBe(0); }
   });
@@ -189,6 +203,9 @@ test("PH-45: with the flag off the page shows no photo control and the route ans
   await expect(page.getByText("Read a photo of a sample receipt")).toHaveCount(0);
   await expect(page.locator("#photoReadId")).toHaveCount(0);
   await expect(page.locator("fieldset.receipt-line")).toHaveCount(3);
+  // RS-05: the flag is off, so the new receipt page keeps its old words.
+  await expect(page.getByRole("navigation", { name: "Expense trace" })).toContainText("Typed text and amounts");
+  await expect(page.getByRole("navigation", { name: "Expense trace" })).not.toContainText("Photo or typed text");
   const response = await page.request.post("/api/receipts/photo-text", { headers: { origin: ORIGIN, "content-type": "image/png" }, data: Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 1, 2, 3]), maxRedirects: 0 });
   expect(response.status()).toBe(404);
   expect(photoRequests).toHaveLength(0);
@@ -199,6 +216,11 @@ test("PH-60 to PH-63: a printed date that is not a date is cleared and shown, th
   await start("true");
   const png = await receiptPng(page);
   await login(page, "maria"); await page.goto("/receipts/new");
+
+  await test.step("RS-04: with the photo reader on, the new receipt page says Photo or typed text before any photo is read", async () => {
+    await expect(page.getByRole("navigation", { name: "Expense trace" })).toContainText("Photo or typed text");
+    await expect(page.getByRole("navigation", { name: "Expense trace" })).not.toContainText("Typed text and amounts");
+  });
 
   await test.step("PH-60: a printed date the form cannot hold clears the date field, shows the printed text and the required field forces entry", async () => {
     printedDate = "12 Oct 26";

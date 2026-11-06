@@ -2,8 +2,8 @@
 
 Apply the October 29 adopted sections 1 and 2 of docs/plans/JUDGE_STORY_SCOPE.md. Use
 judge-new/judge-up with a separate named session, not the retained owner runtime. The same
-USD 500 receipt passes actual AI review, confirmation, freeze and two logins/approvals,
-ending Approved at a read-only PayPal handoff. Preserve previous sessions and unchanged caps.
+USD 500 receipt passes actual AI review (when a key is supplied), confirmation, freeze and
+two logins/approvals, ending Approved at a read-only PayPal handoff. Preserve previous sessions and unchanged caps.
 Judge payment actions are disabled server-side; do not edit configuration to turn them on.
 C-104 stays in tests and history, not the primary judge flow. Apply the October 29 adopted
 local Inter typography scope in section 3 and retain docs/FONT_PROVENANCE.md and the OFL.
@@ -28,11 +28,15 @@ expense-preparation addendum docs/plans/AGENTIC_EXPENSE_SCOPE.md. Preparation ha
 to confirm, freeze, approve or pay. Use review-up for stable walkthroughs; code changes need
 an explicit rebuild/restart. Apply docs/plans/STUDIO_FREE_FALLBACK_SCOPE.md as the
 presentation/dependency override. Do not reintroduce Studio or assert sponsor clearance.
-All toolchains, builds, databases,
-models and tests run in OrbStack containers through scripts/aidtrace. Install nothing
+All toolchains, builds, databases and tests run in containers on the selected Docker context
+(OrbStack for the owner) through scripts/aidtrace. No model weights or model runtime run in a
+session; AI features call the hosted Claude API only when the judge supplies a key. Install nothing
 natively. Use invented fixtures and the configured non-payable example.invalid recipient.
 Only src/paypal/adapter.ts may call PayPal; only the ledger module writes financial journals.
 No provider call, payment, new recipient or public release is authorized by these instructions.
-Preserve volumes and existing records. AI proposes categories only; human confirmation and
+Preserve volumes and existing records. AI proposes categories, drafts fund rules from pasted grant
+text and transcribes receipt photos, and never confirms, freezes, approves, allocates or pays. A rule
+draft binds only after two different approvers each approve it; a photo read only pre-fills the form.
+Human confirmation and
 the deterministic solver retain authority. Analytics selects validated server facts only
 and offers no financial tools. Report actual tests and limitations honestly.

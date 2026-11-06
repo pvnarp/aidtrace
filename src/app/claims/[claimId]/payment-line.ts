@@ -6,3 +6,7 @@ export function paymentLine(state: string | null): string {
   if (state === "SUBMITTED" || state === "PREPARED") return "Payment: sent to PayPal, not paid yet.";
   return "Payment: not paid.";
 }
+// Historical PayPal event review (option A, November 5). One plain sentence per open review, shown to every viewer inside the payment section.
+export function historicalReviewLine(eventAttemptNumber: number): string {
+  return `PayPal reported on earlier attempt ${eventAttemptNumber} after a retry. Check both attempts in PayPal before relying on this payment. Retries wait until a person records the check.`;
+}

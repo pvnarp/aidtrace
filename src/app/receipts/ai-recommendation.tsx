@@ -1,4 +1,5 @@
 import { CLAUDE_NAMES, RETIRED_MODEL_LABEL, type ReceiptAudit } from "../../ai/audit";
+import { poweredByLine, poweredByNames } from "../ai-disclosure";
 import { aiModelLabel } from "../shell-copy";
 
 type Line = { id: string; description: string; amount: string; proposal: { category: string; quote: string } | null };
@@ -10,8 +11,8 @@ type Line = { id: string; description: string; amount: string; proposal: { categ
  * receipt text; every other receipt-page label says "AI" (docs/ASSUMPTIONS.md section 69).
  */
 export function aiModelLine(audit: ReceiptAudit | null): string {
-  return audit?.provider === "local" ? `Model: ${RETIRED_MODEL_LABEL.model}. This suggestion was saved before AidTrace changed AI models.`
-    : audit ? `Model: ${CLAUDE_NAMES[audit.model]}. The receipt text was sent to Anthropic for these suggestions.`
+  if (audit?.provider === "local") return `Model: ${RETIRED_MODEL_LABEL.model}. This suggestion was saved before AidTrace changed AI models.`;
+  return audit ? `${poweredByLine([audit.model])} The receipt text was sent to Anthropic for these suggestions.`.trim()
     : "Model: the saved AI record is not recognized, so no provider is named.";
 }
 
@@ -31,7 +32,7 @@ export function AiRecommendation({ lines, ready, audit, configured, aiOff = null
   if (!ready) {
     return <section className="ai-recommendation ai-strip" aria-labelledby="ai-recommendation-title" data-state={running ? "RUNNING" : "NONE"}>
       <p className="eyebrow" id="ai-recommendation-title">AI recommendation</p><span className="ai-tag idle">{running ? "Running" : aiOff ? "AI off" : "Not run yet"}</span>
-      <p className="ai-model-line">{aiOff ? `${aiOff} ` : configured ? `Model: ${configured.name}. The receipt text goes to Anthropic. ` : ""}<strong>A person confirms each category.</strong></p>
+      <p className="ai-model-line">{aiOff ? `${aiOff} ` : configured ? `${poweredByNames([configured.name])} The receipt text goes to Anthropic. `.trimStart() : ""}<strong>A person confirms each category.</strong></p>
       {prepareHref && !running && !aiOff && <a className="ai-strip-link" href={prepareHref}>Prepare with AI<span aria-hidden="true"> →</span></a>}
     </section>;
   }

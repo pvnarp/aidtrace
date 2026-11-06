@@ -15,6 +15,8 @@ export type StoredModelPair = {
   reasonCode: ModelReasonCode | null;
   // The model id and effort that produced the lines (CHECKED) or that failed (NOT_CHECKED). Null for SKIPPED and NO_CLAUSES.
   model: string | null; effort: string | null; lines: StoredModelLine[];
+  // The distinct model ids of this fund's stored CALL rows, first-seen order: every model that was sent a request for it. A request refused by the request limit stores no CALL row, so it is not here.
+  called: string[];
 };
 export type ModelRunState = "RUNNING" | "DONE" | "INTERRUPTED";
 // Hold when any line is CONFLICT or UNSURE or any pair is NOT_CHECKED, or the run never finished. NO_CONFLICT_FOUND needs a finished run, at least one
@@ -23,7 +25,12 @@ export type ModelStatus = "RUNNING" | "HOLD" | "NO_CONFLICT_FOUND" | "NOTHING_CH
 export type StoredModelRun = {
   id: string; startedAt: Date; model: string; effort: string; promptVersion: string; schemaVersion: string; clauseSetHash: string;
   state: ModelRunState; status: ModelStatus; pairs: StoredModelPair[];
+  // The distinct model ids of every CALL row of the run in sequence order: every model that was sent a request. The "Powered by" line is built from this and nothing else.
+  calledModels: string[];
 };
+
+/** Distinct model ids of CALL rows, first-seen order. */
+export const calledModelsOf = (rows: readonly { entry: string; model: string | null }[]): string[] => [...new Set(rows.flatMap(row => row.entry === "CALL" && row.model ? [row.model] : []))];
 
 export function modelStatusOf(state: ModelRunState, pairs: StoredModelPair[]): ModelStatus {
   if (state === "RUNNING") return "RUNNING";
@@ -58,17 +65,17 @@ export async function readModelChecks(tx: PolicyReader, decisionHash: string, no
     const version = mine.find(row => row.policyVersion !== null)?.policyVersion ?? null;
     const fundName = boundedText(funds.find(fund => fund.id === fundId)?.name ?? fundId, 120);
     const skipped = mine.find(row => row.entry === "SKIPPED");
-    if (skipped) return { fundId, fundName, policyVersion: version, state: "SKIPPED", reasonCode: skipped.reasonCode, model: null, effort: null, lines: [] };
+    if (skipped) return { fundId, fundName, policyVersion: version, state: "SKIPPED", reasonCode: skipped.reasonCode, model: null, effort: null, lines: [], called: calledModelsOf(mine) };
     const lines = mine.filter(row => row.entry === "LINE");
     if (lines.length > 0) {
       const first = lines[0]!;
-      return { fundId, fundName, policyVersion: version, state: "CHECKED", reasonCode: null, model: first.model, effort: first.effort,
+      return { fundId, fundName, policyVersion: version, state: "CHECKED", reasonCode: null, model: first.model, effort: first.effort, called: calledModelsOf(mine),
         lines: lines.map(row => ({ lineId: row.lineId!, description: description.get(row.lineId!) ?? row.lineId!, verdict: row.verdict!, clauseId: row.clauseId, clauseText: clauseText(fundId, version, row.clauseId) })) };
     }
     const failed = mine.find(row => row.entry === "NOT_CHECKED");
     // A pair with no outcome row cannot be written by the service. If one is ever read it is shown as not checked, never as OK.
-    return { fundId, fundName, policyVersion: version, state: "NOT_CHECKED", reasonCode: failed?.reasonCode ?? "UNAVAILABLE", model: failed?.model ?? null, effort: failed?.effort ?? null, lines: [] };
+    return { fundId, fundName, policyVersion: version, state: "NOT_CHECKED", reasonCode: failed?.reasonCode ?? "UNAVAILABLE", model: failed?.model ?? null, effort: failed?.effort ?? null, lines: [], called: calledModelsOf(mine) };
   });
   return { id: run.id, startedAt: run.startedAt, model: run.model, effort: run.effort, promptVersion: run.promptVersion, schemaVersion: run.schemaVersion,
-    clauseSetHash: run.clauseSetHash, state, status: modelStatusOf(state, pairs), pairs };
+    clauseSetHash: run.clauseSetHash, state, status: modelStatusOf(state, pairs), pairs, calledModels: calledModelsOf(rows) };
 }

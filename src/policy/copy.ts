@@ -52,9 +52,11 @@ const word = (text: string) => text.charAt(0).toUpperCase() + text.slice(1);
 const MODEL_ID = /^([a-z]+)-([a-z]+)-(\d+)-(\d+)$/;
 export const modelFullName = (model: string) => { const parts = MODEL_ID.exec(model); return parts ? `${word(parts[1]!)} ${word(parts[2]!)} ${parts[3]}.${parts[4]}` : model; };
 const modelShortName = (model: string) => { const parts = MODEL_ID.exec(model); return parts ? `${word(parts[2]!)} ${parts[3]}.${parts[4]}` : model; };
-export const modelCheckedBy = (model: string, effort: string) => `Checked by AI (${modelShortName(model)}) at ${effort} effort.`;
+// November 5: a fund the check escalated names both models in the order they were asked: "AI (Haiku 5.5, then Sonnet 5.5)". One model gives the earlier "AI (Haiku 5.5)".
+const modelShortNames = (models: string | readonly string[]) => (typeof models === "string" ? [models] : [...new Set(models)]).map(modelShortName).join(", then ");
+export const modelCheckedBy = (models: string | readonly string[], effort: string) => `Checked by AI (${modelShortNames(models)}) at ${effort} effort.`;
 // A NOT_CHECKED pair names the model that was asked and failed. It never says "Checked by".
-export const modelAskedBy = (model: string, effort: string) => `Asked AI (${modelShortName(model)}) at ${effort} effort.`;
+export const modelAskedBy = (models: string | readonly string[], effort: string) => `Asked AI (${modelShortNames(models)}) at ${effort} effort.`;
 export const modelLineLabel = (lineId: string, description: string) => `Line ${lineId} (${description})`;
 export function modelLineText(line: { lineId: string; description: string; verdict: "OK" | "CONFLICT" | "UNSURE"; clauseId: string | null; clauseText: string | null }): { label: string; text: string; quote: string | null } {
   const label = modelLineLabel(line.lineId, line.description);

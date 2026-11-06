@@ -306,19 +306,19 @@ describe("DR-113 grant text and quotes render as plain text, never as markup", (
 
 describe("DR-114 the disclosure line comes from the stored model, and says so when a person made the draft", () => {
   it("names the stored model and Anthropic on a drafted review, built from the id", () => {
-    expect(ruleDraftReviewDisclosure("claude-sonnet-5-5")).toBe("Drafted by Claude Sonnet 5.5. The grant text was sent to Anthropic. The AI drafts only: it cannot approve or change a rule.");
-    expect(render(review())).toContain('<p class="rules-disclosure" data-testid="rules-disclosure">Drafted by Claude Sonnet 5.5. The grant text was sent to Anthropic.');
-    expect(render(review({ model: { ...review().view.model!, model: "claude-haiku-5-5" } }))).toContain("Drafted by Claude Haiku 5.5.");
+    expect(ruleDraftReviewDisclosure("claude-sonnet-5-5")).toBe("Powered by Claude Sonnet 5.5. The grant text was sent to Anthropic. The AI drafts only: it cannot approve or change a rule.");
+    expect(render(review())).toContain('<p class="rules-disclosure" data-testid="rules-disclosure">Powered by Claude Sonnet 5.5. The grant text was sent to Anthropic.');
+    expect(render(review({ model: { ...review().view.model!, model: "claude-haiku-5-5" } }))).toContain("Powered by Claude Haiku 5.5.");
   });
   it("says nothing was sent for an edited draft, which stores no model", () => {
     expect(ruleDraftReviewDisclosure(null)).toBe("A person edited this draft. Saving the edit sent nothing to Anthropic.");
     const html = render(review({ model: null, changedFields: ["summary"] }));
     expect(html).toContain("A person edited this draft. Saving the edit sent nothing to Anthropic.");
-    expect(html).not.toContain("Drafted by Claude");
+    expect(html).not.toContain("Powered by");
   });
-  it("the form line names the arm's model, says nothing is sent until the button, and an unknown id is shown as it is", () => {
-    expect(ruleDraftFormDisclosure("claude-sonnet-5-5")).toBe("Nothing is sent until you press Draft rules. Then the grant text above goes to Anthropic, and Claude Sonnet 5.5 drafts the rules for you to review.");
-    expect(ruleDraftFormDisclosure("custom-model")).toContain("custom-model drafts the rules");
+  it("the form line starts with Powered by and the arm's model, says nothing is sent until the button, and an id the table cannot name adds no model line", () => {
+    expect(ruleDraftFormDisclosure("claude-sonnet-5-5")).toBe("Powered by Claude Sonnet 5.5. Nothing is sent until you press Draft rules. Then the grant text above goes to Anthropic for the draft, which you review.");
+    expect(ruleDraftFormDisclosure("custom-model")).not.toMatch(/Powered by|custom-model/);
   });
 });
 

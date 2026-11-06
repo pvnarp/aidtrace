@@ -211,6 +211,24 @@ describe("PH-14 a good read", () => {
     const body = await jsonOf(await handlePhotoText(await build(), deps));
     expect(body.mismatch).toBe("The amounts do not add up: the lines are $6.00, the subtotal reads $5.99. Fix the numbers or retake the photo."); expect(body.arithmetic.ok).toBe(false);
   });
+  it("PH-84 an amount added after the printed subtotal gets a note, not a warning, and the stored arithmetic stays false", async () => {
+    const tip = { ...goodWire(), lines: [{ text: "Science experiment kit", amount_cents: 1200 }, { text: "Blank writing notebook", amount_cents: 400 }, { text: "Tip (by hand)", amount_cents: 300 }], subtotal_cents: 1600, tax_cents: -1, total_cents: 1900 };
+    const { deps } = fresh(tip);
+    const body = await jsonOf(await handlePhotoText(await build(), deps));
+    expect(body.ok).toBe(true);
+    expect(body.note).toBe("The subtotal $16.00 covers the first 2 lines. The $3.00 after it, such as a tip added by hand, is in the total of $19.00. Check that line against the photo.");
+    expect(body.mismatch).toBeNull(); expect(body.arithmetic.ok).toBe(false);
+    expect(body.prefill.total).toBe("19.00");
+    expect((await reads())[0]).toMatchObject({ outcome: "READ", arithmetic_ok: false });
+  });
+  it("PH-85 the existing subtotal and total mismatches still return mismatch, with a null note", async () => {
+    const wrongSubtotal = await jsonOf(await handlePhotoText(await build(), fresh({ ...goodWire(), subtotal_cents: 599 }).deps));
+    expect(wrongSubtotal.mismatch).toBe("The amounts do not add up: the lines are $6.00, the subtotal reads $5.99. Fix the numbers or retake the photo."); expect(wrongSubtotal.note).toBeNull();
+    const wrongTotal = await jsonOf(await handlePhotoText(await build(), fresh({ ...goodWire(), total_cents: 601 }).deps));
+    expect(wrongTotal.mismatch).toContain("lines plus tax are $6.00, the total reads $6.01"); expect(wrongTotal.note).toBeNull();
+    const good = await jsonOf(await handlePhotoText(await build(), fresh().deps));
+    expect(good.mismatch).toBeNull(); expect(good.note).toBeNull();
+  });
 });
 
 describe("PH-15 a failed read pre-fills nothing and records the right outcome", () => {

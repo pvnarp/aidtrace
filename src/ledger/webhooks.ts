@@ -25,16 +25,16 @@ export async function refreshVerifiedPayoutEvent(db: AppDatabase, event: Verifie
   if (batchId && batchId !== target.payoutBatchId || itemId && target.payoutItemId && itemId !== target.payoutItemId) throw new Error("Event resource binding failed");
   if ((await db.select({ id: s.providerEvents.id }).from(s.providerEvents).where(eq(s.providerEvents.eventId, event.eventId))).length) return { state: before.attempt.state, notice: "DUPLICATE_EVENT" };
   if (before.attempt.id !== target.id) {
-    // A past attempt becoming active after a retry needs a human to reconcile both.
+    // A past attempt becoming active after a retry needs a human to reconcile both, so it is recorded as a review row.
+    // The latest attempt and the claim stay as they are, so polling and settlement continue.
     // No journal or automatic resend is inferred from the old event payload.
     return serializable(db, async tx => {
       const current = await reload(tx);
       const [saved] = await tx.insert(s.providerEvents).values({ ...event, verificationStatus: "SUCCESS", processedAt: new Date() }).onConflictDoNothing().returning({ id: s.providerEvents.id });
-      if (saved) {
-        await tx.update(s.disbursementAttempts).set({ state: "MANUAL_REVIEW", lastErrorCode: "HISTORICAL_ATTEMPT_EVENT" }).where(eq(s.disbursementAttempts.id, current.attempt.id));
-        await tx.update(s.claims).set({ status: "PAYOUT_ISSUE" }).where(and(eq(s.claims.id, current.claim.id), eq(s.claims.version, current.claim.version)));
+      if (saved && current.attempt.id !== target.id) {
+        await tx.insert(s.historicalEventReviews).values({ providerEventId: saved.id, claimId: current.claim.id, claimVersion: current.claim.version, disbursementId: current.disbursement.id, eventAttemptId: target.id, latestAttemptId: current.attempt.id, latestStateAtEvent: current.attempt.state });
       }
-      return { state: "MANUAL_REVIEW", notice: "HISTORICAL_ATTEMPT_EVENT" };
+      return { state: current.attempt.state, notice: "HISTORICAL_ATTEMPT_EVENT" };
     });
   }
   return refreshAttempt(db, before, provider, reload, event);

@@ -562,3 +562,18 @@ export const disbursementOrigins = pgTable("disbursement_origins", {
   disbursementId: uuid("disbursement_id").primaryKey().references(() => disbursements.id), signedBy: text("signed_by").references(() => users.id),
   automatedDecisionId: uuid("automated_decision_id").references(() => automatedDecisions.id), recordedAt: recordedAt(),
 }, t => [check("disbursement_origin_exactly_one", sql`num_nonnulls(${t.signedBy}, ${t.automatedDecisionId}) = 1`)]);
+
+// Historical PayPal event review (option A, November 5). A verified event that matches an earlier payout attempt after a retry is recorded here instead of
+// overwriting the latest attempt. Both tables are append-only. A review is open until a resolution row exists. Neither table posts to the ledger or approves anything.
+export const historicalEventReviews = pgTable("historical_event_reviews", {
+  id: uuid().primaryKey().defaultRandom(), providerEventId: uuid("provider_event_id").notNull().unique().references(() => providerEvents.id),
+  claimId: text("claim_id").notNull(), claimVersion: integer("claim_version").notNull(), disbursementId: uuid("disbursement_id").notNull().references(() => disbursements.id),
+  eventAttemptId: uuid("event_attempt_id").notNull().references(() => disbursementAttempts.id), latestAttemptId: uuid("latest_attempt_id").notNull().references(() => disbursementAttempts.id),
+  latestStateAtEvent: text("latest_state_at_event").notNull(), recordedAt: recordedAt(),
+}, t => [foreignKey({ columns: [t.claimId, t.claimVersion], foreignColumns: [claims.id, claims.version] }),
+  check("historical_review_distinct_attempts", sql`${t.eventAttemptId} <> ${t.latestAttemptId}`)]);
+
+export const historicalEventReviewResolutions = pgTable("historical_event_review_resolutions", {
+  id: uuid().primaryKey().defaultRandom(), reviewId: uuid("review_id").notNull().unique().references(() => historicalEventReviews.id),
+  resolvedBy: text("resolved_by").notNull().references(() => users.id), note: text().notNull(), resolvedAt: timestamp("resolved_at", { withTimezone: true }).notNull().defaultNow(),
+}, t => [check("historical_resolution_note_length", sql`char_length(btrim(${t.note})) between 10 and 1000`)]);

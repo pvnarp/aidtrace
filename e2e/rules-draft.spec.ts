@@ -132,7 +132,8 @@ test("DR-130 to DR-133: an approver drafts rules from a PDF and pasted grant, a 
     const button = await page.getByTestId("rules-draft-submit").evaluate(el => getComputedStyle(el).backgroundColor);
     expect(button).not.toBe("rgba(0, 0, 0, 0)");
     // The disclosure names the model and Anthropic and says nothing has gone yet. The button is off until there is text.
-    await expect(page.getByTestId("rules-form-disclosure")).toContainText("Nothing is sent until you press Draft rules.");
+    // PB-11: the line starts with "Powered by" and names the model a new draft would use, by its stored id (the rules arm is Sonnet 5.5).
+    await expect(page.getByTestId("rules-form-disclosure")).toContainText(/^Powered by Claude Sonnet 5\.5\. Nothing is sent until you press Draft rules\./);
     await expect(page.getByTestId("rules-form-disclosure")).toContainText("Anthropic");
     await expect(page.getByTestId("rules-draft-submit")).toBeDisabled();
 
@@ -161,7 +162,7 @@ test("DR-130 to DR-133: an approver drafts rules from a PDF and pasted grant, a 
     expect(draftRequests).toHaveLength(1);
     expect(draftRequests[0]!.agreement).toBe(GRANT);
     await expect(page.getByTestId("rules-state")).toHaveText("Open");
-    await expect(page.getByTestId("rules-disclosure")).toContainText(`Drafted by ${modelFullName(draftRequests[0]!.model)}.`);
+    await expect(page.getByTestId("rules-disclosure")).toContainText(`Powered by ${modelFullName(draftRequests[0]!.model)}. The grant text was sent to Anthropic.`);
     await expect(page.getByTestId("rules-disclosure")).toContainText("Anthropic");
     const table = page.getByTestId("rules-review-table");
     await expect(table.locator('tr[data-path="allowedCategories"]')).toContainText("Robot kits and parts");
@@ -191,6 +192,7 @@ test("DR-130 to DR-133: an approver drafts rules from a PDF and pasted grant, a 
     editedId = draftIdOf(page); expect(editedId).not.toBe(firstId);
     await expect(page.getByTestId("rules-state")).toHaveText("Open");
     await expect(page.getByTestId("rules-disclosure")).toContainText("A person edited this draft.");
+    await expect(page.getByTestId("rules-disclosure")).not.toContainText("Powered by");
     await expect(page.getByTestId("rules-review-table").locator('tr[data-path="programs"]')).toContainText("Robotics");
     await expect(page.getByTestId("rules-review-table").locator('tr[data-path="programs"]')).toContainText("Changed by a person");
     await expect(page.getByTestId("rules-missing")).toHaveCount(0);

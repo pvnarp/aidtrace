@@ -7,14 +7,15 @@ import { users } from "../../db/schema";
 import type { AppDatabase } from "./db";
 import { findSession, isSameOrigin, sessionToken } from "./auth";
 import { receiptPhotoEnabled, receiptPhotoStatus } from "../ai/provider";
-import { PHOTO_MAX_BYTES, PHOTO_MAX_LINES, readReceiptPhoto, sniffPhotoType, type Arithmetic, type PhotoReadOptions, type Transcript } from "../ai/claude-photo";
+import { PHOTO_MAX_BYTES, PHOTO_MAX_LINES, afterSubtotal, readReceiptPhoto, sniffPhotoType, type Arithmetic, type PhotoReadOptions, type Transcript } from "../ai/claude-photo";
 import { CLAUDE_NAMES } from "../ai/audit";
 import type { ClaudeBudget } from "../ai/budget";
 import { processPhotoRateLimiter, type PhotoRateLimiter } from "./receipt-photo-rate-limit";
 import { recordPhotoRead } from "../receipt/photo-reads";
 import { centsOfInput, photoContentDigest } from "../receipt/photo-digest";
-import { PHOTO_FAILED, PHOTO_READ_NOTICE, centsToInput, photoMismatch, photoSubtotalMismatch } from "../app/receipts/photo-copy";
+import { PHOTO_FAILED, PHOTO_READ_NOTICE, centsToInput, photoAfterSubtotal, photoMismatch, photoSubtotalMismatch } from "../app/receipts/photo-copy";
 import { aiModelLabel } from "../app/shell-copy";
+import { poweredByLine } from "../app/ai-disclosure";
 
 export type PhotoRouteDeps = { db: AppDatabase; env?: Record<string, string | undefined>; client?: PhotoReadOptions["client"]; budget?: ClaudeBudget; photoBudget?: ClaudeBudget; rate?: PhotoRateLimiter };
 
@@ -59,6 +60,11 @@ export function photoPrefill(transcript: Transcript) {
   const iso = /^\d{4}-\d{2}-\d{2}$/.test(transcript.datePrinted) && Number.isFinite(Date.parse(transcript.datePrinted)) && new Date(transcript.datePrinted).toISOString().slice(0, 10) === transcript.datePrinted ? transcript.datePrinted : null;
   return { vendor: transcript.vendor, incurredOn: iso, lines, total: centsToInput(transcript.totalCents), source: text };
 }
+// A hand-added amount after the subtotal gets a neutral note instead of the subtotal warning (ASSUMPTIONS section 87). The stored arithmetic result is not touched.
+function afterNote(transcript: Transcript, result: Arithmetic): string | null {
+  const after = afterSubtotal(transcript, result);
+  return after ? photoAfterSubtotal(transcript.subtotalCents!, after.printedCount, after.afterCents, transcript.totalCents) : null;
+}
 function arithmeticMessage(result: Arithmetic): string | null {
   if (result.ok) return null;
   if (!result.linesPlusTaxMatchesTotal) return photoMismatch(result.linesCents + result.taxCents, result.totalCents);
@@ -90,7 +96,8 @@ export async function handlePhotoText(request: Request, deps: PhotoRouteDeps): P
     const prefillSha256 = prefill ? photoContentDigest({ vendor: prefill.vendor, lines: prefill.lines.map(line => ({ description: line.description, amountCents: centsOfInput(line.amount) ?? 0n })), totalCents: centsOfInput(prefill.total) ?? 0n, source: prefill.source }) : null;
     const readId = await recordPhotoRead(deps.db, { id: user.id, organizationId: owner.organizationId }, result.facts, result.outcome, result.outcome === "READ" ? result.arithmetic.ok : null, prefillSha256);
     if (result.outcome !== "READ") return failed(result.outcome === "FAILED" ? 502 : 422);
-    return json(200, { ok: true, readId, model: aiModelLabel(CLAUDE_NAMES[result.facts.model]), notice: PHOTO_READ_NOTICE, mismatch: arithmeticMessage(result.arithmetic),
+    const note = afterNote(result.transcript, result.arithmetic);
+    return json(200, { ok: true, readId, model: aiModelLabel(CLAUDE_NAMES[result.facts.model]), poweredBy: poweredByLine([result.facts.model]), notice: PHOTO_READ_NOTICE, mismatch: note === null ? arithmeticMessage(result.arithmetic) : null, note,
       arithmetic: { ok: result.arithmetic.ok, linesCents: result.arithmetic.linesCents, taxCents: result.arithmetic.taxCents, totalCents: result.arithmetic.totalCents },
       transcript: { vendor: result.transcript.vendor, datePrinted: result.transcript.datePrinted, lines: result.transcript.lines, subtotalCents: result.transcript.subtotalCents, taxCents: result.transcript.taxCents, totalCents: result.transcript.totalCents },
       prefill });

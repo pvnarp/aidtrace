@@ -37,13 +37,13 @@ describe("SHELL-02 AI card wording for every receipt review state", () => {
   const base: AiInput = { applicable: true, suggestion: "NONE", confirmed: false, aiAccepted: false, savedModel: null, configured: claude };
   const table: [string, Partial<AiInput>, string, string, string | null][] = [
     ["preclassified example", { applicable: false }, "Not used. Preclassified example", "Not used", null],
-    ["not run, claude configured", {}, "Not run yet", "Not run yet", "Configured model: AI (Haiku 5.5)"],
+    ["not run, claude configured", {}, "Not run yet", "Not run yet", "Powered by Claude Haiku 5.5."],
     ["not run, no AI configured", { configured: null }, "A person chooses each category", "Person chooses", null],
-    ["running", { suggestion: "RUNNING" }, "Reading the typed receipt text", "Reading receipt text", "Configured model: AI (Haiku 5.5)"],
-    ["suggestion ready, saved audit names the model", { suggestion: "READY", savedModel: "Claude Haiku 5.5" }, "Suggestion awaiting confirmation", "Suggested, awaiting you", "Model: AI (Haiku 5.5)"],
+    ["running", { suggestion: "RUNNING" }, "Reading the typed receipt text", "Reading receipt text", "Powered by Claude Haiku 5.5."],
+    ["suggestion ready, saved audit names the model", { suggestion: "READY", savedModel: "Claude Haiku 5.5" }, "Suggestion awaiting confirmation", "Suggested, awaiting you", "Powered by Claude Haiku 5.5."],
     ["suggestion ready, saved by a retired model", { suggestion: "READY", savedModel: "Earlier AI model, since retired" }, "Suggestion awaiting confirmation", "Suggested, awaiting you", "Model: Earlier AI model, since retired"],
-    ["unusable", { suggestion: "UNUSABLE" }, "No usable suggestion. A person chooses each category", "No usable suggestion", "Configured model: AI (Haiku 5.5)"],
-    ["confirmed with an accepted suggestion", { confirmed: true, aiAccepted: true, suggestion: "READY", savedModel: "Claude Haiku 5.5" }, "Suggestion confirmed by a person", "Confirmed by a person", "Model: AI (Haiku 5.5)"],
+    ["unusable", { suggestion: "UNUSABLE" }, "No usable suggestion. A person chooses each category", "No usable suggestion", "Powered by Claude Haiku 5.5."],
+    ["confirmed with an accepted suggestion", { confirmed: true, aiAccepted: true, suggestion: "READY", savedModel: "Claude Haiku 5.5" }, "Suggestion confirmed by a person", "Confirmed by a person", "Powered by Claude Haiku 5.5."],
     ["confirmed by manual choice", { confirmed: true }, "Categories chosen by a person", "Person chose", null],
   ];
   it.each(table)("%s", (_name, patch, state, rail, model) => {
@@ -249,7 +249,7 @@ describe("SHELL-08 header tag and footer follow whether AI is configured", () =>
   it("says AI and no model name when AI is configured (IAC-416 PR 2)", () => {
     expect(shellWording(claude)).toEqual({ tag: "AI + PayPal", line: "Built with PayPal Payouts and AI" });
     expect(shellWording(sonnet)).toEqual({ tag: "AI + PayPal", line: "Built with PayPal Payouts and AI" });
-    expect(FOOTER_PROMISE).toBe("AI suggests. People decide. PayPal pays.");
+    expect(FOOTER_PROMISE).toBe("AI suggests. Rules and people decide. PayPal pays.");
   });
   it("shows no tag and a plain PayPal Payouts line when no AI is configured (IAC-416), and never names a local model", () => {
     expect(shellWording(null)).toEqual({ tag: "", line: "Built with PayPal Payouts." });

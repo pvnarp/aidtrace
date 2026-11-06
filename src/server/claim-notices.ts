@@ -34,6 +34,7 @@ const knownFailures = new Map<string, keyof typeof claimFailureNotices>([
   ["A payout already exists; refresh or resolve it without sending again", "payout-review-required"],
   ["Latest payout is not retryable; reconcile or keep polling", "payout-review-required"],
   ["An unresolved or settled attempt prevents retry", "payout-review-required"],
+  ["An open historical PayPal event review prevents retry; reconcile it first", "payout-review-required"],
   ["Provider batch binding failed; no accounting change", "provider-review-required"],
   ["Provider item binding failed; no accounting change", "provider-review-required"],
   ["Provider fee changed; manual review required", "provider-review-required"],

@@ -140,7 +140,7 @@ describe('FR-19 the why facts in the snapshot', () => {
     expect(auto.map(fact => fact.id)).toEqual(['auto-count', 'auto-rule', 'auto-versions', 'auto-sampled']);
     expect(why.map(fact => fact.id)).toEqual(['people-signed', 'people-held', 'people-refused', 'people-off']);
     expect(auto[0]!.text).toBe('Autopilot approved 2 claims automatically, totaling $144.00. Each payment is recorded separately and is not assumed to be paid.');
-    expect(auto[2]!.text).toBe('The most recent automatic approval recorded these versions. Rule set: policy-rules-v1. Model: claude-haiku-5-5 then claude-sonnet-5-5. Prompt: compliance-v1.1.');
+    expect(auto[2]!.text).toBe('The most recent automatic approval recorded these versions. Check rules: policy-rules-v1. Model: claude-haiku-5-5 then claude-sonnet-5-5. Prompt: compliance-v1.1.');
     expect(auto[3]!.text).toBe('1 claim was drawn for the random audit and went to two people.');
     expect(why[0]!.text).toBe(`People signed 1 payout, totaling $${(people.signedCents / 100n).toString()}.${(people.signedCents % 100n).toString().padStart(2, '0')}.`);
     expect(people.signedCents).toBe(7_700n);

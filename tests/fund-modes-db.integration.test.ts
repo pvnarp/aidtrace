@@ -516,9 +516,9 @@ describe("FM-21 to FM-24 database guards, append-only tables, the freeze-only mo
 
     await migrate(old.db, { migrationsFolder: "db/migrations" });
     expect(await hashes()).toEqual(retained);
-    // The test migrates the whole folder, so the three tables of migration 0020 (IAC-405 PR P) are added beside the four of 0019, and the receipt_photo_reads table of 0021 (IAC-384). Neither migration writes a row.
-    expect((await tables()).filter(name => !existing.includes(name) && name !== "__drizzle_migrations")).toEqual(["automated_decisions", "automation_switch_events", "decision_modes", "disbursement_origins", "fund_mode_proposals", "fund_modes", "payee_email_history", "receipt_photo_reads"]);
-    for (const table of ["automated_decisions", "automation_switch_events", "decision_modes", "disbursement_origins", "fund_mode_proposals", "fund_modes", "payee_email_history", "receipt_photo_reads"]) expect((await old.client`select count(*)::int as n from ${old.client(table)}`)[0]!.n, table).toBe(0);
+    // The test migrates the whole folder, so the three tables of migration 0020 (IAC-405 PR P) are added beside the four of 0019, and the receipt_photo_reads table of 0021 (IAC-384), and the two historical review tables of 0023. No migration writes a row.
+    expect((await tables()).filter(name => !existing.includes(name) && name !== "__drizzle_migrations")).toEqual(["automated_decisions", "automation_switch_events", "decision_modes", "disbursement_origins", "fund_mode_proposals", "fund_modes", "historical_event_review_resolutions", "historical_event_reviews", "payee_email_history", "receipt_photo_reads"]);
+    for (const table of ["automated_decisions", "automation_switch_events", "decision_modes", "disbursement_origins", "fund_mode_proposals", "fund_modes", "historical_event_review_resolutions", "historical_event_reviews", "payee_email_history", "receipt_photo_reads"]) expect((await old.client`select count(*)::int as n from ${old.client(table)}`)[0]!.n, table).toBe(0);
     expect(await financialHash(old.client)).toBe(financialBefore);
     // The retained run reads as an approver run, the column that took its new default is nullable and a retained claim still takes its second approval as before.
     expect(await old.client`select trigger, started_by from policy_check_runs`).toMatchObject([{ trigger: "APPROVER", started_by: "tara" }]);

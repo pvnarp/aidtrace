@@ -56,7 +56,7 @@ for (const config of CONFIGS) {
       await page.goto("/claims/C-104");
       // Header tag and footer follow the configured receipt AI, on every screen.
       await headerTag(page, config.tag);
-      await expect(page.locator(".footer-promise")).toHaveText("AI suggests. People decide. PayPal pays.");
+      await expect(page.locator(".footer-promise")).toHaveText("AI suggests. Rules and people decide. PayPal pays.");
       await expect(page.locator(".footer-built")).toHaveText(config.line);
       await expect(page.locator(".footer-promise .paypal-word")).toHaveText("PayPal");
       // Trace: six steps, Fund split current for a confirmed draft, Approvals and the PayPal payout not reached.

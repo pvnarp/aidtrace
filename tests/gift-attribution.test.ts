@@ -122,6 +122,20 @@ describe("DON-05 GIFT_ATTRIBUTION_V1: cases", () => {
   });
 });
 
+// DON-05c (docs/ASSUMPTIONS.md section 94 item 5). readGiftAttribution dates a gift first stored PENDING by its later fund credit.
+// Oldest open layer first means that later time can give an earlier claim a gift that was never PENDING, and the moved gift a later claim.
+describe("DON-05c GIFT_ATTRIBUTION_V1: a later time for one gift moves gifts in the same fund between claims", () => {
+  it("DON-05c: gift A dated after claim X gives X gift B and Y gift A", () => {
+    const edges = [{ lineId: "L1", fundId: "fund_b", amountCents: 1000n }];
+    const claims = [claim("C-X", 300, edges), claim("C-Y", 500, edges)];
+    const before = attributeGifts({ gifts: [gift("CAP_A", "fund_b", 1000n, 100), gift("CAP_B", "fund_b", 1000n, 200)], claims });
+    expect(before.applications).toEqual([applied("CAP_A", "C-X", "L1", "fund_b", 1000n), applied("CAP_B", "C-Y", "L1", "fund_b", 1000n)]);
+    const after = attributeGifts({ gifts: [gift("CAP_A", "fund_b", 1000n, 400), gift("CAP_B", "fund_b", 1000n, 200)], claims });
+    expect(after.applications).toEqual([applied("CAP_B", "C-X", "L1", "fund_b", 1000n), applied("CAP_A", "C-Y", "L1", "fund_b", 1000n)]);
+    expect(after.unspent).toEqual([]);
+  });
+});
+
 // A small seeded generator so a failure is reproducible. It produces integers only.
 function lcg(seed: number) { let state = seed >>> 0; return (limit: number) => { state = (Math.imul(state, 1664525) + 1013904223) >>> 0; return state % limit; }; }
 function shuffled<T>(items: readonly T[], next: (limit: number) => number): T[] {

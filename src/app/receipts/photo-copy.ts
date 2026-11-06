@@ -12,6 +12,10 @@ export const photoMismatch = (linesPlusTaxCents: number, totalCents: number): st
 // Lines plus tax match the total but a printed subtotal does not match the lines. Same shape, one more fixed sentence.
 export const photoSubtotalMismatch = (linesCents: number, subtotalCents: number): string =>
   `The amounts do not add up: the lines are ${centsToUsd(linesCents)}, the subtotal reads ${centsToUsd(subtotalCents)}. Fix the numbers or retake the photo.`;
+// IAC-384 (docs/ASSUMPTIONS.md section 87). The subtotal covers the first lines and the rest sit after it, inside the total (a tip added by hand). A neutral note, not a warning:
+// it still sends the person to the photo. No "verified", "approved" or "accurate" (D7).
+export const photoAfterSubtotal = (subtotalCents: number, printedCount: number, afterCents: number, totalCents: number): string =>
+  `The subtotal ${centsToUsd(subtotalCents)} covers the first ${printedCount} ${printedCount === 1 ? "line" : "lines"}. The ${centsToUsd(afterCents)} after it, such as a tip added by hand, is in the total of ${centsToUsd(totalCents)}. Check that line against the photo.`;
 // The claim page evidence line. modelLabel comes from the stored read row through the existing model label helper. unchanged is the server's own comparison of the saved
 // values with what the read pre-filled (receipt_reviews.photo_unchanged). Category confirmation is a separate fact and is not in this line.
 export const photoEvidenceLine = (modelLabel: string, unchanged: boolean): string =>

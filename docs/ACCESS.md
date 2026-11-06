@@ -25,6 +25,10 @@ It does not inherit the owner's local/.env or reset another database.
 
 ## 3. Follow one receipt: AI, rules, people and PayPal
 
+JUDGING.md lists what a session shows with and without a key, including AI-drafted fund rules
+and the receipt photo reader, and gives the keyed path in order. This section covers the
+receipt itself.
+
 As maria, select Review Maria's $500 receipt. Keep the invented USD 280 kits, USD 150 notebooks
 and USD 70 refreshments. Confirm fictional data and create the receipt. Prepare expense
 proposal once, wait for completion or refresh its displayed status, then inspect every
@@ -60,18 +64,25 @@ and the whole expense before freeze. C-104 remains in tests but is not this judg
 - Busy port: inspect the conflict. Do not terminate unrelated apps or modify firewalls.
 - Exhausted engine address pool: inspect existing Docker subnets and host/VPN routes. An
   operator may supply a checked unused RFC1918 /28 as the fourth judge-new argument after
-  the port. That session alone uses it. Syntax validation does not prove route availability.
+  the port. That session alone uses it. The subnet file pins only the session's database network, so judge-up can still
+  fail on the second (edge) network with the same message. Preserve that error and tell the owner. check and
+  ui-check create their own project networks and fail the same way on a crowded engine. Syntax validation does not
+  prove route availability.
   Do not prune or change global Docker pools. Preserve failed-session configuration.
 - Login failure: use the generated role value from that exact session file. Across ports,
   loopback cookies can replace one another; use separate browser profiles or sign in again.
 - AI off or a failed request: no Claude key in the launching shell, the 60 request limit or an API error. Use manual categories with
-  reasons. This fallback does not demonstrate AI. To turn AI on, restart with ANTHROPIC_API_KEY exported. No automatic retry.
+  reasons, and type the receipt instead of reading a photo. Rule drafting answers that no key is set and sends nothing.
+  This fallback does not demonstrate AI. To turn AI on, restart with ANTHROPIC_API_KEY exported. No automatic retry. The one
+  60 request limit is shared by every AI feature in the app process, including rule drafts and photo reads.
 - Changed configuration: startup refuses it. Preserve the file for review; create a separate
   session rather than reusing owner credentials or resetting financial records.
 - Old source: judge-up rebuilds only that named app. Keep DB pins and volumes intact.
 
-Stop session apps when unused to conserve RAM (judge-stop NAME); the key is not stored anywhere,
-so restart with it exported if you want AI again. Never use prune, down --volumes or owner secrets.
+Stop session apps when unused to conserve RAM (judge-stop NAME). The launcher writes the key to
+no file, but judge-stop keeps the app container, and the container engine keeps the key in that
+container's configuration until the container is recreated or removed. Run judge-up with the
+key exported if you want AI again. Never use prune, down --volumes or owner secrets.
 
 ## 5. Keep proof scoped: later independent review
 

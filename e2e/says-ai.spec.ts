@@ -82,12 +82,15 @@ async function bodyText(page: Page) {
   await page.evaluate(() => document.querySelectorAll("details").forEach(details => { details.open = true; }));
   return page.evaluate(() => document.body.innerText);
 }
-// The three disclosure sentences, the only places a screen may name the model or the provider: the idle receipt strip, the saved suggestion line and the
+// November 5 (Pavan: "Powered by [model name]" wherever a model is used): the only places a screen may name the model or the provider are lines that start "Powered by". Three carry the
+// provider sentence, and a standalone "Powered by" line (the AI review card, the receipt evidence) carries no sentence after it. The three: the idle receipt strip, the saved suggestion line and the
 // model check line. Each is matched whole, so a changed or half-deleted sentence leaves "Claude" behind and fails the word check.
 const DISCLOSURE = {
-  idle: /Model: Claude \w+ \d+\.\d+\. The receipt text goes to Anthropic\./g,
-  saved: /Model: Claude \w+ \d+\.\d+\. The receipt text was sent to Anthropic for these suggestions\./g,
-  check: /Model check: Claude \w+ \d+\.\d+(?:(?:, | and )Claude \w+ \d+\.\d+)*\. Claim line and clause text was sent to Anthropic\./g,
+  idle: /Powered by Claude \w+ \d+\.\d+\. The receipt text goes to Anthropic\./g,
+  saved: /Powered by Claude \w+ \d+\.\d+\. The receipt text was sent to Anthropic for these suggestions\./g,
+  check: /Powered by Claude \w+ \d+\.\d+(?:(?:, | and )Claude \w+ \d+\.\d+)*\. Claim line and clause text was sent to Anthropic\./g,
+  // Standalone: "Powered by" and the model names, then the full stop, and nothing else in the line.
+  standalone: /Powered by Claude \w+ \d+\.\d+(?:(?:, | and )Claude \w+ \d+\.\d+)*\./g,
 };
 const seen: { label: string; text: string }[] = [];
 /** The words check for one screen. It returns the text with the disclosure sentences removed, and how many of each it found. */
@@ -95,12 +98,12 @@ async function words(page: Page, label: string) {
   const text = await bodyText(page); seen.push({ label, text });
   expect(text.length, `${label} has text`).toBeGreaterThan(200);
   const found = { idle: text.match(DISCLOSURE.idle)?.length ?? 0, saved: text.match(DISCLOSURE.saved)?.length ?? 0, check: text.match(DISCLOSURE.check)?.length ?? 0 };
-  const rest = text.replace(DISCLOSURE.idle, "").replace(DISCLOSURE.saved, "").replace(DISCLOSURE.check, "");
+  const rest = text.replace(DISCLOSURE.idle, "").replace(DISCLOSURE.saved, "").replace(DISCLOSURE.check, "").replace(DISCLOSURE.standalone, "");
   expect(rest, `${label}: Claude`).not.toMatch(/claude/i);
   expect(rest, `${label}: fictional`).not.toMatch(/fictional/i);
   expect(rest, `${label}: sandbox`).not.toMatch(/sandbox/i);
   expect(rest, `${label}: Test payments`).not.toMatch(/test payments/i);
-  return { text, rest, found };
+  return { text, rest, found, standalone: text.match(DISCLOSURE.standalone)?.length ?? 0 };
 }
 const NONE = { idle: 0, saved: 0, check: 0 };
 const AI_ON = { AI_RECEIPT_ENABLED: "true", AI_COMPLIANCE_ENABLED: "true", AI_ANALYTICS_ENABLED: "false", ANTHROPIC_API_KEY: "sk-ant-api03-UI-STUB-NOT-A-REAL-KEY" };
@@ -129,15 +132,15 @@ test("AW-02a: with AI configured and stubbed, no screen says Claude, fictional o
   await page.getByRole("button", { name: "Request AI suggestions" }).click(); await expect(page.locator(".notice")).toContainText("AI suggestions are ready"); expect(suggestions).toBe(1);
   const ready = await words(page, "receipt page, AI suggested"); expect(ready.found).toEqual({ idle: 0, saved: 1, check: 0 });
   expect(ready.text.match(/sent to Anthropic/g), "the honest line: receipt text went to Anthropic, once").toHaveLength(1);
-  await expect(page.locator(".ai-model-line")).toContainText("The receipt text was sent to Anthropic for these suggestions.");
-  await expect(page.locator(".ai-label").first()).toContainText("AI suggests:"); await expect(page.locator(".receipt-evidence .muted")).toContainText("AI (Haiku 5.5). Text in, category suggestions out.");
+  await expect(page.locator(".ai-model-line")).toContainText("Powered by Claude Haiku 5.5. The receipt text was sent to Anthropic for these suggestions.");
+  await expect(page.locator(".ai-label").first()).toContainText("AI suggests:"); await expect(page.locator(".receipt-evidence .muted")).toHaveText("Text in, category suggestions out. No PayPal tools or approval access.");
   expect(ready.text).toMatch(/Saved record: model AI \(Haiku 5\.5\), schema \S+\./);
   await page.getByLabel(/I checked every category/).check(); await page.getByRole("button", { name: "Confirm categories", exact: true }).click();
   await expect(page.getByRole("heading", { name: "Human confirmation recorded" })).toBeVisible();
   const confirmed = await words(page, "receipt page, confirmed"); expect(confirmed.found).toEqual({ idle: 0, saved: 1, check: 0 });
   await page.getByRole("link", { name: "View allocation", exact: true }).click(); await expect(page.getByRole("heading", { name: "$5.00 restricted. $1.00 General.", exact: true })).toBeVisible();
   const claimId = new URL(page.url()).pathname.split("/")[2]!;
-  expect((await words(page, "claim page, draft")).found).toEqual(NONE); await expect(page.locator(".card-model").first()).toHaveText("Model: AI (Haiku 5.5)");
+  expect((await words(page, "claim page, draft")).found).toEqual(NONE); await expect(page.locator(".card-model").first()).toHaveText("Powered by Claude Haiku 5.5.");
   await page.getByRole("button", { name: "Freeze allocation for approval", exact: true }).click(); await expect(page.getByRole("status")).toContainText("allocation is frozen");
   expect((await words(page, "claim page, awaiting approval, claimant")).found).toEqual(NONE);
   // Tara: home, then the claim page. Run policy checks sends claim line and clause text to the stub. The rows say AI, and one line names the models and Anthropic.
@@ -147,7 +150,8 @@ test("AW-02a: with AI configured and stubbed, no screen says Claude, fictional o
   expect(compliance.length, "the stub answered the model check").toBeGreaterThanOrEqual(2);
   const checked = await words(page, "claim page, model rows"); expect(checked.found).toEqual({ idle: 0, saved: 0, check: 1 });
   expect(checked.text.match(/sent to Anthropic/g), "the honest line: clause text went to Anthropic, once").toHaveLength(1);
-  await expect(page.locator("#policy-checks")).toContainText(/Checked by AI \((Haiku|Sonnet) 5\.5\) at low effort\./);
+  await expect(page.locator("#policy-checks")).toContainText(/Checked by AI \((Haiku 5\.5|Sonnet 5\.5|Haiku 5\.5, then Sonnet 5\.5)\) at low effort\./);
+  await expect(page.locator("#policy-checks")).toContainText(/Powered by Claude Haiku 5\.5( and Claude Sonnet 5\.5)?\. Claim line and clause text was sent to Anthropic\./);
   await page.getByRole("button", { name: "Approve these terms", exact: true }).click(); expect((await words(page, "claim page, one approval")).found).toEqual({ idle: 0, saved: 0, check: 1 });
   // Ben: home, the second approval, then the approved claim with its unpaid PayPal handoff and the placeholder recipient note.
   await logout(page); await login(page, "ben"); expect((await words(page, "second approver home")).found).toEqual(NONE);
@@ -181,5 +185,6 @@ test("AW-02b: with no AI key, no screen says Claude, fictional or sandbox, the r
   expect(receipt.text, "nothing was sent, so no provider is named on the receipt page").not.toMatch(/Anthropic/);
   await page.goto("/claims/C-104"); expect((await words(page, "claim page, no key")).found).toEqual(NONE);
   await page.goto("/architecture"); expect((await words(page, "How it works, no key")).found).toEqual(NONE);
+  for (const screen of seen) expect(screen.text, `${screen.label}: nothing was sent, so no Powered by line`).not.toMatch(/Powered by/);
   expect(suggestions, "no request was made").toBe(0); expect(compliance).toEqual([]);
 });

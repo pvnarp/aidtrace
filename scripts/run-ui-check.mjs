@@ -6,6 +6,9 @@ for (const args of [
   ['node_modules/@playwright/test/cli.js', 'test', '--config', 'playwright.config.ts'],
   ['node_modules/@playwright/test/cli.js', 'test', '--config', 'playwright.proposal.config.ts'],
   ['node_modules/@playwright/test/cli.js', 'test', '--config', 'playwright.analytics.config.ts'],
+  ['node_modules/@playwright/test/cli.js', 'test', '--config', 'playwright.give.config.ts'],
+  ['node_modules/@playwright/test/cli.js', 'test', '--config', 'playwright.gift.config.ts'],
+  ['node_modules/@playwright/test/cli.js', 'test', '--config', 'playwright.rules.config.ts'],
 ]) {
   const result = spawnSync(process.execPath, args, { stdio: 'inherit', env: process.env });
   if (result.error) throw result.error;

@@ -147,8 +147,9 @@ test("MC-01 (stubbed model): a mixed run shows an OK line, a CONFLICT line with 
   await expect(ok).not.toContainText("This is not an approval.");
   await expect(section).toContainText(GENERAL_SKIPPED);
   await expect(section).toContainText("Model status: Hold. A person decides.");
-  await expect(section).toContainText("Checked by AI (Sonnet 5.5) at low effort."); await expect(section).toContainText("Checked by AI (Haiku 5.5) at low effort.");
-  await expect(section).toContainText(/Model check: Claude (Sonnet 5\.5 and Claude Haiku|Haiku 5\.5 and Claude Sonnet) 5\.5\. Claim line and clause text was sent to Anthropic\./);
+  // PB-10: Ashmere was sent Haiku first and then Sonnet, so its row says both and the page names both models (before November 5 it named only the stored Sonnet pair). Tallow stopped at Haiku.
+  await expect(section).toContainText("Checked by AI (Haiku 5.5, then Sonnet 5.5) at low effort."); await expect(section).toContainText("Checked by AI (Haiku 5.5) at low effort.");
+  await expect(section).toContainText("Powered by Claude Haiku 5.5 and Claude Sonnet 5.5. Claim line and clause text was sent to Anthropic.");
   await rulesAboveModel(page); await plainWords(page);
   // Routing: Ashmere went Haiku then Sonnet (a Haiku CONFLICT escalates), the other restricted fund stopped at Haiku, and the General fund sent nothing.
   expect(compliance.map(call => `${call.fund.split(" ")[0]}:${call.model}`).sort()).toEqual(["Ashmere:claude-haiku-5-5", "Ashmere:claude-sonnet-5-5", "Tallow:claude-haiku-5-5"]);
@@ -172,8 +173,8 @@ test("MC-02 (stubbed model): an invalid answer on both steps shows Not checked f
   await expect(page.getByRole("status")).toContainText("Policy checks ran and are stored");
   // Haiku was invalid, so Sonnet was asked, and it was invalid too: the row names Sonnet, which is the step that failed.
   await expect(section.getByText("Not checked by the model: the answer was invalid and was discarded.")).toHaveCount(2);
-  await expect(section).toContainText("Asked AI (Sonnet 5.5) at low effort."); await expect(section).not.toContainText("Checked by");
-  await expect(section).toContainText("Model check: Claude Sonnet 5.5. Claim line and clause text was sent to Anthropic.");
+  await expect(section).toContainText("Asked AI (Haiku 5.5, then Sonnet 5.5) at low effort."); await expect(section).not.toContainText("Checked by");
+  await expect(section).toContainText("Powered by Claude Haiku 5.5 and Claude Sonnet 5.5. Claim line and clause text was sent to Anthropic.");
   await expect(section.getByText("no conflict found by the model")).toHaveCount(0); await expect(section.getByText(/conflict with clause/)).toHaveCount(0);
   await expect(section).toContainText(GENERAL_SKIPPED); await expect(section).toContainText("Model status: Hold. A person decides.");
   await rulesAboveModel(page); await plainWords(page);

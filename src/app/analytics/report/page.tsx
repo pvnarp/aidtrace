@@ -7,12 +7,13 @@ import { AnalyticsAccessError } from '../../../analytics/snapshot';
 import { usd } from '../../../analytics/model';
 import { reviewTime } from '../../../server/display';
 import { AppHeader } from '../../app-header';
+import { shortClaimRef } from '../../claim-ref';
 
 // IAC-405 step 5 (docs/plans/FUNDER_REPORT_SCOPE.md section 1). A read-only page for approvers. It has no form, no server action and no mutation route: it reads the
 // report data and prints it. A funder gets a printout from the browser's print command (print styles in style.css). No PDF, no email, no export.
 export const dynamic = 'force-dynamic';
 export const BOUNDARY_LINES = [
-  'AI never approves or pays on its own.',
+  'The AI model can hold a claim but never approves or pays one on its own.',
   'An automatic payment needed every rule to pass and zero compliance flags, under the fund cap.',
   'Sampled and refused claims went to two people.',
   'These are local records, not a PayPal balance.',
@@ -33,7 +34,7 @@ export default async function FunderReportPage() {
         <p className="kicker">{report.organization}</p>
         <h1 className="screen-heading">Funder report.</h1>
         <p className="reference-intro">How claims were decided, and what automation did. A read-only record of this organization. This page makes no payment, approval or balance request.</p>
-        <p className="snapshot-time">Observed <time dateTime={report.observedAt}>{reviewTime(new Date(report.observedAt))}</time>. To keep a copy, use your browser's print command.</p>
+        <p className="snapshot-time">Observed <time dateTime={report.observedAt}>{reviewTime(new Date(report.observedAt))}</time>. <span className="report-copy-hint">To keep a copy, use your browser's print command.</span></p>
         <p className="report-back"><a href="/analytics">Back to funding and book cash</a></p>
 
         <section className="panel report-section" aria-labelledby="report-spending" data-testid="report-spending">
@@ -61,9 +62,9 @@ export default async function FunderReportPage() {
           <p className="muted">Every claim that an automated check recorded on, newest first. Versions are shown as stored.</p>
           {report.accountability.length === 0 ? <p data-testid="report-accountability-empty">No automated record yet.</p> : <div className="rules-scroll"><table className="rules-table report-table" data-testid="report-accountability-table">
             <caption className="vh">Claims with an automated record, newest first</caption>
-            <thead><tr><th scope="col">Claim</th><th scope="col">Outcome</th><th scope="col">Amount</th><th scope="col">Rule set</th><th scope="col">Model</th><th scope="col">Prompt</th><th scope="col">Recorded</th></tr></thead>
+            <thead><tr><th scope="col">Claim</th><th scope="col">Outcome</th><th scope="col">Amount</th><th scope="col">Check rules</th><th scope="col">Model</th><th scope="col">Prompt</th><th scope="col">Recorded</th></tr></thead>
             <tbody>{report.accountability.map(row => <tr key={row.claimId + row.recordedAt} data-outcome={row.outcomeKey}>
-              <th scope="row"><a href={`/claims/${encodeURIComponent(row.claimId)}${row.hasTrail ? '#autopilot' : ''}`}>{row.claimId}</a></th>
+              <th scope="row"><a href={`/claims/${encodeURIComponent(row.claimId)}${row.hasTrail ? '#autopilot' : ''}`} title={row.claimId} aria-label={`Claim ${row.claimId}`}>{shortClaimRef(row.claimId)}</a></th>
               <td>{row.outcome}</td><td><span className="report-amount">{usd(row.amountCents)}</span></td>
               <td>{stored(row.ruleSetVersion)}</td><td>{stored(row.model)}</td><td>{stored(row.promptVersion)}</td>
               <td><time dateTime={row.recordedAt}>{reviewTime(new Date(row.recordedAt))}</time></td></tr>)}</tbody>

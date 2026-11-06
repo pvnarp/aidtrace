@@ -162,7 +162,7 @@ describe("shell wording", () => {
     const sonnet = claudeAiStatus({ AI_RECEIPT_ENABLED: "true", ...FAKE_ENV, AIDTRACE_CLAUDE_MODEL: "claude-sonnet-5-5" }, "AI_RECEIPT_ENABLED", createClaudeBudget());
     expect(sonnet.on && shellWording({ name: sonnet.name, shellName: sonnet.shellName }).line).toBe("Built with PayPal Payouts and AI");
     expect(shellWording(null)).toEqual({ tag: "", line: "Built with PayPal Payouts." });
-    expect(FOOTER_PROMISE).toBe("AI suggests. People decide. PayPal pays.");
+    expect(FOOTER_PROMISE).toBe("AI suggests. Rules and people decide. PayPal pays.");
   });
 });
 
@@ -248,5 +248,40 @@ describe("client", () => {
     const source = readFileSync("src/ai/claude-client.ts", "utf8").split("\n").filter(line => !line.trim().startsWith("//")).join("\n");
     expect(source).toMatch(/baseURL: CLAUDE_BASE_URL, maxRetries: 0/); expect(source).toContain('logLevel: "off"');
     expect(source).not.toMatch(/ANTHROPIC_BASE_URL|process\.env\.ANTHROPIC/);
+  });
+});
+
+// IAC-232 judge path validation (docs/GATE_REPORT.md section 93): three fixes found while validating a fresh export.
+describe("judge path fixes", () => {
+  const launcherText = () => readFileSync(first("release/judge/scripts/aidtrace", "scripts/aidtrace")!, "utf8");
+  it("CLA-17 ui-check makes the local folder before it makes the snapshot folder inside it", () => {
+    const lines = launcherText().split("\n"); const ui = lines.findIndex(line => /^\s+ui-check\)/.test(line));
+    expect(ui).toBeGreaterThan(-1);
+    const make = lines.findIndex((line, index) => index > ui && line.trim() === "(umask 077; mkdir -p local)");
+    const temp = lines.findIndex((line, index) => index > ui && line.includes('mktemp -d "$root/local/ui-source-XXXXXX"'));
+    expect(make).toBeGreaterThan(ui); expect(temp).toBeGreaterThan(make);
+  });
+  it("CLA-18 the session relay waits longer than the slowest hosted request window the app can hold one browser request open for", () => {
+    const relay = readFileSync(first("release/judge/scripts/session-relay.mjs", "scripts/session-relay.mjs")!, "utf8");
+    const wait = Number(/upstream\.setTimeout\((\d+),/.exec(relay)?.[1]);
+    const constant = (path: string, name: string) => Number(new RegExp(`export const ${name} = ([0-9_]+)`).exec(readFileSync(path, "utf8"))?.[1]?.replace(/_/g, ""));
+    const draft = constant("src/rules-draft/draft-request.ts", "DRAFT_TIMEOUT_MS");
+    // One policy-check POST runs the rule checks and then the model check, and each fund pair can make two sequential calls (Haiku, then
+    // Sonnet), each bounded by CLAUDE_TIMEOUT_MS. Pairs run in parallel (src/policy/model-run.ts, Promise.all), so MODEL_RUN_WINDOW_MS is set from that bound. Photo reads have PHOTO_TIMEOUT_MS.
+    const claude = constant("src/ai/claude-client.ts", "CLAUDE_TIMEOUT_MS"); const photo = constant("src/ai/claude-photo.ts", "PHOTO_TIMEOUT_MS");
+    const policyWindow = constant("src/policy/compliance.ts", "MODEL_RUN_WINDOW_MS");
+    for (const value of [wait, draft, claude, photo, policyWindow]) expect(Number.isFinite(value) && value > 0).toBe(true);
+    expect(wait).toBeGreaterThan(draft); expect(wait).toBeGreaterThan(claude); expect(wait).toBeGreaterThan(photo); expect(wait).toBeGreaterThan(policyWindow);
+  });
+  it("CLA-19 the new-receipt page renders the photo reader only when a photo read could run, and the route keeps the flag-only gate", async () => {
+    const page = readFileSync("src/app/receipts/new/page.tsx", "utf8").split("\n").filter(line => !line.trim().startsWith("//")).join("\n");
+    expect(page).toMatch(/const photo = receiptPhotoStatus\(\)\.on;/); expect(page).not.toContain("receiptPhotoEnabled");
+    expect(readFileSync("src/server/receipt-photo-actions.ts", "utf8")).toMatch(/if \(!receiptPhotoEnabled\(env\)\) return new Response\("Not found"/);
+    const { receiptPhotoStatus } = await import("../src/ai/provider");
+    const flags = { AI_RECEIPT_ENABLED: "true", AI_RECEIPT_PHOTO_ENABLED: "true" };
+    expect(receiptPhotoStatus({ ...flags })).toEqual({ on: false, reason: "NO_KEY" });
+    expect(receiptPhotoStatus({ ...flags, ANTHROPIC_API_KEY: "k" }).on).toBe(true);
+    expect(receiptPhotoStatus({ ...flags, ANTHROPIC_API_KEY: "k" }, createClaudeBudget(0))).toEqual({ on: false, reason: "LIMIT" });
+    expect(receiptPhotoStatus({ AI_RECEIPT_ENABLED: "true", ANTHROPIC_API_KEY: "k" })).toEqual({ on: false, reason: "SWITCHED_OFF" });
   });
 });

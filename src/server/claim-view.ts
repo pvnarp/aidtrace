@@ -11,6 +11,7 @@ import { requireReceiptConfirmation } from "../receipt/guard";
 import { fixtureNotStarted } from "./fixture-state";
 import { readPolicyChecks } from "../policy/service";
 import { reviewLineMode } from "../fund-modes/review-line";
+import { openHistoricalReviews } from "../ledger/historical-review";
 
 export async function loadClaimView(db: AppDatabase, claimId: string, actorId: string) {
   return db.transaction(async tx => {
@@ -40,6 +41,7 @@ export async function loadClaimView(db: AppDatabase, claimId: string, actorId: s
     const approvals = decision ? await tx.select({ approverId: s.approvals.approverId, displayName: s.users.displayName, approvedAt: s.approvals.approvedAt }).from(s.approvals).innerJoin(s.users, eq(s.users.id, s.approvals.approverId)).where(eq(s.approvals.decisionHash, decision.decisionHash)) : [];
     const [disbursement] = await tx.select().from(s.disbursements).where(and(eq(s.disbursements.claimId, claimId), eq(s.disbursements.claimVersion, snapshot.claim.version)));
     const [attempt] = disbursement ? await tx.select().from(s.disbursementAttempts).where(eq(s.disbursementAttempts.disbursementId, disbursement.id)).orderBy(desc(s.disbursementAttempts.attemptNumber)).limit(1) : [];
+    const historicalReviews = disbursement ? await openHistoricalReviews(tx, claimId) : [];
     const [retryAuthorization] = attempt ? await tx.select().from(s.retryAuthorizations).where(and(eq(s.retryAuthorizations.claimId, claimId), eq(s.retryAuthorizations.claimVersion, snapshot.claim.version), eq(s.retryAuthorizations.attemptNumber, attempt.attemptNumber + 1))).limit(1) : [];
     const donations = await tx.select().from(s.donationReceipts).where(eq(s.donationReceipts.organizationId, snapshot.organization.id));
     const rejections = await tx.select({ reason: s.claimRejections.reason, rejectedBy: s.users.displayName }).from(s.claimRejections).innerJoin(s.users, eq(s.users.id, s.claimRejections.rejectedBy)).where(and(eq(s.claimRejections.claimId, claimId), eq(s.claimRejections.claimVersion, snapshot.claim.version)));
@@ -47,6 +49,6 @@ export async function loadClaimView(db: AppDatabase, claimId: string, actorId: s
     const policyChecks = decision && actor.role === "APPROVER" && actor.id !== snapshot.claim.claimantId ? { decisionHash: decision.decisionHash, run: await readPolicyChecks(tx, decision.decisionHash) } : null;
     // IAC-405 PR A: which Human reviews line the page shows. Flag off or no frozen decision reads Manual, with no query.
     const reviewMode = await reviewLineMode(tx, decision, storedEdges, { live: policyChecks !== null });
-    return { ...snapshot, receiptReview, policyChecks, reviewMode, decision, edges, generalCents, comparison, approvals, attempt, retryAuthorization, donations, rejections, fixtureNotStarted: await fixtureNotStarted(tx, snapshot.organization.id), report: await reconcile(tx, snapshot.organization.id), feasible: Boolean(decision) || optimized?.status === "FUNDED" };
+    return { ...snapshot, receiptReview, policyChecks, reviewMode, decision, edges, generalCents, comparison, approvals, attempt, retryAuthorization, historicalReviews, donations, rejections, fixtureNotStarted: await fixtureNotStarted(tx, snapshot.organization.id), report: await reconcile(tx, snapshot.organization.id), feasible: Boolean(decision) || optimized?.status === "FUNDED" };
   }, { isolationLevel: "repeatable read" });
 }

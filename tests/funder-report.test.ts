@@ -22,7 +22,7 @@ describe('FR-01 the why facts are counts and amounts from rows', () => {
     expect(byId(whyFacts(rows))).toEqual({
       'auto-count': 'Autopilot approved 2 claims automatically, totaling $144.00. Each payment is recorded separately and is not assumed to be paid.',
       'auto-rule': 'An automatic payment needed every rule to pass and zero compliance flags, under the fund cap.',
-      'auto-versions': 'The most recent automatic approval recorded these versions. Rule set: policy-rules-v2. Model: claude-haiku-5-5 then claude-sonnet-5-5. Prompt: compliance-v1.2.',
+      'auto-versions': 'The most recent automatic approval recorded these versions. Check rules: policy-rules-v2. Model: claude-haiku-5-5 then claude-sonnet-5-5. Prompt: compliance-v1.2.',
       'auto-sampled': '1 claim was drawn for the random audit and went to two people.',
       'people-signed': 'People signed 2 payouts, totaling $69.01.',
       'people-held': '1 claim was held for people after AI checks.',
@@ -42,7 +42,7 @@ describe('FR-01 the why facts are counts and amounts from rows', () => {
     expect(one['auto-count']).toContain('approved 1 claim automatically');
     expect(one['people-signed']).toContain('signed 1 payout,');
     expect(one['people-off']).toContain('turned off 1 time: 0 after an approver disagreed with an automatic payment, 1 after an automatic payment had an unknown outcome, 0 by');
-    expect(one['auto-versions']).toContain('Rule set: not recorded. Model: not recorded. Prompt: not recorded.');
+    expect(one['auto-versions']).toContain('Check rules: not recorded. Model: not recorded. Prompt: not recorded.');
   });
   it('FR-04: the two questions exist, each offers its own four fact ids, and every id is a built fact', () => {
     expect(Object.keys(QUESTIONS)).toHaveLength(5);
@@ -65,7 +65,7 @@ describe('FR-05 a version string reaches the model only when it matches the patt
       expect(versionText(value)).toBe(UNRECOGNIZED_VERSION); expect(versionText(value, true)).toBe(UNRECOGNIZED_VERSION);
       const facts = whyFacts({ decisions: [{ kinds: ['AUTO_RECOGNIZED'], recognized: { cents: 1n, ruleSetVersion: value, model: value, promptVersion: value, recordedAtMs: 1 } }], signedPayouts: [], switchOff: [] });
       const text = byId(facts)['auto-versions']!;
-      expect(text).toBe(`The most recent automatic approval recorded these versions. Rule set: ${UNRECOGNIZED_VERSION}. Model: ${UNRECOGNIZED_VERSION}. Prompt: ${UNRECOGNIZED_VERSION}.`);
+      expect(text).toBe(`The most recent automatic approval recorded these versions. Check rules: ${UNRECOGNIZED_VERSION}. Model: ${UNRECOGNIZED_VERSION}. Prompt: ${UNRECOGNIZED_VERSION}.`);
       expect(text).not.toContain(value.trim() || '\u0000');
     });
   }
@@ -226,5 +226,43 @@ describe('FR-27 the automatic count does not claim there was no human', () => {
     expect(text).not.toMatch(/no human/i);
     const page = readFileSync('src/app/analytics/report/page.tsx', 'utf8');
     expect(page).toContain('What automation can and cannot do'); expect(page).not.toContain('does not claim');
+  });
+});
+
+describe('FR-28 report page polish', () => {
+  const page = readFileSync('src/app/analytics/report/page.tsx', 'utf8');
+  it('FR-28: boundary line 1 is the new text, lines 2 to 4 are unchanged, and the old text is gone', () => {
+    const lines = [...page.matchAll(/^  '(.+)',$/gm)].map(match => match[1]);
+    expect(lines).toEqual(['The AI model can hold a claim but never approves or pays one on its own.', 'An automatic payment needed every rule to pass and zero compliance flags, under the fund cap.',
+      'Sampled and refused claims went to two people.', 'These are local records, not a PayPal balance.']);
+    expect(page).not.toContain("'AI never approves or pays on its own.'");
+  });
+  it('FR-28: the claim link shows the short reference, keeps the full id in the href, and carries it in the title and aria-label', async () => {
+    const { shortClaimRef } = await import('../src/app/claim-ref');
+    expect(shortClaimRef('R-9508df78-07fc-4aaa-bbbb-123456789012')).toBe('R-9508df');
+    // Split so the judge export import guard (scripts/export-import-guard.mjs) does not read this expected text as an import of this test file (JX-08).
+    expect(page).toContain("import { shortClaimRef } from '" + "../../claim-ref';");
+    expect(page).toContain("href={`/claims/${encodeURIComponent(row.claimId)}${row.hasTrail ? '#autopilot' : ''}`} title={row.claimId} aria-label={`Claim ${row.claimId}`}>{shortClaimRef(row.claimId)}</a>");
+    expect(page).not.toMatch(/>\{row\.claimId\}</);
+  });
+  it('FR-28: the print copy hint has a class and the print styles hide exactly that class', () => {
+    expect(page).toContain('<span className="report-copy-hint">To keep a copy, use your browser\'s print command.</span>');
+    const css = readFileSync('src/app/style.css', 'utf8');
+    const print = css.slice(css.indexOf('@media print'));
+    expect(print).toMatch(/header\.top, \.report-back, \.report-copy-hint \{ display: none; \}/);
+    expect(css.slice(0, css.indexOf('@media print'))).not.toMatch(/\.report-copy-hint/);
+  });
+});
+
+describe('WD report column wording (IAC-405)', () => {
+  it('WD-01: the report header reads "Check rules" and not "Rule set"', () => {
+    const page = readFileSync('src/app/analytics/report/page.tsx', 'utf8');
+    expect(page).toContain('<th scope="col">Check rules</th>');
+    expect(page).not.toContain('Rule set');
+  });
+  it('WD-02: the why fact sentence reads "Check rules:" and not "Rule set:"', () => {
+    const text = byId(whyFacts(rows))['auto-versions']!;
+    expect(text).toContain(' Check rules: policy-rules-v2. ');
+    expect(text).not.toContain('Rule set');
   });
 });
