@@ -52,8 +52,8 @@ const style = (page: Page, selector: string, property: string) => page.locator(s
 
 /** Maria submits a $6 practice expense, confirms every category by hand and freezes the terms. Returns the claim path. */
 async function submitAndFreeze(page: Page) {
-  await login(page, "maria"); await page.getByRole("link", { name: "Start a $6 practice expense", exact: true }).click();
-  await page.getByLabel("This receipt is sample data with no real personal details.").check(); await page.getByRole("button", { name: "Create receipt draft", exact: true }).click();
+  await login(page, "maria"); await page.getByRole("link", { name: "Start an expense", exact: true }).click();
+  await page.getByLabel("This receipt holds no real personal details.").check(); await page.getByRole("button", { name: "Create receipt draft", exact: true }).click();
   // The form can hydrate while the first choices are typed and reset them, so the choices are set again until all three hold.
   const picks = [["L1", "robot_kits_parts"], ["L2", "classroom_supplies"], ["L3", "participant_meals"]] as const;
   await expect(page.getByText(/Unpaid draft created/)).toBeVisible();

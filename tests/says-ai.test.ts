@@ -107,7 +107,7 @@ describe("AW-01 the one money line is on Give, and the old footer and tag are go
   it("has no Test payments only. line on the gift trail, no Claude tag in the brand and no old checkbox wording", () => {
     expect(readFileSync("src/app/gift/[token]/trail-view.tsx", "utf8")).not.toMatch(/Test payments/i);
     expect(readFileSync("src/app/brand.tsx", "utf8")).not.toMatch(/Claude/);
-    expect(readFileSync("src/app/receipts/draft-form.tsx", "utf8")).toContain("This receipt is sample data with no real personal details.");
+    expect(readFileSync("src/app/receipts/draft-form.tsx", "utf8")).toContain("This receipt holds no real personal details.");
     expect(readFileSync("src/app/receipts/draft-form.tsx", "utf8")).toContain('name="syntheticReceipt"');
   });
 });

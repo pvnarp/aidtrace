@@ -1,7 +1,7 @@
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { CLAIMANT_LEDE, approverHeading, approverLede, approverReviewLine, claimActionLabel, claimantHeading, frozenSplit, nextStep, statusLabel } from "../src/app/home-copy";
+import { CLAIMANT_LEDE, CLAIMANT_LEDE_FUND_MODES, approverHeading, approverLede, approverReviewLine, claimActionLabel, claimantHeading, frozenSplit, nextStep, statusLabel } from "../src/app/home-copy";
 import { architectureStages } from "../src/app/architecture/stages";
 
 // HOME-01 to HOME-07 (IAC-403 locked mock screens, docs/GATE_REPORT.md section 40). Pure functions and static file checks.
@@ -70,6 +70,11 @@ describe("HOME-04 claimant wording comes from the session and the judge flag", (
   it("offers Maria's receipt only in a judge session", () => {
     expect(claimActionLabel(true)).toBe("Continue Maria's receipt"); expect(claimActionLabel(false)).toBe("Open this expense");
     expect(CLAIMANT_LEDE).toContain("two other people approve");
+  });
+  it("HOME-04b the flag-on line does not promise two other approvers, and the flag-off line is unchanged", () => {
+    expect(CLAIMANT_LEDE).toBe("Every grant has its own limits. AI helps prepare, rules calculate funding, two other people approve and PayPal remains a separate decision.");
+    expect(CLAIMANT_LEDE_FUND_MODES).not.toContain("two other people");
+    expect(CLAIMANT_LEDE_FUND_MODES).toContain("each fund's approval setting decides who signs off");
   });
 });
 

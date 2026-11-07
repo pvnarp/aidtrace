@@ -225,6 +225,6 @@ export default async function ClaimPage({ params, searchParams }: { params: Prom
     </section>
     {giftNotes.length > 0 ? <GiftNotes claimId={claimId} entries={giftNotes} canApprove={approver} /> : recognized && judgeSession() ? <section id="donor-notes"><h2>Donor impact notes</h2><p>No gift has been applied to this receipt.</p></section> : null}
     {view.donations.length > 0 && <section><h2>Designated donations</h2><p>These are additional provider-backed donations. Opening credits remain labeled separately.</p>{view.donations.map(donation => <div key={donation.orderId}><p>{view.funds.find(fund => fund.id === donation.fundId)?.name}: {donation.status === "COMPLETED" ? `${usd(donation.grossCents!)} gross, ${usd(donation.feeCents!)} fee charged to General, ${usd(donation.netCents!)} net cash.` : "Pending, no accounting posted."}</p><details><summary>Inspect donation identifiers</summary><p>Order {donation.orderId}. Capture {donation.captureId ?? "not yet known"}. Status {donation.providerStatus}.</p></details></div>)}</section>}
-    <footer>Accounting-inspired demo model, pending nonprofit accountant review. Paid appears only after an independently fetched payout item reports success. This page does not enable production payments.</footer>
+    <footer>Paid appears only after an independently fetched payout item reports success. This page does not enable production payments.</footer>
   </Workspace>;
 }

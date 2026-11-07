@@ -13,7 +13,7 @@ const metaLine = (entry: GiftNoteEntry, label: string) => `${formatShares(entry.
 export function GiftNotes({ claimId, entries, canApprove }: { claimId: string; entries: GiftNoteEntry[]; canApprove: boolean }) {
   return <section id="donor-notes" aria-labelledby="donor-notes-title"><h2 id="donor-notes-title">Donor impact notes</h2>
     <p className="muted" data-testid="gift-note-intro">Built from verified records. Approved by someone other than the claimant. Nothing is emailed.</p>
-    <p className="muted" data-testid="gift-note-policy">Gifts are applied to approved receipt lines, oldest gift first. It is a narrative, not an accounting method.</p>
+    <p className="muted" data-testid="gift-note-policy">Gifts are applied to approved receipt lines, oldest gift first.</p>
     {entries.map(entry => <div className="comparison-card" key={entry.captureId} data-testid="gift-note-card">
       <h3>{entry.fundName} gift of {formatUsd(entry.giftCents)}</h3>
       {!entry.approvedCurrent && <>

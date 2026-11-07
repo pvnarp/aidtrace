@@ -121,10 +121,10 @@ test("AW-02a: with AI configured and stubbed, no screen says Claude, fictional o
   await expect(page.getByTestId("gift-footer")).toBeVisible(); await expect(page.getByTestId("gift-footer")).not.toContainText(/test payments/i);
   // Maria: home, the new receipt form (the $6 practice default and the workshop example), then the draft receipt page before any suggestion.
   await login(page, "maria"); expect((await words(page, "claimant home")).found).toEqual(NONE);
-  await page.getByRole("link", { name: "Start a $6 practice expense", exact: true }).click(); expect((await words(page, "new receipt")).found).toEqual(NONE);
-  await expect(page.getByLabel("Vendor", { exact: true })).toBeVisible(); await expect(page.getByLabel("This receipt is sample data with no real personal details.")).toBeVisible();
+  await page.getByRole("link", { name: "Start an expense", exact: true }).click(); expect((await words(page, "new receipt")).found).toEqual(NONE);
+  await expect(page.getByLabel("Vendor", { exact: true })).toBeVisible(); await expect(page.getByLabel("This receipt holds no real personal details.")).toBeVisible();
   await page.goto("/receipts/new?example=workshop"); expect((await words(page, "new receipt, workshop example")).found).toEqual(NONE);
-  await page.goto("/receipts/new"); await page.getByLabel("This receipt is sample data with no real personal details.").check(); await page.getByRole("button", { name: "Create receipt draft", exact: true }).click();
+  await page.goto("/receipts/new"); await page.getByLabel("This receipt holds no real personal details.").check(); await page.getByRole("button", { name: "Create receipt draft", exact: true }).click();
   await expect(page.getByText(/Unpaid draft created/).first()).toBeVisible();
   // Before a suggestion: the idle strip names the model and Anthropic once.
   const idle = await words(page, "receipt page, idle"); expect(idle.found).toEqual({ idle: 1, saved: 0, check: 0 });
@@ -178,7 +178,7 @@ test("AW-02b: with no AI key, no screen says Claude, fictional or sandbox, the r
   await page.goto("/login"); expect((await words(page, "sign-in")).found).toEqual(NONE); await expect(page.locator(".header-tag")).toHaveCount(0); await expect(page.locator(".footer-built")).toHaveText("Built with PayPal Payouts.");
   await page.goto("/give"); expect((await words(page, "Give")).found).toEqual(NONE);
   await login(page, "maria"); expect((await words(page, "claimant home")).found).toEqual(NONE);
-  await page.goto("/receipts/new"); await page.getByLabel("This receipt is sample data with no real personal details.").check(); await page.getByRole("button", { name: "Create receipt draft", exact: true }).click();
+  await page.goto("/receipts/new"); await page.getByLabel("This receipt holds no real personal details.").check(); await page.getByRole("button", { name: "Create receipt draft", exact: true }).click();
   await expect(page.getByText(/Unpaid draft created/).first()).toBeVisible();
   const receipt = await words(page, "receipt page, no key"); expect(receipt.found).toEqual(NONE);
   expect(receipt.text).toContain("AI suggestions are off in this session: no AI key is configured.");

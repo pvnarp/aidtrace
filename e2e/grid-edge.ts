@@ -96,3 +96,76 @@ export async function scrollSideways(page: Page, to: 'left' | 'right') {
   await page.evaluate(side => { const viewport = document.querySelector('.ag-body-horizontal-scroll-viewport') as HTMLElement; viewport.scrollLeft = side === 'right' ? viewport.scrollWidth : 0; }, to);
   await page.waitForTimeout(250);
 }
+
+export interface WrapReport {
+  /** Data rows rendered, and wrapped data cells examined per column id, so a column the grid did not render cannot pass vacuously. */
+  rows: number;
+  cells: Record<string, number>;
+  /** Cells whose text is cut sideways or vertically (content past the cell box, or the cell past its row), each as "col-id: text". Empty is the pass. */
+  overflowing: string[];
+  /** Data rows shorter than 44 px, each as "row-index: height". Empty is the pass. */
+  short: string[];
+  /** The tallest data row in pixels, and the number of rows taller than the 44 px default. */
+  tallest: number; grown: number;
+}
+
+/** WR-05 and WR-06: every rendered cell in the wrapped columns shows its text whole, sideways and vertically, and no data row is shorter than 44 px. */
+export function measureWrap(page: Page, ids: string[]): Promise<WrapReport> {
+  return page.evaluate(wrapIds => {
+    const overflowing: string[] = []; const short: string[] = []; const cells: Record<string, number> = {}; let tallest = 0; let grown = 0;
+    const rowHeights = new Map<string, number>();
+    for (const row of document.querySelectorAll('.ag-row[row-id]:not(.ag-row-pinned)')) {
+      const height = row.getBoundingClientRect().height; const key = row.getAttribute('row-index') ?? '';
+      if (rowHeights.has(key)) continue; rowHeights.set(key, height);
+      if (height < 43.5) short.push(`${key}: ${height}`); if (height > 44.5) grown++; tallest = Math.max(tallest, height);
+    }
+    const cut = (node: Element) => node.clientWidth > 0 && (node.scrollWidth > node.clientWidth + 1 || node.scrollHeight > node.clientHeight + 1);
+    for (const id of wrapIds) {
+      cells[id] = 0;
+      for (const cell of document.querySelectorAll(`.ag-row[row-id]:not(.ag-row-pinned) .ag-cell[col-id="${id}"]`)) {
+        cells[id]++;
+        const row = cell.closest('.ag-row')!.getBoundingClientRect(); const box = cell.getBoundingClientRect();
+        if ([cell, ...cell.querySelectorAll('*')].some(cut) || box.bottom > row.bottom + 1 || box.top < row.top - 1) overflowing.push(`${id}: ${cell.textContent}`);
+      }
+    }
+    return { rows: rowHeights.size, cells, overflowing, short, tallest, grown };
+  }, ids);
+}
+
+export interface LongCell { found: boolean; rowHeight: number; textHeight: number; lineHeight: number }
+
+/** WR-05 and WR-06: the data cell in a column whose text includes a known long value, its row height and the height of its rendered text. */
+export function measureLongCell(page: Page, id: string, text: string): Promise<LongCell> {
+  return page.evaluate(({ id, text }) => {
+    const cell = [...document.querySelectorAll(`.ag-row[row-id]:not(.ag-row-pinned) .ag-cell[col-id="${id}"]`)].find(node => (node.textContent ?? '').includes(text));
+    if (!cell) return { found: false, rowHeight: 0, textHeight: 0, lineHeight: 0 };
+    const range = document.createRange(); range.selectNodeContents(cell);
+    return { found: true, rowHeight: cell.closest('.ag-row')!.getBoundingClientRect().height, textHeight: range.getBoundingClientRect().height, lineHeight: parseFloat(getComputedStyle(cell).lineHeight) };
+  }, { id, text });
+}
+
+/**
+ * WR-05 and WR-06: data rows that overlap the next row ("row-index: bottom > next top") or still move ("row-index: moving"). AG Grid
+ * slides rows to their grown positions over about 0.4 s, so this samples twice 450 ms apart and a caller polls until it is empty;
+ * a layout that never settles, or settles overlapped, fails by name.
+ */
+export function rowOverlaps(page: Page): Promise<string[]> {
+  return page.evaluate(async () => {
+    const sample = () => {
+      const boxes = new Map<number, DOMRect>();
+      for (const row of document.querySelectorAll('.ag-row[row-id]:not(.ag-row-pinned)')) {
+        const index = Number(row.getAttribute('row-index')); if (!boxes.has(index)) boxes.set(index, row.getBoundingClientRect());
+      }
+      return boxes;
+    };
+    const first = sample(); await new Promise(resolve => setTimeout(resolve, 450)); const second = sample();
+    const problems: string[] = [];
+    for (const [index, box] of second) { const before = first.get(index); if (!before || Math.abs(before.top - box.top) > 0.5 || Math.abs(before.height - box.height) > 0.5) problems.push(`${index}: moving`); }
+    const sorted = [...second.entries()].sort((a, b) => a[0] - b[0]);
+    for (let i = 1; i < sorted.length; i++) {
+      const [index, above] = sorted[i - 1]; const below = sorted[i][1];
+      if (above.bottom > below.top + 1) problems.push(`${index}: ${Math.round(above.bottom)} > ${Math.round(below.top)}`);
+    }
+    return problems;
+  });
+}

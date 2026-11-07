@@ -11,7 +11,7 @@ import { postJournal } from '../src/ledger/journal';
 import { recordDesignatedDonation } from '../src/ledger/donation';
 import { entryTypeOf, loadLedgerView, type LedgerRow } from '../src/ledger/view';
 import { usd } from '../src/analytics/model';
-import { centerOverflow, EDGE_TOLERANCE, measureEdge, measureFilters, MIN_FILTER_INPUT, scrollSideways } from './grid-edge';
+import { centerOverflow, EDGE_TOLERANCE, measureEdge, measureFilters, measureLongCell, measureWrap, MIN_FILTER_INPUT, rowOverlaps, scrollSideways } from './grid-edge';
 import type { DonationObservation, DonationReader } from '../src/paypal/adapter';
 
 // IAC-380 step 2, the read-only /ledger view in a real browser against a real isolated PostgreSQL and a production build.
@@ -457,6 +457,26 @@ test('GE-06: the full filter for a text column and a money column opens from the
     await page.locator(`[role="columnheader"][col-id="${id}"] .ag-header-cell-filter-button`).click();
     // A click leaves the focus on the header, so the popup closes with a click on the page's status line, not with Escape.
     await expect(popup).toBeVisible(); await status(page).click(); await expect(popup).toHaveCount(0);
+  }
+});
+
+// IAC-232 wrapped names. WR-05 and WR-06 on /ledger: the Account and Fund cells show their whole text, sideways and vertically, no data row is
+// shorter than 44 px, and the longest seeded fund name wraps and grows its row. The 1440 still goes to the test output.
+test('WR-05 and WR-06: the ledger Account and Fund cells wrap, nothing is cut at 1440 and 1280, and no data row is shorter than 44 px', async ({ page }, testInfo) => {
+  await login(page, 'tara');
+  for (const size of [{ width: 1440, height: 900 }, { width: 1280, height: 900 }]) {
+    await openAt(page, size);
+    await expect.poll(() => rowOverlaps(page), { message: `rows overlap after the layout settles at ${size.width} px`, timeout: 5000 }).toEqual([]);
+    const report = await measureWrap(page, ['account', 'fund']);
+    expect(report.rows, 'data rows rendered').toBeGreaterThanOrEqual(4);
+    expect(report.cells, 'every wrapped column was measured on every row').toEqual({ account: report.rows, fund: report.rows });
+    expect(report.overflowing, `cut text at ${size.width} px`).toEqual([]);
+    expect(report.short, `rows under 44 px at ${size.width} px`).toEqual([]);
+    const long = await measureLongCell(page, 'fund', 'Ashmere County Afterschool STEM Subgrant');
+    expect(long.found, 'the longest seeded fund name is in a Fund cell').toBe(true);
+    expect(long.rowHeight, `its row grew at ${size.width} px`).toBeGreaterThan(44.5);
+    expect(long.textHeight, `it shows on more than one line at ${size.width} px`).toBeGreaterThan(1.5 * long.lineHeight);
+    if (size.width === 1440) await page.screenshot({ path: testInfo.outputPath('wr-ledger-1440.png'), fullPage: true });
   }
 });
 

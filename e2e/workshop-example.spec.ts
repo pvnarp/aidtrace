@@ -81,7 +81,7 @@ const WORKSHOP_LITERAL: DraftExample = {
   lines: [{ description: "Robot kit and parts", amount: "280.00" }, { description: "Engineering notebooks", amount: "150.00" }, { description: "Sandwiches and apple juice", amount: "70.00" }],
   source: "Brightbench Supply Co.\nRobot kit and parts 280.00\nEngineering notebooks 150.00\nSandwiches and apple juice 70.00\nTotal 500.00",
 };
-const TO_WORKSHOP = "Use the $500 workshop example", TO_PRACTICE = "Use the $6 practice expense";
+const TO_WORKSHOP = "Use the $500 workshop example", TO_PRACTICE = "Use the $6 small example";
 const toWorkshop = (page: Page) => page.getByRole("link", { name: TO_WORKSHOP, exact: true });
 const toPractice = (page: Page) => page.getByRole("link", { name: TO_PRACTICE, exact: true });
 
@@ -133,7 +133,7 @@ test("WX-02: owner mode keeps the USD 6.00 practice expense and its intro, and o
   const intro = (await page.locator("p.intro").boundingBox())!, box = (await link.boundingBox())!, form = (await page.locator("#receipt-entry").boundingBox())!;
   expect(box.y, "link below the intro").toBeGreaterThanOrEqual(intro.y + intro.height); expect(box.y + box.height, "link above the form").toBeLessThanOrEqual(form.y);
   // The home page start link is unchanged and still lands on the practice default.
-  await page.goto("/"); await page.getByRole("link", { name: "Start a $6 practice expense", exact: true }).click();
+  await page.goto("/"); await page.getByRole("link", { name: "Start an expense", exact: true }).click();
   await expect(page).toHaveURL("http://127.0.0.1:3100/receipts/new"); await expectForm(page, PRACTICE, "owner via home link");
 });
 
@@ -150,10 +150,10 @@ test("WX-03: owner mode loads the workshop receipt only for exactly ?example=wor
     await expect(toWorkshop(page), "owner " + query + ": link").toHaveCount(1); await expect(toPractice(page)).toHaveCount(0);
   }
   // One click each way. A value typed before the click is replaced, and the fictional-data box starts unchecked, because the form restarts when the receipt changes.
-  await page.goto("/receipts/new"); await page.locator("#vendor").fill("Typed before the click"); await page.getByLabel("This receipt is sample data with no real personal details.").check();
+  await page.goto("/receipts/new"); await page.locator("#vendor").fill("Typed before the click"); await page.getByLabel("This receipt holds no real personal details.").check();
   await toWorkshop(page).click(); await expect(page).toHaveURL("http://127.0.0.1:3100/receipts/new?example=workshop");
   await expectForm(page, WORKSHOP_LITERAL, "after the example click"); await expectIntro(page, WORKSHOP_INTRO, "after the example click");
-  await expect(page.getByLabel("This receipt is sample data with no real personal details."), "checkbox restarts").not.toBeChecked();
+  await expect(page.getByLabel("This receipt holds no real personal details."), "checkbox restarts").not.toBeChecked();
   await page.locator("#source").fill("Typed before the second click");
   await toPractice(page).click(); await expect(page).toHaveURL("http://127.0.0.1:3100/receipts/new");
   await expectForm(page, PRACTICE, "after the practice click"); await expectIntro(page, PRACTICE_INTRO, "after the practice click"); await expect(toWorkshop(page)).toHaveCount(1);
@@ -163,7 +163,7 @@ test("WX-04: in a judge session the example runs end to end with stubbed suggest
   test.setTimeout(300000); await start({ judge: true, stub: true }); await login(page, "maria");
   await page.getByRole("link", { name: "Review Maria's $500 receipt", exact: true }).click();
   await expectForm(page, WORKSHOP_LITERAL, "judge click-through"); await expectIntro(page, WORKSHOP_INTRO, "judge click-through");
-  await page.getByLabel("This receipt is sample data with no real personal details.").check(); await page.getByRole("button", { name: "Create receipt draft", exact: true }).click();
+  await page.getByLabel("This receipt holds no real personal details.").check(); await page.getByRole("button", { name: "Create receipt draft", exact: true }).click();
   await expect(page.getByRole("heading", { name: "Prepare this expense for review", exact: true })).toBeVisible();
   const receipt = page.url().split("?")[0]!;
   await page.getByRole("button", { name: "Prepare expense proposal", exact: true }).click();
@@ -204,7 +204,7 @@ test("WX-05: in owner mode the example becomes the same draft, in integer cents 
   test.setTimeout(180000); await start({ judge: false }); await login(page, "maria");
   await page.goto("/receipts/new"); await toWorkshop(page).click(); await expect(page).toHaveURL("http://127.0.0.1:3100/receipts/new?example=workshop");
   await expectForm(page, WORKSHOP_LITERAL, "owner click-through");
-  await page.getByLabel("This receipt is sample data with no real personal details.").check(); await page.getByRole("button", { name: "Create receipt draft", exact: true }).click();
+  await page.getByLabel("This receipt holds no real personal details.").check(); await page.getByRole("button", { name: "Create receipt draft", exact: true }).click();
   await page.waitForURL(url => /^\/claims\/R-[a-f0-9-]{36}\/receipt$/.test(url.pathname));
   const id = new URL(page.url()).pathname.split("/")[2]!;
   const [claim] = await connection!.db.select().from(s.claims).where(eq(s.claims.id, id));

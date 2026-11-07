@@ -13,9 +13,9 @@ export function donationsColumns(): GridColumn<DonationRow>[] {
   return [
     { headerName: 'Gift', children: [
       dateColumn<DonationRow>({ field: 'received', headerName: 'Received', width: 216, sort: 'desc' }),
-      textColumn<DonationRow>({ field: 'donor', headerName: 'Donor', width: 112, tip: row => row.donor }),
+      textColumn<DonationRow>({ field: 'donor', headerName: 'Donor', width: 112, wrap: true, tip: row => row.donor }),
       centsColumn<DonationRow>({ field: 'amountCents', headerName: 'Amount', width: 125 }),
-      textColumn<DonationRow>({ field: 'fund', headerName: 'Fund', width: 170, tip: row => row.fund }),
+      textColumn<DonationRow>({ field: 'fund', headerName: 'Fund', width: 170, wrap: true, tip: row => row.fund }),
       textColumn<DonationRow>({ field: 'capture', headerName: 'Capture', width: 112, tip: () => 'Only the last 6 characters of the capture ID are shown.' }),
     ] },
     { headerName: 'Trail', children: [
@@ -23,7 +23,7 @@ export function donationsColumns(): GridColumn<DonationRow>[] {
       centsColumn<DonationRow>({ field: 'matchedCents', headerName: 'Matched', width: 125 }),
       centsColumn<DonationRow>({ field: 'waitingCents', headerName: 'Waiting', width: 125 }),
       textColumn<DonationRow>({ field: 'lines', headerName: 'Lines', width: 110, tip: row => row.linesTip, getQuickFilterText: params => `${params.value ?? ''} ${params.data?.linesTip ?? ''}` }),
-      textColumn<DonationRow>({ field: 'vendor', headerName: 'Vendor', width: 170, tip: row => row.vendorTip, getQuickFilterText: params => `${params.value ?? ''} ${params.data?.vendorTip ?? ''}` }),
+      textColumn<DonationRow>({ field: 'vendor', headerName: 'Vendor', width: 170, wrap: true, tip: row => row.vendorTip, getQuickFilterText: params => `${params.value ?? ''} ${params.data?.vendorTip ?? ''}` }),
     ] },
     { headerName: 'Payout', children: [
       textColumn<DonationRow>({

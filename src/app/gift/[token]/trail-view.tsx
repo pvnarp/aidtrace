@@ -43,7 +43,7 @@ export function TrailView({ data }: { data: GiftPageData }) {
     </div> : null}
     <footer className="gift-footer" data-testid="gift-footer">
       <p>This page shows no names or contact details. Anyone who has this link can see it.</p>
-      <p>{GIFT_METHOD_SENTENCE}</p>
+      {trail.waiting ? null : <p>{GIFT_METHOD_SENTENCE}</p>}
     </footer>
   </main>;
 }

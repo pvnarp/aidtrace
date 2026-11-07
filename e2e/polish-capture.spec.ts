@@ -77,8 +77,8 @@ test("polish stills through the real freeze and two approvals (AI off)", async (
   await page.setViewportSize({ width: 1440, height: 900 });
   await login(page, "tara"); await shot(page, "approver-home-empty"); await logout(page);
   await login(page, "maria"); await shot(page, "claimant-home-empty");
-  await page.getByRole("link", { name: "Start a $6 practice expense", exact: true }).click();
-  await page.getByLabel("This receipt is sample data with no real personal details.").check(); await page.getByRole("button", { name: "Create receipt draft", exact: true }).click();
+  await page.getByRole("link", { name: "Start an expense", exact: true }).click();
+  await page.getByLabel("This receipt holds no real personal details.").check(); await page.getByRole("button", { name: "Create receipt draft", exact: true }).click();
   await expect(page.getByLabel("Category for L1", { exact: true })).toBeVisible(); await shot(page, "receipt-review");
   for (const [line, category] of [["L1", "robot_kits_parts"], ["L2", "classroom_supplies"], ["L3", "participant_meals"]]) {
     await page.getByLabel(`Category for ${line}`, { exact: true }).selectOption(category!); await page.getByLabel(`Reason for manual choice ${line}`, { exact: true }).fill("Checked this receipt directly");
@@ -104,8 +104,8 @@ test("polish stills through the real freeze and two approvals (AI off)", async (
 test("polish stills for the AI states, answered by a loopback stub (stubbed)", async ({ page }) => {
   test.setTimeout(600000); await start(true);
   await page.setViewportSize({ width: 1440, height: 900 });
-  await login(page, "maria"); await page.getByRole("link", { name: "Start a $6 practice expense", exact: true }).click();
-  await page.getByLabel("This receipt is sample data with no real personal details.").check(); await page.getByRole("button", { name: "Create receipt draft", exact: true }).click();
+  await login(page, "maria"); await page.getByRole("link", { name: "Start an expense", exact: true }).click();
+  await page.getByLabel("This receipt holds no real personal details.").check(); await page.getByRole("button", { name: "Create receipt draft", exact: true }).click();
   await expect(page.getByRole("status")).toContainText("Unpaid draft created");
   await page.getByRole("button", { name: "Request AI suggestions" }).click(); await expect(page.locator(".notice")).toContainText("AI suggestions are ready");
   await shot(page, "receipt-ai-suggested-stubbed");

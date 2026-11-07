@@ -66,8 +66,8 @@ test("CW-03a: with AI configured, no screen says sandbox or AI off, and How it w
   expect(await bodyText(page)).toContain("No real money moves.");
   // Maria: home, the new receipt form and its draft (the receipt page), then the seeded claim and the freeze.
   await login(page, "maria"); await words(page, "claimant home");
-  await page.getByRole("link", { name: "Start a $6 practice expense", exact: true }).click(); await words(page, "new receipt");
-  await page.getByLabel("This receipt is sample data with no real personal details.").check(); await page.getByRole("button", { name: "Create receipt draft", exact: true }).click();
+  await page.getByRole("link", { name: "Start an expense", exact: true }).click(); await words(page, "new receipt");
+  await page.getByLabel("This receipt holds no real personal details.").check(); await page.getByRole("button", { name: "Create receipt draft", exact: true }).click();
   await expect(page.getByText(/Unpaid draft created/).first()).toBeVisible(); await words(page, "receipt page");
   await page.goto("/claims/C-104"); await words(page, "claim page, draft");
   await page.getByRole("button", { name: "Freeze allocation for approval", exact: true }).click(); await words(page, "claim page, awaiting approval");
@@ -100,7 +100,7 @@ test("CW-03b: with no AI key, the shell shows no tag and no AI off wording, and 
   await login(page, "maria"); await words(page, "claimant home"); await expect(page.locator(".header-tag")).toHaveCount(0);
   await page.goto("/claims/C-104"); await words(page, "claim page"); await expect(page.locator(".header-tag")).toHaveCount(0);
   // The receipt page is where AI would act, so its fixed true-reason notice stays. Only the sandbox wording is asserted here.
-  await page.goto("/receipts/new"); await page.getByLabel("This receipt is sample data with no real personal details.").check(); await page.getByRole("button", { name: "Create receipt draft", exact: true }).click();
+  await page.goto("/receipts/new"); await page.getByLabel("This receipt holds no real personal details.").check(); await page.getByRole("button", { name: "Create receipt draft", exact: true }).click();
   await expect(page.getByText(/Unpaid draft created/).first()).toBeVisible();
   const receipt = await words(page, "receipt page", false); expect(receipt).toContain("AI suggestions are off in this session: no AI key is configured.");
   // IAC-415 PR 4: the receipt page drops the bottom AI status row, so the AI strip carries the same fact.

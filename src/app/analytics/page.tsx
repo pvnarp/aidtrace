@@ -24,7 +24,7 @@ export default async function AnalyticsPage() {
         <div className="reference-links"><a className="button-link secondary" href="/analytics/report" data-testid="report-link">Open the funder report</a></div>
         <AnalyticsClient snapshot={snapshot} aiOff={ai.on ? null : AI_OFF_MESSAGES[ai.reason]}/>
       </div>
-      <footer>Accounting-inspired model, pending nonprofit accountant review. This dashboard uses local journal facts and does not verify current PayPal available funds.</footer>
+      <footer>This dashboard uses local journal facts and does not verify current PayPal available funds.</footer>
     </main></>;
   } catch (error) {
     if (!(error instanceof AnalyticsAccessError)) throw error;

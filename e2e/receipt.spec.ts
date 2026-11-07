@@ -73,8 +73,8 @@ async function login(page: Page, user: keyof typeof passwords) {
   await page.waitForURL(url => url.pathname === "/"); await page.goto("/claims/C-104");
 }
 async function create(page: Page) {
-  await login(page, "maria"); await page.goto("/"); await page.getByRole("link", { name: "Start a $6 practice expense", exact: true }).click();
-  await noOverflow(page); await page.getByLabel("This receipt is sample data with no real personal details.").check();
+  await login(page, "maria"); await page.goto("/"); await page.getByRole("link", { name: "Start an expense", exact: true }).click();
+  await noOverflow(page); await page.getByLabel("This receipt holds no real personal details.").check();
   await page.getByRole("button", { name: "Create receipt draft", exact: true }).click();
   await expect(page.getByRole("status")).toContainText("Unpaid draft created"); await noOverflow(page);
 }
@@ -110,7 +110,7 @@ test("GB-02: 375-pixel receipt quotes, explicit confirmation, allocation and edi
   await expect(page.getByRole("heading", { name: "$5.00 restricted. $1.00 General.", exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: "Freeze allocation for approval" })).toBeVisible(); await noOverflow(page);
   await page.goto(receiptUrl); await page.getByText("Edit receipt or amounts", { exact: true }).click();
-  await page.getByLabel("Invented receipt text").fill("Edited fictional source"); await page.getByLabel("This receipt is sample data with no real personal details.").check();
+  await page.getByLabel("Receipt text").fill("Edited fictional source"); await page.getByLabel("This receipt holds no real personal details.").check();
   await page.getByRole("button", { name: "Save edits and require a new review" }).click();
   await expect(page.getByRole("status")).toContainText("Earlier suggestions and confirmation no longer apply"); await expect(page.locator("blockquote")).toHaveCount(0);
   await expect(page.getByLabel("Category for L1", { exact: true })).toHaveValue("");
@@ -214,8 +214,8 @@ test("GB-02: double submit shows progress and duplicate/stale posts return to th
 test("PTG-22: a gift card mention shows the notice, needs the unticked acknowledgement, and reaches the claim page as a flag at 375 pixels", async ({ page }) => {
   await create(page); const receiptUrl = page.url().split("?")[0]!;
   await page.getByText("Edit receipt or amounts", { exact: true }).click();
-  const source = await page.getByLabel("Invented receipt text").inputValue();
-  await page.getByLabel("Invented receipt text").fill(`${source}\nRaffle prize: gift card`); await page.getByLabel("This receipt is sample data with no real personal details.").check();
+  const source = await page.getByLabel("Receipt text").inputValue();
+  await page.getByLabel("Receipt text").fill(`${source}\nRaffle prize: gift card`); await page.getByLabel("This receipt holds no real personal details.").check();
   await page.getByRole("button", { name: "Save edits and require a new review" }).click();
   await expect(page.getByRole("status")).toContainText("Earlier suggestions and confirmation no longer apply");
   const choose = async () => { for (const [line, category] of [["L1", "robot_kits_parts"], ["L2", "classroom_supplies"], ["L3", "participant_meals"]]) {

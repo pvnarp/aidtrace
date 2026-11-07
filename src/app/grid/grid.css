@@ -35,3 +35,6 @@
   .gx-search { max-width: none; flex-basis: 100%; }
   .gx-toolbar button { flex: 1 1 140px; }
 }
+/* Wrapped name cells (columns built with wrap: true). Data rows only: the column leaves the class off the pinned totals row. A one-line
+   cell is 1.35 x 14 px = 18.9 px plus 13 px above and below, so it is never shorter than the 44 px row height. */
+.gx-root .gx-wrap { line-height: 1.35; white-space: normal; word-break: normal; overflow-wrap: anywhere; padding-top: 13px; padding-bottom: 13px; }

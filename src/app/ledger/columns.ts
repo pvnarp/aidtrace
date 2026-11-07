@@ -11,7 +11,7 @@ export const ledgerTotalLabel = (shown: number) => `Total of ${shown} shown`;
  * of the grid frame at 1280 and 1440 px viewports, so the frame's right edge falls on the Credit and Source boundary and no column is cut
  * there; Source scrolls in from the right and the status line says so. Recorded fits its full UTC time, Effective on a date filter
  * with its whole mm/dd/yyyy placeholder (220 px: the input needs about 177 to 184 px plus the 32 px cell padding), and Type its longest label.
- * Long account and fund names truncate, so their tooltips carry the full text. Claim ids are 38 characters, so Claim stays in Source. */
+ * Long account and fund names wrap onto more lines and the row grows, so the name is read whole; the tooltips still carry the full text. Claim ids are 38 characters, so Claim stays in Source. */
 export function ledgerColumns(): GridColumn<LedgerRow>[] {
   return [
     { headerName: 'Entry', children: [
@@ -20,8 +20,8 @@ export function ledgerColumns(): GridColumn<LedgerRow>[] {
       textColumn<LedgerRow>({ field: 'entryType', headerName: 'Type', width: 184, tip: row => row.entryTypeTip }),
     ] },
     { headerName: 'Money', children: [
-      textColumn<LedgerRow>({ field: 'account', headerName: 'Account', width: 172, tip: row => row.account }),
-      textColumn<LedgerRow>({ field: 'fund', headerName: 'Fund', width: 128, tip: row => (row.fund ? `${row.fund}. ${row.fundTip}` : row.fundTip) }),
+      textColumn<LedgerRow>({ field: 'account', headerName: 'Account', width: 172, wrap: true, tip: row => row.account }),
+      textColumn<LedgerRow>({ field: 'fund', headerName: 'Fund', width: 128, wrap: true, tip: row => (row.fund ? `${row.fund}. ${row.fundTip}` : row.fundTip) }),
       centsColumn<LedgerRow>({ field: 'debitCents', headerName: 'Debit', width: 120 }),
       centsColumn<LedgerRow>({ field: 'creditCents', headerName: 'Credit', width: 120 }),
     ] },

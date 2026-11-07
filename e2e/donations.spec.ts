@@ -15,7 +15,7 @@ import { loadDonationsGrid, type DonationRow } from '../src/donation/donations-g
 import { usd } from '../src/analytics/model';
 import { createPayPalAdapter, type DonationObservation, type PayoutTransport } from '../src/paypal/adapter';
 import { financialHash, tableHash } from '../tests/support/policy-db';
-import { centerOverflow, EDGE_TOLERANCE, measureEdge, measureFilters, MIN_FILTER_INPUT, scrollSideways } from './grid-edge';
+import { centerOverflow, EDGE_TOLERANCE, measureEdge, measureFilters, measureLongCell, measureWrap, MIN_FILTER_INPUT, rowOverlaps, scrollSideways } from './grid-edge';
 
 // IAC-413 PR B: the approver-only /donations grid in a real browser against a real isolated PostgreSQL and a production build
 // (docs/plans/DONOR_TRAIL_SCOPE.md section 6: GT-27, GT-31 and the grid part of GT-32). Every provider is a scripted stand-in written
@@ -570,6 +570,32 @@ test('GE-10: an approver with no gifts reads the none copy, and a search or filt
   await expect(status(page)).toHaveText('Showing 0 of 10');
   await expect(filtered).toHaveText('No gifts match this search or filter.');
   await page.getByLabel('Donor Filter Input').fill(''); await expect(status(page)).toHaveText('Showing 10 of 10'); await expect(filtered).toHaveCount(0);
+});
+
+// IAC-232 wrapped names. WR-05 and WR-06 on /donations: the Donor, Fund and Vendor cells show their whole text, sideways and vertically, no data row is
+// shorter than 44 px, and the longest seeded fund name wraps and grows its row. The fixture has no donor name long enough to wrap (GATE_REPORT section 107).
+test('WR-05 and WR-06: the donations Donor, Fund and Vendor cells wrap, nothing is cut at 1440 and 1280, and no data row is shorter than 44 px', async ({ page }, testInfo) => {
+  await login(page, 'tara');
+  for (const size of [{ width: 1440, height: 900 }, { width: 1280, height: 900 }]) {
+    await openAt(page, size);
+    await expect.poll(() => rowOverlaps(page), { message: `rows overlap after the layout settles at ${size.width} px`, timeout: 5000 }).toEqual([]);
+    const report = await measureWrap(page, ['donor', 'fund']);
+    expect(report.rows, 'data rows rendered').toBeGreaterThanOrEqual(4);
+    expect(report.cells, 'Donor and Fund were measured on every row').toEqual({ donor: report.rows, fund: report.rows });
+    expect(report.overflowing, `cut text at ${size.width} px`).toEqual([]);
+    expect(report.short, `rows under 44 px at ${size.width} px`).toEqual([]);
+    const long = await measureLongCell(page, 'fund', 'Ashmere County Afterschool STEM Subgrant');
+    expect(long.found, 'the longest seeded fund name is in a Fund cell').toBe(true);
+    expect(long.rowHeight, `its row grew at ${size.width} px`).toBeGreaterThan(44.5);
+    expect(long.textHeight, `it shows on more than one line at ${size.width} px`).toBeGreaterThan(1.5 * long.lineHeight);
+    // Vendor sits past the right edge, so the grid renders its cells only once scrolled into view.
+    await scrollSideways(page, 'right');
+    const vendor = await measureWrap(page, ['vendor']);
+    expect(vendor.cells, 'Vendor was measured on every row').toEqual({ vendor: report.rows });
+    expect(vendor.overflowing, `cut vendor text at ${size.width} px`).toEqual([]);
+    await scrollSideways(page, 'left');
+    if (size.width === 1440) await page.screenshot({ path: testInfo.outputPath('wr-donations-1440.png'), fullPage: true });
+  }
 });
 
 // Runs last: every test above visited the view, filtered, sorted, searched, exported and reset. None of it may touch a financial table.

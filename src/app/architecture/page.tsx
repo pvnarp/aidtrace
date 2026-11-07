@@ -19,6 +19,6 @@ export default async function ArchitecturePage() {
       <p className="reference-intro">One $500 expense. Components highlight the selected explanation, not live traffic. AI suggests, rules allocate, two people approve and the keyless review ends at an unpaid PayPal handoff.</p>
       <ArchitectureExplorer stages={stages} />
     </div>
-    <footer><Link href="/">Back to your workspace</Link>. AI suggestions require human confirmation. This page is an illustration, not live telemetry.</footer>
+    <footer><Link href="/">Back to your workspace</Link>. The accounting model has not been reviewed by a nonprofit accountant. AI suggestions require human confirmation. This page is an illustration, not live telemetry.</footer>
   </main></>;
 }

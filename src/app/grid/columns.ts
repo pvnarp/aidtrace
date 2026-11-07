@@ -31,20 +31,27 @@ const rawText = <Row>(row: Row | undefined, field: string): string => {
   return value === null || value === undefined ? '' : String(value);
 };
 
+/** Cell class on a wrapped data cell. The line height and padding live in grid.css. */
+export const WRAP_CELL_CLASS = 'gx-wrap';
+
 export interface TextColumnOptions<Row> extends Omit<ColDef<Row>, 'field' | 'headerName'> {
   field: Extract<keyof Row, string>;
   headerName: string;
   /** Tooltip text for a data row. Pinned rows never show one. */
   tip?: (row: Row) => string | undefined;
+  /** True lets a long value wrap onto more lines and the row grow, so the name is read whole instead of cut. Default false. */
+  wrap?: boolean;
 }
 
 export function textColumn<Row>(options: TextColumnOptions<Row>): ColDef<Row> {
-  const { field, headerName, tip, ...rest } = options;
+  const { field, headerName, tip, wrap = false, ...rest } = options;
   return {
     filter: 'agTextColumnFilter',
     filterParams: { debounceMs: COLUMN_FILTER_DEBOUNCE_MS },
     floatingFilter: true, suppressFloatingFilterButton: true,
     ...rest,
+    // The pinned totals row keeps its look: the wrap class is never put on a pinned cell.
+    ...(wrap ? { wrapText: true, autoHeight: true, cellClass: (params: { node?: { rowPinned?: unknown } }) => (params.node?.rowPinned ? undefined : WRAP_CELL_CLASS) } : {}),
     field: fieldOf<Row>(field),
     headerName,
     valueGetter: params => rawText(params.data, field),

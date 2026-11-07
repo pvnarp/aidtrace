@@ -55,9 +55,9 @@ test("TV-14: the trace names the saved step for each fixture state, compact at 3
     await page.setViewportSize({ width: 1440, height: 900 }); await expect(page.locator(".trace-now")).toBeHidden(); await fits(page);
   };
   // State 1: the receipt text and amounts are being typed.
-  await login(page, "maria"); await page.getByRole("link", { name: "Start a $6 practice expense", exact: true }).click(); await step("Receipt", 1);
+  await login(page, "maria"); await page.getByRole("link", { name: "Start an expense", exact: true }).click(); await step("Receipt", 1);
   // State 2: an unconfirmed receipt draft is at AI review.
-  await page.getByLabel("This receipt is sample data with no real personal details.").check(); await page.getByRole("button", { name: "Create receipt draft", exact: true }).click(); await step("AI review", 2);
+  await page.getByLabel("This receipt holds no real personal details.").check(); await page.getByRole("button", { name: "Create receipt draft", exact: true }).click(); await step("AI review", 2);
   // State 3: confirmed categories, a draft claim at the fund split.
   for (const [line, category] of [["L1", "robot_kits_parts"], ["L2", "classroom_supplies"], ["L3", "participant_meals"]]) {
     await page.getByLabel(`Category for ${line}`, { exact: true }).selectOption(category!); await page.getByLabel(`Reason for manual choice ${line}`, { exact: true }).fill("Checked this fictional receipt directly");
@@ -132,8 +132,8 @@ async function compareMeters(page: Page) {
 }
 /** Maria creates the $6 practice expense, confirms categories by hand and opens its claim. Returns the claim URL. */
 async function makeClaim(page: Page) {
-  await login(page, "maria"); await page.getByRole("link", { name: "Start a $6 practice expense", exact: true }).click();
-  await page.getByLabel("This receipt is sample data with no real personal details.").check(); await page.getByRole("button", { name: "Create receipt draft", exact: true }).click();
+  await login(page, "maria"); await page.getByRole("link", { name: "Start an expense", exact: true }).click();
+  await page.getByLabel("This receipt holds no real personal details.").check(); await page.getByRole("button", { name: "Create receipt draft", exact: true }).click();
   for (const [line, category] of [["L1", "robot_kits_parts"], ["L2", "classroom_supplies"], ["L3", "participant_meals"]]) {
     await page.getByLabel(`Category for ${line}`, { exact: true }).selectOption(category!); await page.getByLabel(`Reason for manual choice ${line}`, { exact: true }).fill("Checked this fictional receipt directly");
   }

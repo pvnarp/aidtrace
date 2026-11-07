@@ -96,8 +96,8 @@ test("PL-00: walk the real flow at 1440 and measure each page", async ({ page })
   test.setTimeout(300000); results.length = 0; save();
   await login(page, "tara"); await measure(page, "approver home (empty)", false); await logout(page);
   await login(page, "maria"); await measure(page, "claimant home (empty)", false);
-  await page.getByRole("link", { name: "Start a $6 practice expense", exact: true }).click();
-  await page.getByLabel("This receipt is sample data with no real personal details.").check(); await page.getByRole("button", { name: "Create receipt draft", exact: true }).click();
+  await page.getByRole("link", { name: "Start an expense", exact: true }).click();
+  await page.getByLabel("This receipt holds no real personal details.").check(); await page.getByRole("button", { name: "Create receipt draft", exact: true }).click();
   await expect(page.getByLabel("Category for L1", { exact: true })).toBeVisible();
   await measure(page, "receipt page", false);
   for (const [line, category] of [["L1", "robot_kits_parts"], ["L2", "classroom_supplies"], ["L3", "participant_meals"]]) {

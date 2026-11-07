@@ -63,12 +63,12 @@ test("HOME-08: the five locked mock screens render in the real app at 1440 and 3
   // Claimant home: heading from the session, a start card before any expense, one card per loaded claim after.
   await atEachSize(page, "/", async () => {
     await expect(page.getByRole("heading", { level: 1 })).toHaveText("Which fund can pay Maria back?");
-    await expect(page.getByRole("heading", { name: "No practice expense yet", level: 2 })).toBeVisible();
-    await expect(page.getByRole("link", { name: "Start a $6 practice expense", exact: true })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "No expense yet", level: 2 })).toBeVisible();
+    await expect(page.getByRole("link", { name: "Start an expense", exact: true })).toBeVisible();
     await expect(page.getByRole("link", { name: "View funding and cash" })).toHaveCount(0);
   });
-  await page.getByRole("link", { name: "Start a $6 practice expense", exact: true }).click();
-  await page.getByLabel("This receipt is sample data with no real personal details.").check(); await page.getByRole("button", { name: "Create receipt draft", exact: true }).click();
+  await page.getByRole("link", { name: "Start an expense", exact: true }).click();
+  await page.getByLabel("This receipt holds no real personal details.").check(); await page.getByRole("button", { name: "Create receipt draft", exact: true }).click();
   await expect(page.getByText(/Unpaid draft created/)).toBeVisible();
   const [claim] = await connection.db.select().from(s.claims).where(eq(s.claims.claimantId, "maria")).then(rows => rows.filter(row => row.id.startsWith("R-")));
   expect(claim).toBeDefined();

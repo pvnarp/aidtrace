@@ -17,7 +17,8 @@ import { loadAnalyticsSnapshot } from "../analytics/snapshot";
 import { fundMeter, type FundMeter } from "./fund-meter";
 import { FundRow } from "./fund-row";
 import { shortClaimRef } from "./claim-ref";
-import { CLAIMANT_LEDE, approverHeading, approverLede, claimActionLabel, claimantHeading, nextStep, statusLabel } from "./home-copy";
+import { fundModesEnabled } from "../fund-modes/flag";
+import { CLAIMANT_LEDE, CLAIMANT_LEDE_FUND_MODES, approverHeading, approverLede, claimActionLabel, claimantHeading, nextStep, statusLabel } from "./home-copy";
 
 // IAC-403: the locked mock's Claimant home and Approver home. Every amount, status and count below comes from state this page loads
 // (claims, claim lines, and for an approver the same loadClaimView the claim page reads). Nothing is scripted.
@@ -64,20 +65,20 @@ export default async function Home() {
   return <><AppHeader user={user} /><main className="claim-page home-page reference-page">
     <div className="reference-screen">
       <h1 className="screen-heading">{claimantHeading(user.displayName)}</h1>
-      <p className="reference-intro">{CLAIMANT_LEDE}</p>
+      <p className="reference-intro">{fundModesEnabled() ? CLAIMANT_LEDE_FUND_MODES : CLAIMANT_LEDE}</p>
       {cards.length > 0 ? cards.map((card, index) => <ExpenseCard key={`${card.id}:${index}`} card={card} />)
         : <article className="reference-case" aria-labelledby="start-expense"><p className="kicker">Start your expense</p>
-          <div className="case-head"><h2 id="start-expense">{judge ? "No expense is saved in this session yet" : "No practice expense yet"}</h2></div>
-          <p>{judge ? "Start with the receipt, check the AI suggestions, then review funding. Nothing is paid by this walkthrough." : "A practice receipt starts a new unpaid draft. Nothing is paid by this walkthrough."}</p>
-          <Link className="button-link" href="/receipts/new" prefetch={false}>{judge ? "Review Maria's $500 receipt" : "Start a $6 practice expense"}</Link></article>}
+          <div className="case-head"><h2 id="start-expense">{judge ? "No expense is saved in this session yet" : "No expense yet"}</h2></div>
+          <p>{judge ? "Start with the receipt, check the AI suggestions, then review funding. Nothing is paid by this walkthrough." : "A receipt starts a new unpaid draft. Nothing is paid by this walkthrough."}</p>
+          <Link className="button-link" href="/receipts/new" prefetch={false}>{judge ? "Review Maria's $500 receipt" : "Start an expense"}</Link></article>}
       {judge && <p className="muted">One receipt carries this session from AI review through funding and two approvals to an unpaid PayPal handoff. Earlier sessions stay preserved; a fresh session starts with fresh funds.</p>}
       <div className="reference-links">
-        {!judge && cards.length > 0 && <Link className="button-link secondary" href="/receipts/new" prefetch={false}>Start a $6 practice expense</Link>}
+        {!judge && cards.length > 0 && <Link className="button-link secondary" href="/receipts/new" prefetch={false}>Start an expense</Link>}
         <Link className="button-link secondary" href="/architecture" prefetch={false}>Explore how it works</Link>
         <Link className="button-link secondary" href="/give" prefetch={false}>Give to a restricted fund</Link>
         {!judge && <Link className="button-link secondary" href="/claims/C-104" prefetch={false}>Inspect the separate claim C-104</Link>}
       </div>
-      {!judge && <p className="muted">C-104 is a separate, preclassified example. The practice receipt is your own draft.</p>}
+      {!judge && <p className="muted">C-104 is a separate, preclassified example. The receipt you start is your own draft.</p>}
     </div>
     <footer>Funds follow organization-approved rules. General Operating is flexible, not exempt from those rules.</footer>
   </main></>;

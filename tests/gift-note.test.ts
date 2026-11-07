@@ -212,7 +212,7 @@ describe("DON-13 claim page notes section", () => {
   it("shows the exact intro and the attribution policy line", () => {
     const markup = html([entry()]);
     expect(markup).toContain('<p class="muted" data-testid="gift-note-intro">Built from verified records. Approved by someone other than the claimant. Nothing is emailed.</p>');
-    expect(markup).toContain('<p class="muted" data-testid="gift-note-policy">Gifts are applied to approved receipt lines, oldest gift first. It is a narrative, not an accounting method.</p>');
+    expect(markup).toContain('<p class="muted" data-testid="gift-note-policy">Gifts are applied to approved receipt lines, oldest gift first.</p>');
     expect(plain(markup)).not.toContain("by a fixed template");
   });
   it("shows the meta line under a single-line draft and a multi-line draft, with the template label", () => {

@@ -5,6 +5,7 @@ import './ledger.css';
 import { usd } from '../../analytics/model';
 import type { LedgerRow, LedgerView } from '../../ledger/view';
 import type { DataGrid as DataGridComponent } from '../grid/grid';
+import { WRAP_MODULES } from '../grid/modules';
 import { ledgerColumns, ledgerTotalLabel, LEDGER_PHONE_COLUMNS, LEDGER_TOTAL_FIELDS } from './columns';
 
 // A grid cannot render on the server in this setup, so it loads in the browser only.
@@ -40,6 +41,7 @@ export function LedgerClient({ view, userId }: { view: LedgerView; userId: strin
       totals={TOTALS}
       getRowClass={rowClass}
       emptyMessages={EMPTY}
+      extraModules={WRAP_MODULES}
     />
   </>;
 }

@@ -50,7 +50,7 @@ describe("CW-01 no visible sandbox wording outside the owner lab", () => {
     expect(readFileSync("src/app/gift/[token]/trail-view.tsx", "utf8")).not.toContain("Test payments only.");
     expect(readFileSync("src/app/give/page.tsx", "utf8")).toContain("No real money moves.");
     expect(readFileSync("src/app/login/page.tsx", "utf8")).toContain("<footer>Sign in separately for each role.");
-    expect(readFileSync("src/app/receipts/draft-form.tsx", "utf8")).toContain("This receipt is sample data with no real personal details.");
+    expect(readFileSync("src/app/receipts/draft-form.tsx", "utf8")).toContain("This receipt holds no real personal details.");
     expect(claimFailureNotices["provider-balance-short"]).toContain("The readable PayPal balance is too short");
   });
   it("has no sandbox sentence in How it works, since IAC-416 PR 2 moved the only test-money line to Give", () => {

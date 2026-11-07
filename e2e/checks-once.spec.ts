@@ -78,8 +78,8 @@ const count = (text: string, pattern: RegExp) => (text.match(pattern) ?? []).len
 
 /** Maria confirms a receipt review by hand or from stubbed suggestions, views the allocation and freezes it. Returns the claim URL. */
 async function frozenClaim(page: Page, suggestions: boolean) {
-  await login(page, "maria"); await page.getByRole("link", { name: "Start a $6 practice expense", exact: true }).click();
-  await page.getByLabel("This receipt is sample data with no real personal details.").check(); await page.getByRole("button", { name: "Create receipt draft", exact: true }).click();
+  await login(page, "maria"); await page.getByRole("link", { name: "Start an expense", exact: true }).click();
+  await page.getByLabel("This receipt holds no real personal details.").check(); await page.getByRole("button", { name: "Create receipt draft", exact: true }).click();
   if (suggestions) { await expect(page.getByRole("status")).toContainText("Unpaid draft created"); await page.getByRole("button", { name: "Request AI suggestions" }).click(); await expect(page.locator(".notice")).toContainText("AI suggestions are ready"); }
   else {
     await expect(page.getByLabel("Category for L1", { exact: true })).toBeVisible();
@@ -166,7 +166,7 @@ async function expectSecondary(control: Locator, label: string, primary: Look, s
 const PREPARE = "Prepare expense proposal";
 async function newReceipt(page: Page) {
   await login(page, "maria"); await page.goto("/receipts/new");
-  await page.getByLabel("This receipt is sample data with no real personal details.").check(); await page.getByRole("button", { name: "Create receipt draft", exact: true }).click();
+  await page.getByLabel("This receipt holds no real personal details.").check(); await page.getByRole("button", { name: "Create receipt draft", exact: true }).click();
   await expect(page.getByRole("heading", { name: "Prepare this expense for review", exact: true })).toBeVisible();
 }
 /** The panel's resting looks. The class-less Confirm categories button is the primary reference. The Edit receipt summary is not used: the secondary reference is read from the NOT_STARTED link. */

@@ -52,9 +52,9 @@ async function create(page: Page, wine = false, aiOff = false) {
   if (wine) {
     await page.getByLabel("Description 1", { exact: true }).fill("Wine"); await page.getByLabel("USD amount 1", { exact: true }).fill("1.00");
     for (const i of [2, 3]) { await page.getByLabel(`Description ${i}`, { exact: true }).fill(""); await page.getByLabel(`USD amount ${i}`, { exact: true }).fill(""); }
-    await page.getByLabel("Receipt total in USD").fill("1.00"); await page.getByLabel("Invented receipt text").fill("Wine");
+    await page.getByLabel("Receipt total in USD").fill("1.00"); await page.getByLabel("Receipt text").fill("Wine");
   }
-  await page.getByLabel("This receipt is sample data with no real personal details.").check(); await page.getByRole("button", { name: "Create receipt draft", exact: true }).click(); await expect(page.getByRole("heading", { name: aiOff ? "AI is off in this session" : "Prepare this expense for review", exact: true })).toBeVisible();
+  await page.getByLabel("This receipt holds no real personal details.").check(); await page.getByRole("button", { name: "Create receipt draft", exact: true }).click(); await expect(page.getByRole("heading", { name: aiOff ? "AI is off in this session" : "Prepare this expense for review", exact: true })).toBeVisible();
   return page.url().split("?")[0]!;
 }
 async function noOverflow(page: Page) {
@@ -115,8 +115,8 @@ test.describe("Synthetic response interface checks", () => {
     await login(page, "maria"); await page.goto("/receipts/new");
     const literal = '<img src="/never-load" onerror="window.__receiptInjection=1">';
     await page.getByLabel("Description 1", { exact: true }).fill(literal);
-    await page.getByLabel("Invented receipt text").fill(literal + "\nBlank writing notebook\nSandwiches and apple juice");
-    await page.getByLabel("This receipt is sample data with no real personal details.").check();
+    await page.getByLabel("Receipt text").fill(literal + "\nBlank writing notebook\nSandwiches and apple juice");
+    await page.getByLabel("This receipt holds no real personal details.").check();
     const unexpected: string[] = [];
     page.on("request", request => { if (new URL(request.url()).pathname === "/never-load") unexpected.push(request.url()); });
     await page.getByRole("button", { name: "Create receipt draft", exact: true }).click();
@@ -223,10 +223,10 @@ test.describe("Synthetic response interface checks", () => {
     await expect(page.getByRole("button", { name: "Freeze allocation for approval" })).toHaveCount(0);
     expect(await connection.db.select().from(s.approvals)).toHaveLength(0);
     expect(await connection.db.select().from(s.disbursements)).toHaveLength(0);
-    await page.goto("/receipts/new"); await page.getByLabel("This receipt is sample data with no real personal details.").check(); await page.getByRole("button", { name: "Create receipt draft", exact: true }).click(); mode = "unknown";
+    await page.goto("/receipts/new"); await page.getByLabel("This receipt holds no real personal details.").check(); await page.getByRole("button", { name: "Create receipt draft", exact: true }).click(); mode = "unknown";
     await page.getByRole("button", { name: "Prepare expense proposal", exact: true }).click(); await expect(page.getByRole("heading", { name: "Category review needed", exact: true })).toBeVisible(); await expect(page.getByLabel("Category for L1", { exact: true })).toHaveValue("");
     await page.getByRole("button", { name: "Confirm categories", exact: true }).click(); expect(await page.getByLabel("Category for L1", { exact: true }).evaluate((el: HTMLSelectElement) => el.validity.valueMissing)).toBe(true);
-    await page.goto("/receipts/new"); await page.getByLabel("This receipt is sample data with no real personal details.").check(); await page.getByRole("button", { name: "Create receipt draft", exact: true }).click(); mode = "unavailable";
+    await page.goto("/receipts/new"); await page.getByLabel("This receipt holds no real personal details.").check(); await page.getByRole("button", { name: "Create receipt draft", exact: true }).click(); mode = "unavailable";
     await page.getByRole("button", { name: "Prepare expense proposal", exact: true }).click(); await expect(page.getByRole("heading", { name: "Preparation unavailable", exact: true })).toBeVisible();
     for (const [line, category] of [["L1", "robot_kits_parts"], ["L2", "classroom_supplies"], ["L3", "participant_meals"]]) { await page.getByLabel(`Category for ${line}`, { exact: true }).selectOption(category!); await page.getByLabel(`Reason for manual choice ${line}`, { exact: true }).fill("Checked invented source"); }
     await page.getByLabel(/I checked every category/).check(); await page.getByRole("button", { name: "Confirm categories", exact: true }).click(); await expect(page.getByRole("heading", { name: "Human confirmation recorded" })).toBeVisible();
@@ -238,7 +238,7 @@ test.describe("Synthetic response interface checks", () => {
     await prepareExpenseProposal(connection.db, id, "maria", { reviewId: v.review.id, draftHash: v.review.draftHash, suggestionHash: suggestionHash(v.suggestion), runHash: p.runHash }, async () => { throw new ReceiptAiError("TIMEOUT"); });
     await page.reload(); await expect(page.locator(".proposal-panel")).toContainText("Preparation timed out");
     await page.getByText("Edit receipt or amounts", { exact: true }).click(); await page.getByLabel("Vendor", { exact: true }).fill("Unsaved fictional vendor"); await expect(page.getByRole("button", { name: "Prepare expense proposal", exact: true })).toBeDisabled(); await expect(page.getByRole("button", { name: "Confirm categories", exact: true })).toBeDisabled();
-    await page.getByLabel("This receipt is sample data with no real personal details.").check(); await page.getByRole("button", { name: "Save edits and require a new review" }).click(); await expect(page.getByText("Unsaved fictional vendor", { exact: false }).first()).toBeVisible();
+    await page.getByLabel("This receipt holds no real personal details.").check(); await page.getByRole("button", { name: "Save edits and require a new review" }).click(); await expect(page.getByText("Unsaved fictional vendor", { exact: false }).first()).toBeVisible();
     expect(calls).toBe(0); expect(await connection.db.select().from(s.receiptConfirmations)).toHaveLength(0); await noOverflow(page);
   });
   test("AP-09: AI disabled still allows explicit manual category confirmation", async ({ page }) => {
@@ -259,7 +259,7 @@ test.describe("Isolated single-receipt judging", () => {
     await expect(page.getByRole("link", { name: "Review Maria's $500 receipt", exact: true })).toBeVisible();
     await expect(page.getByRole("link", { name: "Inspect the separate claim C-104", exact: true })).toHaveCount(0);
     await page.getByRole("link", { name: "Review Maria's $500 receipt", exact: true }).click();
-    await page.getByLabel("This receipt is sample data with no real personal details.").check(); await page.getByRole("button", { name: "Create receipt draft", exact: true }).click();
+    await page.getByLabel("This receipt holds no real personal details.").check(); await page.getByRole("button", { name: "Create receipt draft", exact: true }).click();
     await expect(page.getByRole("heading", { name: "Prepare this expense for review", exact: true })).toBeVisible();
     const receipt = page.url().split("?")[0]!; const input = await readReceiptView(connection.db, receipt.split("/").at(-2)!, "maria");
     expect(input.lines.map(line => line.amountCents)).toEqual([28000n, 15000n, 7000n]);

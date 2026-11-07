@@ -172,8 +172,21 @@ export function wordNumbersIn(quote: string): Set<number> {
 // Plain digit runs only: "30" and "30-day" count, "$30", "1,500" and "30.5" do not, so a dollar amount cannot pass as a day count.
 export const digitNumbersIn = (quote: string): Set<number> => new Set([...quote.matchAll(/\$?\d+(?:[,.]\d+)*/g)].map(match => match[0]).filter(token => /^\d+$/.test(token)).map(Number));
 const daysSupport = (failed: string[]): Support<number> => ({ failed, holds: (value, quote) => digitNumbersIn(quote).has(value) || wordNumbersIn(quote).has(value) });
-// The four-digit year of an ISO date, as a whole number in the quote ("2026" yes, "12026" and "20261" no).
-const yearSupport = (failed: string[]): Support<string> => ({ failed, holds: (value, quote) => new RegExp(String.raw`(?<!\d)${value.slice(0, 4)}(?!\d)`).test(quote) });
+// A full ISO date (YYYY-MM-DD) is supported by the quote only when the quote states that exact date: the ISO string as a whole token ("2026-09-011" and
+// "12026-09-01" do not count) or an English month name with the same day and year ("October 1, 2026", "October 1st, 2026", "1 October 2026"). A right year
+// with a wrong month or day does not hold, and numeric slashes such as 10/01/2026 are ambiguous, so they do not count either (the human fills the date).
+const MONTH_NAMES = ["january", "february", "march", "april", "may", "june", "july", "august", "september", "october", "november", "december"];
+const dateSupport = (failed: string[]): Support<string> => ({ failed, holds: (value, quote) => {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+  if (!match) return false;
+  const [, year, month, day] = match;
+  if (new RegExp(String.raw`(?<!\d)${value}(?!\d)`).test(quote)) return true;
+  const name = MONTH_NAMES[Number(month) - 1];
+  if (!name) return false;
+  const dayText = String.raw`(?<!\d)0?${Number(day)}(?:st|nd|rd|th)?(?!\d)`;
+  const written = [String.raw`${name}\s+${dayText},?\s+${year}`, String.raw`${dayText}\s+${name},?\s+${year}`];
+  return written.some(pattern => new RegExp(String.raw`\b${pattern}(?!\d)`, "i").test(quote));
+} });
 
 function readField<T>(raw: unknown, path: string, mode: DraftMode, clauses: ReadonlyMap<string, string>, parse: (value: unknown) => T, support?: Support<T>): DraftField<T> {
   const field = exactKeys(raw, ["status", "value", "clauseId", "quote"], path);
@@ -279,8 +292,8 @@ function build(raw: unknown, input: GrantInput, mode: DraftMode): Validated {
     }
     return list;
   });
-  const periodStart = readField(top.periodStart, "periodStart", mode, clauseText, value => isoDate(value, "periodStart"), yearSupport(failed));
-  const periodEnd = readField(top.periodEnd, "periodEnd", mode, clauseText, value => isoDate(value, "periodEnd"), yearSupport(failed));
+  const periodStart = readField(top.periodStart, "periodStart", mode, clauseText, value => isoDate(value, "periodStart"), dateSupport(failed));
+  const periodEnd = readField(top.periodEnd, "periodEnd", mode, clauseText, value => isoDate(value, "periodEnd"), dateSupport(failed));
   if (periodStart.value !== null && periodEnd.value !== null && periodStart.value > periodEnd.value) throw new Refuse("DATE_ORDER", "periodEnd");
 
   // Breadth is the category count, and it is null exactly when the categories are UNSURE. The model schema has no null, so in MODEL mode a breadth of 0

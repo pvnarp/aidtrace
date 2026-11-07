@@ -5,6 +5,7 @@ import './donations.css';
 import { usd } from '../../analytics/model';
 import type { DonationRow, DonationsGrid } from '../../donation/donations-grid';
 import type { DataGrid as DataGridComponent } from '../grid/grid';
+import { WRAP_MODULES } from '../grid/modules';
 import { donationsColumns, donationsTotalLabel, DONATIONS_PHONE_COLUMNS, DONATIONS_TOTAL_FIELDS } from './columns';
 
 // A grid cannot render on the server in this setup, so it loads in the browser only.
@@ -41,6 +42,7 @@ export function DonationsClient({ view, userId }: { view: DonationsGrid; userId:
       totals={TOTALS}
       getRowClass={rowClass}
       emptyMessages={EMPTY}
+      extraModules={WRAP_MODULES}
     />
   </>;
 }

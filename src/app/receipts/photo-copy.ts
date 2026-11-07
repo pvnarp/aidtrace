@@ -23,4 +23,4 @@ export const photoEvidenceLine = (modelLabel: string, unchanged: boolean): strin
 // Beside the date field when the photo's printed date is not a calendar date the form can hold. React text only: the printed date is the model's text and is never markup.
 export const photoPrintedDate = (printed: string): string => `Printed date: ${printed}. Enter it as a date.`;
 export const PHOTO_SOURCE_LABEL = "Receipt text read from the photo";
-export const PHOTO_SOURCE_LABEL_TYPED = "Invented receipt text";
+export const PHOTO_SOURCE_LABEL_TYPED = "Receipt text";

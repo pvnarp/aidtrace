@@ -117,7 +117,7 @@ test("PH-40 to PH-44: a claimant reads a photo into the draft form, sees a misma
     await expect(page.locator("#total")).toHaveValue("28.80");
     await expect(page.locator("#source")).toHaveValue("Acrylic paint set $12.50\nBrush pack $4.80\nPoster board $3.90\nLunch sandwiches $7.60\nSubtotal $28.80\nTotal $28.80");
     await expect(page.locator("#program")).toHaveValue("robotics");
-    await expect(page.getByLabel("This receipt is sample data with no real personal details.")).not.toBeChecked();
+    await expect(page.getByLabel("This receipt holds no real personal details.")).not.toBeChecked();
     await expect(page.locator("#photoReadId")).toHaveValue(/^[0-9a-f-]{36}$/);
     await expect(page.getByTestId("photo-mismatch")).toHaveCount(0);
     const preview = page.getByTestId("photo-preview");
@@ -174,7 +174,7 @@ test("PH-40 to PH-44: a claimant reads a photo into the draft form, sees a misma
     await page.getByTestId("photo-input").setInputFiles({ name: "receipt4.png", mimeType: "image/png", buffer: png });
     await expect(page.getByTestId("photo-status")).toContainText("AI read this photo.");
     await expect(page.getByTestId("photo-powered-by")).toHaveText("Powered by Claude Haiku 5.5.");
-    await page.getByLabel("This receipt is sample data with no real personal details.").check();
+    await page.getByLabel("This receipt holds no real personal details.").check();
     await page.getByRole("button", { name: "Create receipt draft", exact: true }).click();
     await expect(page.getByRole("status").first()).toContainText("Unpaid draft created");
     await expect(page.getByTestId("photo-evidence")).toHaveText("Pre-filled from a photo by AI (Haiku 5.5). The claimant made no changes.");
@@ -229,7 +229,7 @@ test("PH-60 to PH-63: a printed date that is not a date is cleared and shown, th
     await expect(page.locator("#incurredOn")).toHaveValue("");
     await expect(page.getByTestId("printed-date")).toBeVisible();
     await expect(page.getByTestId("printed-date")).toHaveText("Printed date: 12 Oct 26. Enter it as a date.");
-    await page.getByLabel("This receipt is sample data with no real personal details.").check();
+    await page.getByLabel("This receipt holds no real personal details.").check();
     await page.getByRole("button", { name: "Create receipt draft", exact: true }).click();
     await expect(page).toHaveURL(/\/receipts\/new/);
     expect(await page.locator("#incurredOn").evaluate((el: HTMLInputElement) => el.validity.valueMissing)).toBe(true);
@@ -256,13 +256,13 @@ test("PH-60 to PH-63: a printed date that is not a date is cleared and shown, th
   });
 
   await test.step("PH-63: the claim rail says Read from a photo for a linked receipt and the typed text for a receipt with no photo", async () => {
-    await page.getByLabel("This receipt is sample data with no real personal details.").check();
+    await page.getByLabel("This receipt holds no real personal details.").check();
     await page.getByRole("button", { name: "Create receipt draft", exact: true }).click();
     await expect(page.getByRole("status").first()).toContainText("Unpaid draft created");
     await expect(page.getByRole("navigation", { name: "Expense trace" })).toContainText("Read from a photo");
     await expect(page.getByRole("navigation", { name: "Expense trace" })).not.toContainText("Typed text and amounts");
     await page.goto("/receipts/new");
-    await page.getByLabel("This receipt is sample data with no real personal details.").check();
+    await page.getByLabel("This receipt holds no real personal details.").check();
     await page.getByRole("button", { name: "Create receipt draft", exact: true }).click();
     await expect(page.getByRole("status").first()).toContainText("Unpaid draft created");
     await expect(page.getByRole("navigation", { name: "Expense trace" })).toContainText("Typed text and amounts");

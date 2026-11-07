@@ -102,14 +102,14 @@ test("IAC-350: architecture is authenticated, keyboard-operable and executes no 
 });
 
 test("IAC-350: guidance follows one expense, role handoff and two approvals without payment", async ({ page }) => {
-  await login(page, "maria"); await page.getByRole("link", { name: "Start a $6 practice expense", exact: true }).click();
+  await login(page, "maria"); await page.getByRole("link", { name: "Start an expense", exact: true }).click();
   const journey = page.getByLabel("Expense journey", { exact: true });
   await traceAt(page, "Receipt"); await fits(page);
-  const checkbox = page.getByLabel("This receipt is sample data with no real personal details.");
+  const checkbox = page.getByLabel("This receipt holds no real personal details.");
   const checkboxBox = await checkbox.boundingBox();
   expect(checkboxBox!.width).toBeGreaterThanOrEqual(20); expect(checkboxBox!.height).toBeGreaterThanOrEqual(20);
   expect((await page.locator("label.confirm").boundingBox())!.height).toBeGreaterThanOrEqual(44);
-  await page.getByLabel("This receipt is sample data with no real personal details.").check(); await page.getByRole("button", { name: "Create receipt draft", exact: true }).click();
+  await page.getByLabel("This receipt holds no real personal details.").check(); await page.getByRole("button", { name: "Create receipt draft", exact: true }).click();
   await traceAt(page, "AI review");
   for (const [line, category] of [["L1", "robot_kits_parts"], ["L2", "classroom_supplies"], ["L3", "participant_meals"]]) {
     await page.getByLabel(`Category for ${line}`, { exact: true }).selectOption(category!); await page.getByLabel(`Reason for manual choice ${line}`, { exact: true }).fill("Checked this fictional receipt directly");

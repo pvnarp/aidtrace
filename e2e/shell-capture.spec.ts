@@ -57,7 +57,7 @@ test("IAC-373: capture 1440 and 390 stills of the shell", async ({ browser }) =>
       await shot("stage3-claim-draft", "/claims/C-104");
       // Stage 2 with a real receipt draft: created through the form with the fixture defaults, no AI run (receipt AI is off in this session).
       await page.setViewportSize({ width: 1440, height: 900 }); await page.goto("/receipts/new");
-      await page.getByLabel("This receipt is sample data with no real personal details.").check(); await page.getByRole("button", { name: "Create receipt draft", exact: true }).click();
+      await page.getByLabel("This receipt holds no real personal details.").check(); await page.getByRole("button", { name: "Create receipt draft", exact: true }).click();
       await page.getByRole("heading", { name: "Prepare this expense for review", exact: true }).waitFor();
       await shot("stage2-receipt-review", new URL(page.url()).pathname);
       for (const [status, label] of [["AWAITING_APPROVAL", "stage4-awaiting-approval"], ["REJECTED", "stage4-rejected"], ["APPROVED", "stage5-approved-keyless"], ["PAYOUT_PROCESSING", "stage5-payout-processing"], ["PAYOUT_ISSUE", "stage5-payout-issue"]] as const) {

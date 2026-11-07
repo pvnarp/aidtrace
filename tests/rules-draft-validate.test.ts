@@ -128,10 +128,11 @@ describe("DR-07 dates are valid ISO dates and the start is not after the end", (
     }
   });
   it("refuses a start after the end and accepts a one day period and a leap day", () => {
-    // Each value keeps a quote that holds its year, so the support check (DR-48) leaves it alone and the order rule is what decides.
-    const start = (value: string) => mutate(answer => { answer.periodStart = drafted(value, "1.2", "ends on 2027-06-30"); });
-    expect(refusal(start("2027-07-01"))).toBe("DATE_ORDER periodEnd");
-    const oneDay = run(start("2027-06-30"));
+    // Each value keeps a quote that states its full date, so the support check (DR-48) leaves it alone and the order rule is what decides.
+    const start = (value: string) => withClause(`Section 7. The start is ${value}.`, draft => { draft.periodStart = drafted(value, "1.9", value); });
+    const startRefusal = (value: string) => { const { answer, input } = start(value); return refusal(answer, input); };
+    expect(startRefusal("2027-07-01")).toBe("DATE_ORDER periodEnd");
+    const oneDay = (({ answer, input }) => run(answer, input))(start("2027-06-30"));
     expect(oneDay.ok && oneDay.draft.periodStart.value).toBe("2027-06-30");
     const { answer, input } = withClause("Section 7. The leap day 2028-02-29 is one allowed day.", draft => {
       draft.periodStart = drafted("2028-02-29", "1.9", "2028-02-29"); draft.periodEnd = drafted("2028-02-29", "1.9", "2028-02-29");
@@ -396,8 +397,8 @@ describe("DR-47 a day count must appear in the quote as digits or as an English 
   });
 });
 
-describe("DR-48 a period date must carry its four-digit year in the quote", () => {
-  it("keeps a date whose year the quote states, and downgrades one whose year differs or is missing", () => {
+describe("DR-48 a period date must be stated in full by the quote", () => {
+  it("keeps a date the quote states exactly, and downgrades one whose year, month, day or form differs", () => {
     for (const path of ["periodStart", "periodEnd"]) {
       expect(outcome(path, "begins on 2026-09-01", "2026-09-01"), path).toMatchObject({ kept: true, unsupported: [] });
       expect(outcome(path, "September 1, 2026", "2026-09-01"), path).toMatchObject({ kept: true });
@@ -405,6 +406,23 @@ describe("DR-48 a period date must carry its four-digit year in the quote", () =
       expect(outcome(path, "begins on September first", "2026-09-01"), path).toMatchObject({ kept: false, unsupported: [path] });
       expect(outcome(path, "begins in 12026", "2026-09-01"), path).toMatchObject({ kept: false });
       expect(outcome(path, "begins in 20261", "2026-09-01"), path).toMatchObject({ kept: false });
+      // Right year, wrong month or day: the old year-only check passed these.
+      expect(outcome(path, "begins on 2026-10-01", "2026-09-01"), path).toMatchObject({ kept: false, unsupported: [path] });
+      expect(outcome(path, "begins on 2026-09-02", "2026-09-01"), path).toMatchObject({ kept: false, unsupported: [path] });
+      // Written dates: same month, day and year.
+      expect(outcome(path, "from October 1, 2026", "2026-10-01"), path).toMatchObject({ kept: true, unsupported: [] });
+      expect(outcome(path, "from October 1 2026", "2026-10-01"), path).toMatchObject({ kept: true });
+      expect(outcome(path, "from October 1st, 2026", "2026-10-01"), path).toMatchObject({ kept: true });
+      expect(outcome(path, "from 1 October 2026", "2026-10-01"), path).toMatchObject({ kept: true });
+      expect(outcome(path, "from OCTOBER 1, 2026", "2026-10-01"), path).toMatchObject({ kept: true });
+      expect(outcome(path, "from October 11, 2026", "2026-10-01"), path).toMatchObject({ kept: false, unsupported: [path] });
+      expect(outcome(path, "from 11 October 2026", "2026-10-01"), path).toMatchObject({ kept: false });
+      expect(outcome(path, "from September 1, 2026", "2026-10-01"), path).toMatchObject({ kept: false });
+      expect(outcome(path, "from October 1, 2025", "2026-10-01"), path).toMatchObject({ kept: false });
+      // Longer digit runs and numeric slashes do not count.
+      expect(outcome(path, "begins on 2026-09-011", "2026-09-01"), path).toMatchObject({ kept: false });
+      expect(outcome(path, "begins on 12026-09-01", "2026-09-01"), path).toMatchObject({ kept: false });
+      expect(outcome(path, "begins on 10/01/2026", "2026-10-01"), path).toMatchObject({ kept: false, unsupported: [path] });
     }
   });
   it("a downgraded period date leaves the draft incomplete and the order rule only applies to values that remain", () => {

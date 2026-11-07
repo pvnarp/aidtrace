@@ -14,9 +14,9 @@ export function DraftForm({ id, reviewId, hash, vendor = "Cedar Science Shop", p
       <label htmlFor={`amount${i + 1}`}>USD amount {i + 1}<input id={`amount${i + 1}`} name={`amount${i + 1}`} defaultValue={lines[i]?.amount ?? ""} inputMode="decimal" pattern="[0-9]+\.[0-9]{2}" placeholder="0.00" required={i === 0} /></label>
     </fieldset>)}
     <label htmlFor="total">Receipt total in USD</label><input id="total" name="total" defaultValue={total} required inputMode="decimal" pattern="[0-9]+\.[0-9]{2}" />
-    <label htmlFor="source" id="sourceLabel">Invented receipt text</label><textarea id="source" name="source" defaultValue={source} required rows={7} maxLength={16384} />
-    <p>Use invented receipt text only. Amounts are entered by you, with two decimal places. Maximum total $500.00.</p>
-    <label className="confirm"><input type="checkbox" name="syntheticReceipt" value="yes" required /> This receipt is sample data with no real personal details.</label>
+    <label htmlFor="source" id="sourceLabel">Receipt text</label><textarea id="source" name="source" defaultValue={source} required rows={7} maxLength={16384} />
+    <p>Amounts are entered by you, with two decimal places. Maximum total $500.00.</p>
+    <label className="confirm"><input type="checkbox" name="syntheticReceipt" value="yes" required /> This receipt holds no real personal details.</label>
     <button type="submit">{id ? "Save edits and require a new review" : "Create receipt draft"}</button>
   </form>;
 }

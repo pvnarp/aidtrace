@@ -25,6 +25,8 @@ export function approverLede(count: number, assistedNote = false): string {
 }
 
 export const CLAIMANT_LEDE = "Every grant has its own limits. AI helps prepare, rules calculate funding, two other people approve and PayPal remains a separate decision.";
+// IAC-405: with the fund modes flag on, a fund can need one approval or none, so the flag-off sentence above would be wrong.
+export const CLAIMANT_LEDE_FUND_MODES = "Every grant has its own limits. AI helps prepare, rules calculate funding, and each fund's approval setting decides who signs off before PayPal pays.";
 
 /** Plain status label, the same labels the claim pages use. */
 export function statusLabel(status: string): string {

@@ -21,7 +21,7 @@ export default async function DonationsPage() {
         <p className="snapshot-time">View observed <time dateTime={view.observedAt}>{reviewTime(new Date(view.observedAt))}</time>. <a href="/donations">Reload view</a></p>
         <DonationsClient view={view} userId={user.id} />
       </div>
-      <footer>Accounting-inspired model, pending nonprofit accountant review. This view shows local gift facts. It does not verify current PayPal available funds, and the table uses AG Grid Community (MIT).</footer>
+      <footer>This view shows local gift facts. It does not verify current PayPal available funds, and the table uses AG Grid Community (MIT).</footer>
     </main>;
   } catch (error) {
     if (!(error instanceof DonationsAccessError)) throw error;

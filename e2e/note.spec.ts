@@ -65,7 +65,7 @@ test("IAC-379 step 3b: a non-claimant approves the template donor note, it downl
   await expect(section.getByTestId("gift-note-draft")).toContainText("No payment has been sent in this environment.");
   await expect(section.getByTestId("gift-note-meta")).toHaveText(meta);
   await expect(section.getByTestId("gift-note-intro")).toHaveText("Built from verified records. Approved by someone other than the claimant. Nothing is emailed.");
-  await expect(section.getByTestId("gift-note-policy")).toHaveText("Gifts are applied to approved receipt lines, oldest gift first. It is a narrative, not an accounting method.");
+  await expect(section.getByTestId("gift-note-policy")).toHaveText("Gifts are applied to approved receipt lines, oldest gift first.");
   await expect(section.getByTestId("gift-note-draft")).not.toContainText("PayPal");
   await expect(section.getByRole("button", { name: "Approve this note" })).toHaveCount(0);
   await expect(section).toContainText("An approver who is not the claimant approves this note.");

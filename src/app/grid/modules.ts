@@ -1,6 +1,6 @@
 import {
   BigIntFilterModule, CellApiModule, CellStyleModule, ClientSideRowModelModule, ColumnAutoSizeModule, CsvExportModule, DateFilterModule,
-  GridStateModule, PinnedRowModule, QuickFilterModule, RenderApiModule, RowApiModule, RowSelectionModule, RowStyleModule, ScrollApiModule, TextFilterModule,
+  GridStateModule, PinnedRowModule, QuickFilterModule, RenderApiModule, RowApiModule, RowAutoHeightModule, RowSelectionModule, RowStyleModule, ScrollApiModule, TextFilterModule,
   TooltipModule, ValidationModule, type Module,
 } from 'ag-grid-community';
 
@@ -56,3 +56,10 @@ export function gridModules(extra: readonly Module[] = []): Module[] {
  * grid that does not pass it as an extra module has no row selection. Only the assisted approver queue passes it.
  */
 export const SELECTION_MODULES: readonly Module[] = [RowSelectionModule];
+
+/**
+ * IAC-232 (November 7): the one Community module a grid adds so a column with wrap true (columns.ts textColumn) can grow its row,
+ * named on the allowed list above as RowAutoHeight. Without it AG Grid logs error #200 and the row keeps its 44 px height. Only the
+ * Ledger and Donations grids wrap, so only their clients pass it (tests/grid-wrap.test.ts WR-08).
+ */
+export const WRAP_MODULES: readonly Module[] = [RowAutoHeightModule];

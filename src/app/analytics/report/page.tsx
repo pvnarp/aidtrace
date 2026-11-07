@@ -87,7 +87,7 @@ export default async function FunderReportPage() {
           <ul>{BOUNDARY_LINES.map(line => <li key={line}>{line}</li>)}</ul>
         </section>
       </div>
-      <footer>Accounting-inspired model, pending nonprofit accountant review. This report uses local records and does not verify current PayPal available funds.</footer>
+      <footer>This report uses local records and does not verify current PayPal available funds.</footer>
     </main></>;
   } catch (error) {
     if (!(error instanceof AnalyticsAccessError)) throw error;

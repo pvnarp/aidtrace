@@ -76,7 +76,7 @@ launcher prints "AI suggestions: on". Log in with the three generated passwords 
 3. **Create the receipt (maria).** Choose "Review Maria's $500 receipt". Either read a photo of a
    sample receipt (JPEG, PNG or WebP up to 3.75 MB) and check every line against it, or keep
    the typed example: USD 280 robot kit and parts, USD 150 engineering notebooks and USD 70
-   sandwiches and apple juice. Check the sample-data box and create the draft.
+   sandwiches and apple juice. Check the personal-details box and create the draft.
 4. **Categories (maria).** Select Prepare expense proposal once. Check each AI category against its
    highlighted source quote. A matching quote does not prove the category is right. The
    sandwiches line stays for a person. Confirm the categories and view the allocation.

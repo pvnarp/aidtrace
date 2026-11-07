@@ -113,8 +113,8 @@ async function snap(page: Page, label: string): Promise<Snap> {
 const trace = (page: Page, step: string) => expect(page.locator(".trace [aria-current=step] .t")).toHaveText(step);
 const approve = (page: Page) => page.getByRole("button", { name: "Approve these terms", exact: true });
 async function newReceipt(page: Page, fill?: (page: Page) => Promise<void>) {
-  await page.getByRole("link", { name: "Start a $6 practice expense", exact: true }).click(); if (fill) await fill(page);
-  await page.getByLabel("This receipt is sample data with no real personal details.").check(); await page.getByRole("button", { name: "Create receipt draft", exact: true }).click();
+  await page.getByRole("link", { name: "Start an expense", exact: true }).click(); if (fill) await fill(page);
+  await page.getByLabel("This receipt holds no real personal details.").check(); await page.getByRole("button", { name: "Create receipt draft", exact: true }).click();
 }
 
 test("FO-00a: walk the real flow with AI off and record each page", async ({ page }) => {
@@ -147,7 +147,7 @@ const QUOTES = ["Zorblax-9 experiment kit", "Quillon blank notebook", "Mirabel s
 test("FO-00b: walk the receipt page with stubbed suggestions, before and after confirmation", async ({ page }) => {
   test.setTimeout(300000); stubMode = { quotes: QUOTES, conflict: false }; await start("stub"); const out: Snap[] = [];
   await login(page, "maria");
-  await newReceipt(page, async p => { await p.getByLabel("Invented receipt text", { exact: true }).fill(QUOTES.join("\n")); });
+  await newReceipt(page, async p => { await p.getByLabel("Receipt text", { exact: true }).fill(QUOTES.join("\n")); });
   await expect(page.getByRole("status")).toContainText("Unpaid draft created");
   await page.getByRole("button", { name: "Request AI suggestions" }).click(); await expect(page.locator(".notice")).toContainText("AI suggestions are ready");
   out.push(await snap(page, "receipt suggested"));
@@ -266,7 +266,7 @@ const mainText = (page: Page) => page.locator("main").innerText();
 test("FT-02: with a READY Claude suggestion the receipt page says 'Edit the receipt to request a new review.' once, in the AI recommendation header after the saved record, and never 'AI suggestions are saved for this receipt'", async ({ page }) => {
   test.setTimeout(300000); stubMode = { quotes: QUOTES, conflict: false }; await start("stub");
   await login(page, "maria");
-  await newReceipt(page, async p => { await p.getByLabel("Invented receipt text", { exact: true }).fill(QUOTES.join("\n")); });
+  await newReceipt(page, async p => { await p.getByLabel("Receipt text", { exact: true }).fill(QUOTES.join("\n")); });
   await expect(page.getByRole("status")).toContainText("Unpaid draft created");
   await page.getByRole("button", { name: "Request AI suggestions" }).click(); await expect(page.locator(".notice")).toContainText("AI suggestions are ready");
   const receiptUrl = page.url().split("?")[0]!; const counts: Record<string, Record<string, number>> = {};

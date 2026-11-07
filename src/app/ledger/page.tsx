@@ -21,7 +21,7 @@ export default async function LedgerPage() {
         <p className="snapshot-time">View observed <time dateTime={view.observedAt}>{reviewTime(new Date(view.observedAt))}</time>. <a href="/ledger">Reload view</a></p>
         <LedgerClient view={view} userId={user.id} />
       </div>
-      <footer>Accounting-inspired model, pending nonprofit accountant review. This view shows local journal facts and does not verify current PayPal available funds.</footer>
+      <footer>This view shows local journal facts and does not verify current PayPal available funds.</footer>
     </main>;
   } catch (error) {
     if (!(error instanceof LedgerAccessError)) throw error;

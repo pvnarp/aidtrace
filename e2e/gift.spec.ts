@@ -235,6 +235,7 @@ test('GT-22 and GT-23: privacy headers and both meta tags on the 200 page, nothi
   await expect(page.getByTestId('gift-footer')).not.toContainText('Test payments only.');
   await expect(page.getByTestId('gift-footer')).toContainText('This page shows no names or contact details. Anyone who has this link can see it.');
   await expect(page.getByTestId('gift-footer')).toContainText('Gifts are applied to approved lines oldest first. This is a narrative, not a trace of a specific purchase.');
+  await expect(page.getByText('Gifts are applied to approved lines oldest first. This is a narrative, not a trace of a specific purchase.', { exact: true })).toHaveCount(1);
   // No line ID is visible as a whole word anywhere on the rendered page, in text or in any attribute value.
   const rendered = await page.evaluate(() => ({ text: document.body.innerText, attributes: [...document.body.querySelectorAll('*')].flatMap(element => [...element.attributes].map(attribute => attribute.value)) }));
   for (const id of lineIds) { expect(rendered.text).not.toMatch(new RegExp(`\\b${id}\\b`)); expect(rendered.attributes).not.toContain(id); }
@@ -255,6 +256,10 @@ test('the unapplied gift reads as waiting, with the exact remainder and the meth
   await expect(page.getByTestId('gift-state')).toHaveText('Your gift has arrived. It is waiting for a matching receipt.');
   await expect(page.getByTestId('gift-amount')).toHaveText('$10.00 to Ashmere County Afterschool STEM Subgrant');
   await expect(page.getByTestId('gift-waiting')).toContainText('Still waiting: $10.00 of your gift has no matching receipt yet.');
+  // The method sentence shows once: in the waiting box, not repeated in the footer.
+  await expect(page.getByTestId('gift-waiting')).toContainText('Gifts are applied to approved lines oldest first. This is a narrative, not a trace of a specific purchase.');
+  await expect(page.getByTestId('gift-footer')).not.toContainText('Gifts are applied to approved lines oldest first.');
+  await expect(page.getByText('Gifts are applied to approved lines oldest first. This is a narrative, not a trace of a specific purchase.', { exact: true })).toHaveCount(1);
   await expect(page.getByTestId('gift-step-2')).toHaveClass(/cur/); await expect(page.getByTestId('gift-step-3')).toHaveClass(/fut/); await expect(page.getByTestId('gift-step-4')).toHaveClass(/fut/);
   await expect(page.getByTestId('gift-step-4')).toContainText('Not sent yet');
   await expect(page.getByTestId('gift-line')).toHaveCount(0);
