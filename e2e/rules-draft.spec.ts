@@ -136,14 +136,17 @@ test("DR-130 to DR-133: an approver drafts rules from a PDF and pasted grant, a 
     await expect(page.getByTestId("rules-form-disclosure")).toContainText(/^Powered by Claude Sonnet 5\.5\. Nothing is sent until you press Draft rules\./);
     await expect(page.getByTestId("rules-form-disclosure")).toContainText("Anthropic");
     await expect(page.getByTestId("rules-draft-submit")).toBeDisabled();
+    // DR-144: the sample grant fills the box and turns the button on. Nothing is sent: the PDF step below replaces the text before any draft.
+    await page.getByTestId("rules-sample").click(); await expect(page.getByLabel("Grant text")).toHaveValue(/^Ashmere County Education Foundation\n/);
+    await expect(page.getByTestId("rules-draft-submit")).toBeEnabled(); expect(draftRequests).toHaveLength(0);
 
     // A PDF fills the box. Nothing is sent to the model.
-    await page.getByLabel("Or choose a PDF").setInputFiles(PDF_FIXTURE);
+    await page.getByLabel("Choose a PDF").setInputFiles(PDF_FIXTURE);
     await expect(page.getByTestId("rules-pdf-status")).toContainText("Read 2 pages. Check the text below and edit it if needed. Nothing was sent to the AI.");
     await expect(page.getByLabel("Grant text")).toHaveValue(/Section 3\. Spending on supplies may not exceed \$300\.00 in total\./);
     expect(draftRequests).toHaveLength(0);
     // A file that is not a PDF is refused in plain words, the box keeps its text, and still nothing is sent.
-    await page.getByLabel("Or choose a PDF").setInputFiles({ name: "scan.pdf", mimeType: "application/pdf", buffer: Buffer.from("this is not a pdf, only text") });
+    await page.getByLabel("Choose a PDF").setInputFiles({ name: "scan.pdf", mimeType: "application/pdf", buffer: Buffer.from("this is not a pdf, only text") });
     await expect(page.getByTestId("rules-pdf-status")).toHaveClass(/warning/);
     await expect(page.getByLabel("Grant text")).toHaveValue(/Section 3\. Spending on supplies/);
     expect(draftRequests).toHaveLength(0);
@@ -185,9 +188,12 @@ test("DR-130 to DR-133: an approver drafts rules from a PDF and pasted grant, a 
   let editedId = "";
   await test.step("DR-132: filling the open field saves a new draft that carries a person's name for it, and the first approver approves it", async () => {
     const firstId = draftIdOf(page);
-    await expect(page.locator("details.rules-edit-details")).toHaveAttribute("open", "");
-    await page.getByRole("group", { name: "Programs" }).getByLabel("Robotics").check();
-    await page.getByRole("button", { name: "Save my changes" }).click();
+    // November 10: the missing field is asked for first, in its own short form; the full edit form stays collapsed.
+    await expect(page.locator("details.rules-edit-details")).not.toHaveAttribute("open", "");
+    const needs = page.getByTestId("rules-needs"); await expect(needs).toBeVisible();
+    expect(await needs.evaluate(el => getComputedStyle(el).backgroundColor)).not.toBe("rgba(0, 0, 0, 0)");
+    await needs.getByRole("group", { name: "Programs" }).getByLabel("Robotics").check();
+    await needs.getByRole("button", { name: "Save and make a new draft" }).click();
     await expect(page.getByTestId("rules-notice")).toContainText("Your change is saved as a new draft. It needs its own two approvals.");
     editedId = draftIdOf(page); expect(editedId).not.toBe(firstId);
     await expect(page.getByTestId("rules-state")).toHaveText("Open");

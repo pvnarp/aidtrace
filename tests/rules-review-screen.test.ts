@@ -12,7 +12,7 @@ import { ReviewScreen } from "../src/app/rules-ui/review-screen";
 import { reviewRows, thresholdsBlocked } from "../src/app/rules-ui/review-rows";
 import { capLabel, categoryLabel, moneyText, pathLabel, thresholdText } from "../src/app/rules-ui/labels";
 import { reviewTime } from "../src/server/display";
-import { EDIT_CAP_FIELDS, EDIT_CATEGORY_PREFIX, EDIT_PROGRAM_PREFIX, EDIT_THRESHOLD_FIELDS } from "../src/server/rules-input";
+import { EDIT_CAP_FIELDS, EDIT_CATEGORY_PREFIX, EDIT_PROGRAM_PREFIX, EDIT_THRESHOLD_FIELDS, parseEditForm } from "../src/server/rules-input";
 import { noticeQuery, rulesNotice } from "../src/server/rules-notices";
 
 // IAC-440 Package B, DR-105 to DR-117 (docs/GATE_REPORT.md section 60): what the review screen, the form, the edit form and the lists show. Reviews are built by hand
@@ -72,8 +72,15 @@ describe("DR-105 the review table shows field, current, draft and source, with t
   it("has the four columns, one row per rule field in reading order, and the clause and quote of a drafted value", () => {
     const html = render(review());
     for (const heading of ["Field", "Current (version 1)", "Draft", "Source"]) expect(html).toContain(`<th scope="col">${heading}</th>`);
-    const paths = [...html.matchAll(/data-path="([^"]+)"/g)].map(match => match[1]);
-    expect(paths).toEqual(["programs", "allowedCategories", "periodStart", "periodEnd", ...BUDGET_LINES.map(line => `caps.${line}`), ...THRESHOLD_KEYS.map(key => `thresholds.${key}`), "summary"]);
+    // Reading order holds within each of the two tables (DR-143 splits them: rows that need attention first, the rest in a closed list).
+    const reading = ["programs", "allowedCategories", "periodStart", "periodEnd", ...BUDGET_LINES.map(line => `caps.${line}`), ...THRESHOLD_KEYS.map(key => `thresholds.${key}`), "summary"];
+    expect(reviewRows(review()).map(item => item.path)).toEqual(reading);
+    const paths = [...html.matchAll(/data-path="([^"]+)"/g)].map(match => match[1]!);
+    expect([...paths].sort()).toEqual([...reading].sort());
+    const restStart = html.indexOf('data-testid="rules-review-rest"');
+    const inOrder = (list: string[]) => list.every((path, index) => index === 0 || reading.indexOf(list[index - 1]!) < reading.indexOf(path));
+    expect(inOrder(paths.filter((_, index) => html.indexOf(`data-path="${paths[index]}"`) < restStart))).toBe(true);
+    expect(inOrder(paths.filter((_, index) => html.indexOf(`data-path="${paths[index]}"`) > restStart))).toBe(true);
     const supplies = row(html, "caps.supplies");
     expect(supplies).toContain("$100.00");
     expect(supplies).toContain("$300.00");
@@ -114,7 +121,7 @@ describe("DR-106 a field the grant does not settle is highlighted, marked Requir
     expect(travel).toContain("Needs a value");
     expect(travel).toContain("Not settled by the grant");
     const missing = ["other", "travel", "equipment", "contractual"].map(line => capLabel(line)).join(", ");
-    expect(html).toContain(`Still needed before approval: ${missing}. Fill them in with the form below.`);
+    expect(html).toContain(`Still needed before approval: ${missing}. The grant text does not settle them, so fill them in here.`);
   });
   it("disables the approve button and points it at the missing list while any required field is empty, and enables it when none is", () => {
     const blocked = approveButton(render(review()));
@@ -126,13 +133,19 @@ describe("DR-106 a field the grant does not settle is highlighted, marked Requir
     expect(ready![1]).not.toContain("disabled");
     expect(ready![2]).toBe("first");
   });
-  it("opens the edit form while something is missing and keeps it collapsed otherwise", () => {
-    expect(render(review())).toMatch(/<details class="rules-edit-details" open="">/);
-    expect(render(review({ draft: complete() }))).toMatch(/<details class="rules-edit-details">/);
+  it("DR-141 asks for the missing fields first, in their own form, and keeps the full edit form collapsed", () => {
+    const html = render(review());
+    expect(html).toContain('data-testid="rules-needs"');
+    expect(html).toContain("4 values need you");
+    expect(html.indexOf('data-testid="rules-needs"')).toBeLessThan(html.indexOf('data-testid="rules-review-table"'));
+    expect(html).toMatch(/<details class="rules-edit-details"><summary>Change any other value<\/summary>/);
+    expect(render(review({ draft: complete() }))).not.toContain("rules-needs");
+    // A viewer who already approved is not asked to fill anything in.
+    expect(render(review({ approvers: [{ actorId: "ben", displayName: "Ben Ortiz", recordedAt: LATER }] }))).not.toContain("rules-needs");
   });
   it("a single missing field is named in the singular", () => {
     const one = draftOf({ caps: { supplies: field(30000, "1.3", "$300.00"), other: field(1, "1.3", "$0.01"), travel: field(1, "1.3", "$0.01"), equipment: field(1, "1.3", "$0.01"), contractual: unsure() } });
-    expect(render(review({ draft: one }))).toContain(`Still needed before approval: ${capLabel("contractual")}. Fill it in with the form below.`);
+    expect(render(review({ draft: one }))).toContain(`Still needed before approval: ${capLabel("contractual")}. The grant text does not settle it, so fill it in here.`);
   });
   it("blocks approval and says why when some review limits are set, some are blank, and the fund has none to carry", () => {
     const partial = complete(); partial.thresholds.claimLimitCents = field(100000, "1.3", "$1,000.00");
@@ -339,7 +352,7 @@ describe("DR-115 the draft form sends nothing until the button, and a chosen PDF
     expect(picker).toContain('type="file"');
     expect(picker).toContain('accept="application/pdf,.pdf"');
     expect(picker).not.toMatch(/\sname=/);
-    expect(html).toContain("Up to 2 MB and 30 pages, with text in it. A scan of paper has no text to read.");
+    expect(html).toContain("PDF up to 2 MB and 30 pages, with text in it. A scan of paper has no text to read.");
     expect([...html.matchAll(/<(?:input|textarea|select)[^>]*\sname="([^"]+)"/g)].map(match => match[1])).toEqual(["text"]);
   });
 });
@@ -385,7 +398,9 @@ describe("DR-117 the current rules and the draft list read from stored values on
     expect(html).toContain("Current summary.");
     expect(html).toContain("2026-01-01 to 2026-12-31");
     expect(html).toContain(`<dt>${capLabel("supplies")}</dt><dd>$100.00</dd>`);
-    expect(html).toContain(`<dt>${capLabel("contractual")}</dt><dd>None</dd>`);
+    expect(html).not.toContain(`<dt>${capLabel("contractual")}</dt>`);
+    expect(html).toContain("No cap on other costs, equipment, contractual.");
+    expect(html).toMatch(/<details class="rules-limits-details"><summary>Review limits: not set<\/summary>/);
     expect(html).toContain("<dd>Not set</dd>");
     expect(html).toContain("Clauses of version 1 (1)");
     expect(renderToStaticMarkup(createElement(CurrentRulesView, { rules: { ...CURRENT, programs: null, allowedCategories: [], periodStart: null, clauses: [] } }))).toContain("<dt>Programs</dt><dd>None</dd>");
@@ -470,5 +485,72 @@ describe("HP-06 the first approval redirect carries no notice, and an old notice
     const html = render(review({ draft: complete(), approvers: [{ actorId: "ben", displayName: "Ben Ortiz", recordedAt: LATER }] }), "ben", rulesNotice({ notice: "approved-1" }));
     expect(html).not.toContain('data-testid="rules-notice"');
     expect(occurrences(html, SECOND_APPROVER)).toBe(1);
+  });
+});
+
+// November 10 calm rules pages (docs/GATE_REPORT.md section 115). The short "needs you" form shows only the missing fields and carries every other value as a hidden
+// input. These read the form the way a browser would post it, untouched, and run it through the route's own parser.
+const posted = (html: string, testId: string): URLSearchParams => {
+  const form = new RegExp(`<form [^>]*data-testid="${testId}"[^>]*>([\\s\\S]*?)</form>`).exec(html)?.[1] ?? "";
+  const body = new URLSearchParams();
+  for (const [tag] of form.matchAll(/<input [^>]*>/g)) {
+    const name = /\sname="([^"]*)"/.exec(tag)?.[1];
+    if (!name) continue;
+    if (/type="checkbox"/.test(tag) && !/checked=""/.test(tag)) continue;
+    body.append(name, (/\svalue="([^"]*)"/.exec(tag)?.[1] ?? "").replace(/&amp;/g, "&").replace(/&quot;/g, '"').replace(/&#x27;/g, "'").replace(/&lt;/g, "<").replace(/&gt;/g, ">"));
+  }
+  return body;
+};
+const sorted = (body: URLSearchParams) => [...body.entries()].sort(([a], [b]) => a.localeCompare(b));
+
+describe("DR-142 the short form posts exactly what the full form would, so filling one field never clears another", () => {
+  it("carries every value the full form shows, and the route's parser reads both to the same edit", () => {
+    const filled = draftOf({ caps: { ...complete().caps, travel: unsure() }, periodEnd: unsure<string>(), summary: 'Pays "direct" costs & more.' });
+    filled.thresholds.staleReceiptDays = field(60, "1.3", "60 days"); filled.thresholds.suppliesLimitCents = field(25000, "1.3", "$250.00");
+    const html = render(review({ draft: filled, missing: ["periodEnd", "caps.travel"] }));
+    const short = posted(html, "rules-needed-form"), full = posted(html, "rules-edit-form");
+    expect(sorted(short)).toEqual(sorted(full));
+    const parsedShort = parseEditForm(short), parsedFull = parseEditForm(full);
+    expect(parsedShort.ok).toBe(true);
+    expect(parsedShort).toEqual(parsedFull);
+  });
+  it("shows only the missing fields as inputs a person can change, with ids that differ from the full form", () => {
+    const html = render(review({ missing: ["caps.travel"], draft: draftOf({ caps: { ...complete().caps, travel: unsure() } }) }));
+    const form = /<form [^>]*data-testid="rules-needed-form"[^>]*>([\s\S]*?)<\/form>/.exec(html)![1]!;
+    const visible = [...form.matchAll(/<input (?![^>]*type="hidden")[^>]*\sname="([^"]+)"/g)].map(match => match[1]);
+    expect(visible).toEqual([EDIT_CAP_FIELDS.travel]);
+    expect(form).toContain('id="need-cap-travel"');
+    expect(html).toContain('id="edit-cap-travel"');
+    expect(form).toContain("Save and make a new draft");
+  });
+  it("is not rendered for a draft that is not open or has nothing missing", () => {
+    for (const state of ["STALE", "WITHDRAWN", "BOUND"] as const) expect(render(review({ state, bound: state === "BOUND" ? 2 : null })), state).not.toContain("rules-needed-form");
+    expect(render(review({ draft: complete() }))).not.toContain("rules-needed-form");
+  });
+});
+
+describe("DR-143 changed rows come first and the rest sit in a closed list, with every row still rendered", () => {
+  it("puts a changed or needed row in the first table and an unchanged one in the closed list", () => {
+    const html = render(review());
+    const first = /<table class="rules-table" data-testid="rules-review-table">([\s\S]*?)<\/table>/.exec(html)![1]!;
+    const rest = /<details class="rules-rest-details"><summary>Same as now, or not in the grant \((\d+)\)<\/summary>([\s\S]*?)<\/details>/.exec(html)!;
+    expect(first).toContain('data-path="caps.supplies"');
+    expect(first).toContain('data-path="caps.travel"');
+    expect(first).not.toContain('data-path="programs"');
+    expect(rest[2]).toContain('data-path="programs"');
+    expect(rest[2]).toContain('data-path="thresholds.claimLimitCents"');
+    const all = reviewRows(review()).length;
+    expect((first.match(/<tr [^>]*data-path=/g) ?? []).length + (rest[2]!.match(/<tr [^>]*data-path=/g) ?? []).length).toBe(all);
+    expect(Number(rest[1])).toBe((rest[2]!.match(/<tr [^>]*data-path=/g) ?? []).length);
+  });
+});
+
+describe("DR-144 the sample grant button fills the box only where the page offers it", () => {
+  it("is offered with a sample and absent without one, and has no name, so it posts nothing", () => {
+    const base = { fundId: "fund_a", disclosure: ruleDraftFormDisclosure("claude-sonnet-5-5"), maxChars: 20000, maxPdfBytes: 2 * 1024 * 1024 };
+    const withSample = renderToStaticMarkup(createElement(RulesDraftForm, { ...base, sample: "Section 1. Sample." }));
+    expect(withSample).toMatch(/<button type="button" class="secondary" data-testid="rules-sample">Use the sample grant<\/button>/);
+    expect(renderToStaticMarkup(createElement(RulesDraftForm, base))).not.toContain("rules-sample");
+    expect([...withSample.matchAll(/<(?:input|textarea|select|button)[^>]*\sname="([^"]+)"/g)].map(match => match[1])).toEqual(["text"]);
   });
 });

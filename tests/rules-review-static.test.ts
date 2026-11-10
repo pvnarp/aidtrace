@@ -38,7 +38,7 @@ function closure(entry: string[]): Set<string> {
 
 describe("DR-119 the review screen reaches no money, payout, claim approval or webhook module", () => {
   it("names the real files, so the checks below cannot pass on an empty list", () => {
-    expect(UI.map(path => path.replace("src/app/rules-ui/", ""))).toEqual(["automation-switch-section.tsx", "current-rules.tsx", "draft-form.tsx", "draft-list.tsx", "edit-form.tsx", "fund-mode-section.tsx", "labels.ts", "review-rows.ts", "review-screen.tsx"]);
+    expect(UI.map(path => path.replace("src/app/rules-ui/", ""))).toEqual(["automation-switch-section.tsx", "current-rules.tsx", "draft-form.tsx", "draft-list.tsx", "edit-form.tsx", "fund-mode-section.tsx", "labels.ts", "review-rows.ts", "review-screen.tsx", "sample-grant.ts"]);
     for (const file of NEW_FILES) expect(statSync(file).isFile(), file).toBe(true);
   });
   it("no new file imports PayPal, any ledger module, a claim action, a payment or a webhook module directly", () => {

@@ -16,6 +16,7 @@ import { DraftList } from "../../../rules-ui/draft-list";
 import { FundModeSection } from "../../../rules-ui/fund-mode-section";
 import { AutomationSwitchSection } from "../../../rules-ui/automation-switch-section";
 import { RulesDraftForm } from "../../../rules-ui/draft-form";
+import { SAMPLE_GRANT_FUND_ID, SAMPLE_GRANT_TEXT } from "../../../rules-ui/sample-grant";
 
 // IAC-440 Package B (docs/plans/AI_DRAFTED_RULES_SCOPE.md section 5, docs/ASSUMPTIONS.md section 72). The approver's rules page for one fund: the current approved rules,
 // the form that drafts rules from a grant, and the fund's drafts. Approver only. Another organization's fund reads as not found. Only a restricted fund offers the form.
@@ -48,18 +49,17 @@ export default async function FundRulesPage({ params, searchParams }: { params: 
       {mode?.status === "OK" && <FundModeSection fundId={view.fundId} view={mode.view} userId={user.id} autopilot={autopilot} />}
       {automation?.status === "OK" && <AutomationSwitchSection fundId={view.fundId} view={automation.view} userId={user.id} />}
 
+      <section className="rules-section" aria-labelledby="rules-draft-heading">
+        <h2 id="rules-draft-heading">Draft rules from a grant</h2>
+        {restricted
+          ? <RulesDraftForm fundId={view.fundId} disclosure={ruleDraftFormDisclosure(view.arm.model)} maxChars={DRAFT_INPUT_MAX_CHARS} maxPdfBytes={PDF_MAX_BYTES} sample={view.fundId === SAMPLE_GRANT_FUND_ID ? SAMPLE_GRANT_TEXT : null} />
+          : <p className="notice" data-testid="rules-unrestricted">This is an unrestricted fund, so it has no grant to draft rules from. Only a restricted fund takes AI-drafted rules.</p>}
+      </section>
+
       <section className="rules-section" aria-labelledby="rules-current-heading">
         <h2 id="rules-current-heading">Current approved rules, version {view.current.version}</h2>
         <CurrentRulesView rules={view.current} />
       </section>
-
-      <section className="rules-section" aria-labelledby="rules-draft-heading">
-        <h2 id="rules-draft-heading">Draft rules from a grant</h2>
-        {restricted
-          ? <RulesDraftForm fundId={view.fundId} disclosure={ruleDraftFormDisclosure(view.arm.model)} maxChars={DRAFT_INPUT_MAX_CHARS} maxPdfBytes={PDF_MAX_BYTES} />
-          : <p className="notice" data-testid="rules-unrestricted">This is an unrestricted fund, so it has no grant to draft rules from. Only a restricted fund takes AI-drafted rules.</p>}
-      </section>
-
       <section className="rules-section" aria-labelledby="rules-drafts-heading">
         <h2 id="rules-drafts-heading">Drafts of this fund</h2>
         <p className="muted">Newest first, up to {DRAFT_LIST_LIMIT}.</p>
