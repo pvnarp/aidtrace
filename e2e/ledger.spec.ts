@@ -398,6 +398,8 @@ test('GE-04: the status line names the columns past the edge exactly when the ce
   const cue = page.getByTestId('gx-more-columns');
   for (const size of SIZES) {
     await openAt(page, size);
+    // November 10: on the first cold load the columns can still be sizing when the first row appears (scrollWidth equal to clientWidth, 1 in 4 to 6 runs, on main too), so wait for the overflow, up to the poll timeout, before reading it.
+    await expect.poll(async () => (await centerOverflow(page)).overflows, { message: `${size.width} px: the three Source columns are past the edge` }).toBe(true);
     const overflow = await centerOverflow(page);
     expect(overflow.scrollWidth, `${size.width} px: the three Source columns are past the edge`).toBeGreaterThan(overflow.clientWidth);
     await expect(cue).toHaveCount(overflow.overflows ? 1 : 0); await expect(cue).toHaveText(cueText);
@@ -486,4 +488,28 @@ test('WR-05 and WR-06: the ledger Account and Fund cells wrap, nothing is cut at
 test('LG-08 and GS-17: the financial hash over the 16 tables is identical after every visit of the view', async ({ page }) => {
   await login(page, 'tara'); await openLedger(page, 1280); await openLedger(page, 390);
   expect(await financialHash()).toBe(baseline);
+});
+
+// CL-E03 (November 10 calm cuts, docs/GATE_REPORT.md section 119). The grid chunk is held back so the skeleton is on screen, then released. The skeleton is replaced by the grid,
+// keeps its loading words as hidden status text, and its outer box matches the grid's, so nothing below it shifts when the grid mounts. Positions are measured against the totals
+// section above (not the page top): the header above it can change height at hydration for a reason that has nothing to do with the grid.
+test('CL-E03 the ledger skeleton is replaced by the grid without a layout shift', async ({ page }) => {
+  const seen = watch(page); await login(page, 'tara'); await page.setViewportSize({ width: 1280, height: 900 });
+  await page.emulateMedia({ reducedMotion: 'reduce' }); // the shimmer is not under test here; a still skeleton makes the box measurement exact
+  let release!: () => void; const gate = new Promise<void>(resolve => { release = resolve; });
+  await page.route('**/_next/static/chunks/**/*.js', async route => { await gate; return route.continue(); }); // nothing hydrates until release, so the server-rendered skeleton stays on screen
+  await page.goto('/ledger', { waitUntil: 'domcontentloaded' });
+  const skeleton = page.locator('.sk-table'); await expect(skeleton).toBeVisible();
+  await expect(skeleton.locator('.vh')).toHaveText('Loading ledger table...'); await expect(skeleton).toHaveAttribute('role', 'status');
+  await page.evaluate(() => document.fonts.ready);
+  const measure = (selector: string) => page.locator(selector).first().evaluate(node => {
+    const rect = node.getBoundingClientRect(); const above = document.querySelector('[data-testid="ledger-server-totals"]')!.getBoundingClientRect();
+    return { gap: Math.round(rect.top - above.bottom), height: Math.round(rect.height) };
+  });
+  const skeletonBox = await measure('.sk-table'); release();
+  await page.waitForSelector('[role="grid"]'); await expect(skeleton).toHaveCount(0);
+  const gridBox = await measure('[data-testid="gx-ledger"]');
+  expect(gridBox.gap, `gap below the totals: skeleton ${skeletonBox.gap}px, grid ${gridBox.gap}px`).toBe(skeletonBox.gap);
+  expect(Math.abs(gridBox.height - skeletonBox.height), `skeleton ${skeletonBox.height}px, grid ${gridBox.height}px`).toBeLessThanOrEqual(8);
+  await expect(page.locator('main > footer')).toBeVisible(); expect(seen.errors).toEqual([]); expect(seen.external).toBe(0);
 });

@@ -130,7 +130,8 @@ describe("PB-04 the receipt category suggestion lines", () => {
     const evidence = { segments: [{ text: "Science kit", lineId: null }], grounded: true } as never;
     const note = text(renderToStaticMarkup(createElement(ReceiptEvidence, { evidence, modelLabel: "" })));
     expect(note).not.toMatch(/Powered by|No AI suggestion/); expect(note).toContain("Text in, category suggestions out.");
-    expect(text(renderToStaticMarkup(createElement(ReceiptEvidence, { evidence, modelLabel: null })))).toContain("No AI suggestion is saved yet.");
+    // November 10 cut 4: before any suggestion (modelLabel null) the note lines are left out entirely.
+    expect(text(renderToStaticMarkup(createElement(ReceiptEvidence, { evidence, modelLabel: null })))).not.toMatch(/No AI suggestion|Text in, category suggestions|No current validated highlights/);
     const page = readFileSync("src/app/claims/[claimId]/receipt/page.tsx", "utf8");
     expect(page).toContain("const modelLineShown = confirmation ? aiAccepted : evidence.grounded;"); expect(page).toContain("modelLineShown ? \"\"");
   });

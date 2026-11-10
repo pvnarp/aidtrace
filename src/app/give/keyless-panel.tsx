@@ -13,7 +13,7 @@ export function KeylessPanel({ funds }: { funds: readonly GiveFund[] }) {
       <dt>PayPal order ID</dt><dd>{model.ids.paypalOrderId}</dd>
       <dt>Capture ID</dt><dd>{model.ids.captureId}</dd>
     </dl>
-    {model.requestShape && <details open><summary>Request shape the server would send</summary>
+    {model.requestShape && <details><summary>Request shape the server would send</summary>
       <p>Example for {model.exampleLabel}. The amount text is built from integer cents. This is a read-only illustration, never a submitted request.</p>
       <pre>{JSON.stringify(model.requestShape, null, 2)}</pre></details>}
   </section>;

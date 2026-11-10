@@ -1,10 +1,11 @@
 "use client";
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import type { ProposalPanel } from "../../proposal/presentation";
 import { CategoryChoice } from "./category-choice";
 import { CATEGORY_NAMES } from "../../ai/categories";
 import type { ProhibitedMatch } from "../../receipt/prohibited-screen";
 import { ProhibitedNotice } from "./prohibited-notice";
+import { AiWait } from "../ai-wait";
 const names = CATEGORY_NAMES;
 export function ProposalReview({ id, reviewId, draftHash, suggestionHash, suggestionId, runHash, aiName, aiOff = null, panel, lines, editable, receiptRunning, editForm, flagged }: {
   id: string; reviewId: string; draftHash: string; suggestionHash: string; suggestionId: string | null; runHash: string; aiName: string; aiOff?: string | null; panel: ProposalPanel;
@@ -43,12 +44,12 @@ export function ProposalReview({ id, reviewId, draftHash, suggestionHash, sugges
     <section className="proposal-panel" id="prepare-proposal" aria-labelledby="proposal-heading" data-state={panel.state ?? "NOT_STARTED"} aria-busy={running}>
       <p className="eyebrow">Expense preparation</p><h2 id="proposal-heading">{offNotice ? "AI is off in this session" : pending ? "Preparation in progress" : message ? "Reload the saved review" : reviewChanged || editDirty ? "Review changes before continuing" : panel.heading}</h2>
       <p role="status">{offNotice ? `${aiOff} Review categories manually below.` : pending ? "Preparing category suggestions, then checking funding rules. This can take about a minute. Submit once; manual review stays available after this request finishes." : message || reviewChanged || editDirty ? "The earlier preview is hidden until your current saved review is checked again." : panel.message}</p>
+      {pending && <AiWait />}
       {!pending && !message && !reviewChanged && !editDirty && panel.steps.length > 0 && <details><summary>How this proposal was prepared</summary><ol className="proposal-steps" aria-label="Preparation steps">{panel.steps.map(step => <li key={step}>{step}</li>)}</ol></details>}
       {!pending && !message && !reviewChanged && !editDirty && panel.split && <p className="proposal-split"><strong>{panel.split}</strong></p>}
       {!pending && !message && !reviewChanged && !editDirty && panel.edges.length > 0 && <details><summary>Inspect provisional funding rules</summary><ul className="proposal-edges">{panel.edges.map((edge, index) => <li key={`${edge.lineId}-${index}`}><strong>{edge.lineId}: {edge.amount} from {edge.fund}</strong><p>{edge.reason}</p></li>)}</ul></details>}
       {!pending && !message && !reviewChanged && !editDirty && panel.issues.length > 0 && <ul className="proposal-issues">{panel.issues.map(issue => <li key={issue.lineId}>{issue.lineId}: {issue.message}</li>)}</ul>}
       {reviewChanged && <p>The earlier funding preview is hidden because your review choices changed. Confirm categories to view a recalculated allocation.</p>}
-      <p>Next: confirm the categories below. Funding stays provisional until you freeze it for two human approvals.</p>
       {editable && !aiOff && <form action={`/api/receipts/${id}/proposal`} method="post" className="proposal-form" onSubmit={event => { event.preventDefault(); void prepare(event.currentTarget); }}>
         <input type="hidden" name="action" value="prepare" /><input type="hidden" name="reviewId" value={reviewId} /><input type="hidden" name="draftHash" value={draftHash} /><input type="hidden" name="suggestionHash" value={suggestionHash} /><input type="hidden" name="runHash" value={runHash} />
         <button className={finished ? "secondary" : undefined} disabled={!interactive || running || dirty || editDirty || Boolean(message)} type="submit">{running ? "Preparation in progress..." : panel.state === "NEEDS_REVIEW" ? "Run preparation again" : panel.state === "READY_FOR_REVIEW" || panel.state === "POLICY_BLOCKED" || panel.state === "STALE" ? "Refresh funding preview" : "Prepare expense proposal"}</button>
@@ -65,7 +66,7 @@ export function ProposalReview({ id, reviewId, draftHash, suggestionHash, sugges
       {running && <p>Wait for this request to finish or refresh its status before confirming, so you review the current suggestions.</p>}
       <form action={`/api/receipts/${id}`} method="post" className="receipt-form category-form" onChange={event => { setDirty(true); const input = event.target; if (!(input instanceof HTMLInputElement) || !["confirm", "acknowledgeProhibited"].includes(input.name)) setReviewChanged(true); }}>
         <input type="hidden" name="action" value="confirm" /><input type="hidden" name="reviewId" value={reviewId} /><input type="hidden" name="draftHash" value={draftHash} /><input type="hidden" name="suggestionId" value={suggestionId ?? ""} /><input type="hidden" name="suggestionHash" value={suggestionHash} />
-        {lines.map(line => <section key={line.id}><h3>{line.id}: {line.description}</h3><p>{line.amount}</p>
+        {lines.map((line, index) => <section key={line.id} className={line.proposal && line.proposal.category !== "UNKNOWN" ? "ai-row" : undefined} style={{ "--i": index } as CSSProperties}><h3>{line.id}: {line.description}</h3><p>{line.amount}</p>
           {line.proposal && line.proposal.category !== "UNKNOWN" ? <><p className="ai-label">{aiName} suggests: <strong>{names[line.proposal.category]}</strong></p><blockquote>{line.proposal.quote}</blockquote><a href={`#receipt-source-${line.id}`}>See quote in receipt</a>{line.proposal.category === "alcohol" && <p className="notice warning">Alcohol is prohibited across all funds. Correct the expense before it can proceed.</p>}{line.proposal.category === "gift_cards" && <p className="notice warning">Gift cards need pre-approval outside AidTrace and are never allocated here. Correct or remove this line.</p>}</> : <p>No supported category suggested. Choose a category manually.</p>}
           <CategoryChoice lineId={line.id} proposed={line.proposal?.category} editable={editable && !running && !editDirty} />
         </section>)}

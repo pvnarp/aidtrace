@@ -4,6 +4,7 @@
 // fills the box so the approver can read and edit it. Nothing goes to the model until the approver presses Draft rules, and the button cannot be pressed twice.
 // The counter counts code points the way the server does ([...text].length), and the box has no maxLength because a paste would be silently cut.
 import { useEffect, useRef, useState, type ChangeEvent, type FormEvent } from "react";
+import { AiWait } from "../ai-wait";
 
 type Props = { fundId: string; disclosure: string; maxChars: number; maxPdfBytes: number; sample?: string | null };
 type Status = { tone: "info" | "warning"; text: string } | null;
@@ -73,6 +74,6 @@ export function RulesDraftForm({ fundId, disclosure, maxChars, maxPdfBytes, samp
       <p className="rules-disclosure" data-testid="rules-form-disclosure">{disclosure}</p>
       <button type="submit" disabled={pending || reading || empty || over} aria-busy={pending} data-testid="rules-draft-submit">{pending ? "Drafting. Keep this page open." : "Draft rules"}</button>
     </div>
-    {pending && <p className="muted" role="status">Drafting can take a minute or more. When it finishes, you will see the draft to review.</p>}
+    {pending && <><p className="muted" role="status">Drafting can take a minute or more. When it finishes, you will see the draft to review.</p><AiWait /></>}
   </form>;
 }

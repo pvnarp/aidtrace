@@ -17,7 +17,7 @@ export default async function ArchitecturePage() {
     <div className="reference-screen">
       <p className="kicker">AI + PayPal / How the decisions connect</p>
       <h1 className="screen-heading">See where each decision happens.</h1>
-      <p className="reference-intro">One $500 expense. Components highlight the selected explanation, not live traffic. AI suggests, rules allocate, two people approve and the keyless review ends at an unpaid PayPal handoff.</p>
+      <p className="reference-intro">One $500 expense. AI suggests, rules allocate, two people approve and the keyless review ends at an unpaid PayPal handoff.</p>
       <ArchitectureExplorer stages={stages} />
       <section className="reference-note" aria-labelledby="grid-where" data-testid="architecture-grid-surfaces">
         <h2 id="grid-where">Where AG Grid works</h2>

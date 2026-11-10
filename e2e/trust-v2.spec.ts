@@ -104,7 +104,7 @@ async function homeMeters(page: Page): Promise<Map<string, Figures & { percent: 
   for (const meter of await page.locator("[data-testid=fund-meter]").all()) {
     const fund = (await meter.locator(".fund-r-name").innerText()).trim(); const line = (await meter.locator(".fund-r-line").innerText()).trim();
     const match = /^Available (\S+) of (\S+) book balance, (\S+) reserved$/.exec(line); expect(match, line).not.toBeNull();
-    const label = (await meter.locator(".meter").getAttribute("aria-label"))!; const percent = Number(/^(\d+) percent of book balance reserved$/.exec(label)![1]);
+    const label = (await meter.locator(".meter").getAttribute("aria-label"))!; const percent = Number(/^(\d+) percent of book balance still available$/.exec(label)![1]); // November 10: the bar shows the available share
     out.set(fund, { available: cents(match![1]!), book: cents(match![2]!), reserved: cents(match![3]!), percent });
   }
   return out;
@@ -125,8 +125,8 @@ async function compareMeters(page: Page) {
   for (const [fund, meter] of meters) {
     const widget = analytics.get(fund)!;
     expect(meter.book, `${fund} book`).toBe(widget.book); expect(meter.reserved, `${fund} reserved`).toBe(widget.reserved); expect(meter.available, `${fund} available`).toBe(widget.available);
-    // The fill is the integer share of book reserved, clamped to 0 through 100, recomputed here from the widget figures.
-    const raw = widget.book <= 0n ? 0n : (widget.reserved * 100n) / widget.book; expect(meter.percent, `${fund} percent`).toBe(Number(raw < 0n ? 0n : raw > 100n ? 100n : raw));
+    // The fill is the integer share of book still available (November 10), clamped to 0 through 100, recomputed here from the widget figures.
+    const raw = widget.book <= 0n ? 0n : (widget.available * 100n) / widget.book; expect(meter.percent, `${fund} percent`).toBe(Number(raw < 0n ? 0n : raw > 100n ? 100n : raw));
   }
   return meters;
 }
@@ -166,6 +166,8 @@ test("TV-15: honest states on the approver home, the claimant home and the claim
   const after = await compareMeters(page); await page.goto("/");
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("One expense needs your review."); await expect(page.locator("h1 .act")).toHaveText("One");
   expect([...after.values()].reduce((sum, meter) => sum + meter.reserved, 0n)).toBeGreaterThan([...before.values()].reduce((sum, meter) => sum + meter.reserved, 0n));
+  // November 10 (Pavan, "Show money still available"): the bar shows the available share, so the reservation makes the summed bar widths shrink.
+  expect([...after.values()].reduce((sum, meter) => sum + meter.percent, 0)).toBeLessThan([...before.values()].reduce((sum, meter) => sum + meter.percent, 0));
   // IAC-414 Q1: the awaiting claim is a row of the queue grid, once, at Approvals with no approval yet, and its Review link opens the claim.
   await expect(page.locator("article[data-claim]")).toHaveCount(0);
   const queued = page.getByTestId("gx-approver-queue").locator(".ag-row:not(.ag-row-pinned)");

@@ -2,6 +2,7 @@
 import dynamic from 'next/dynamic';
 import { useMemo } from 'react';
 import './donations.css';
+import { GridSkeleton } from '../grid-skeleton';
 import { usd } from '../../analytics/model';
 import type { DonationRow, DonationsGrid } from '../../donation/donations-grid';
 import type { DataGrid as DataGridComponent } from '../grid/grid';
@@ -9,7 +10,7 @@ import { WRAP_MODULES } from '../grid/modules';
 import { donationsColumns, donationsTotalLabel, DONATIONS_PHONE_COLUMNS, DONATIONS_TOTAL_FIELDS } from './columns';
 
 // A grid cannot render on the server in this setup, so it loads in the browser only.
-const DataGrid = dynamic(() => import('../grid/grid'), { ssr: false, loading: () => <p role="status">Loading donations table...</p> }) as unknown as typeof DataGridComponent;
+const DataGrid = dynamic(() => import('../grid/grid'), { ssr: false, loading: () => <GridSkeleton label="Loading donations table..." /> }) as unknown as typeof DataGridComponent;
 
 const TOTALS = { label: donationsTotalLabel, fields: DONATIONS_TOTAL_FIELDS };
 const rowId = (row: DonationRow) => row.id;

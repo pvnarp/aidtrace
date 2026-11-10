@@ -124,7 +124,8 @@ test("DR-130 to DR-133: an approver drafts rules from a PDF and pasted grant, a 
     await link.click(); await page.waitForURL(`**/funds/${FUND}/rules`);
     await expect(page.getByRole("heading", { level: 1 })).toContainText("Rules for Ashmere County Afterschool STEM Subgrant");
     await expect(page.getByRole("heading", { name: "Current approved rules, version 1" })).toBeVisible();
-    await expect(page.getByTestId("rules-no-drafts")).toBeVisible();
+    // November 10 cut 24: a fund with no drafts shows no drafts section at all (it used to show "No drafts yet for this fund.").
+    await expect(page.getByTestId("rules-no-drafts")).toHaveCount(0); await expect(page.getByRole("heading", { name: "Drafts of this fund" })).toHaveCount(0);
     await expect(page.getByTestId("rules-draft-form")).toHaveAttribute("data-ready", "true");
     // Computed styles, so a page that lost its stylesheet fails here and not only in a screenshot.
     const section = await page.locator("section.rules-section").first().evaluate(el => { const s = getComputedStyle(el); return { top: s.paddingTop, margin: s.marginTop }; });

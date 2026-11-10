@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
+import { AiWait } from "../ai-wait";
 export function SuggestForm({ id, reviewId, hash, suggestionHash, running }: { id: string; reviewId: string; hash: string; suggestionHash: string; running: boolean }) {
   const submitted = useRef(false);
   const [pending, setPending] = useState(false);
@@ -36,7 +37,7 @@ export function SuggestForm({ id, reviewId, hash, suggestionHash, running }: { i
     <input type="hidden" name="draftHash" value={hash} />
     <input type="hidden" name="suggestionHash" value={suggestionHash} />
     <button type="submit" disabled={pending || running}>{pending || running ? "AI review in progress..." : "Request AI suggestions"}</button>
-    {pending && <p role="status">Checking your receipt. This may take up to a minute. You only need to submit once.</p>}
+    {pending && <><p role="status">Checking your receipt. This may take up to a minute. You only need to submit once.</p><AiWait /></>}
     {message && <p role="alert">{message} <a href={`/claims/${id}/receipt`}>Refresh receipt</a> or <a href="/login">sign in</a>.</p>}
   </form>;
 }

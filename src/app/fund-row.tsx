@@ -2,15 +2,15 @@ import { fundRulesPath } from "../server/fund-rules-links";
 import type { FundMeter } from "./fund-meter";
 
 /**
- * One fund on the approver home: name, the stored restriction, the snapshot figures and a reserved-share meter.
- * Presentation only. Every figure arrives formatted by fundMeter from the analytics snapshot. The fill width is the integer percent.
+ * One fund on the approver home: name, the stored restriction, the snapshot figures and an available-share meter.
+ * Presentation only. Every figure arrives formatted by fundMeter from the analytics snapshot. The fill width is the integer available percent (November 10: the bar shows money still available).
  * IAC-440 Package B: an approver sees a "Draft rules from a grant" link on a restricted fund's row, found by the fund's name (see FundRulesLink).
  */
 export function FundRow({ meter }: { meter: FundMeter }) {
   return <div className="fund-r" data-testid="fund-meter">
     <div className="fund-r-head"><b className="fund-r-name">{meter.name}</b><span className="fund-type">{meter.label}</span></div>
     <p className="fund-r-line">Available <strong>{meter.available}</strong> of {meter.book} book balance, {meter.reserved} reserved</p>
-    <span className="meter" role="img" aria-label={meter.ariaLabel}><i style={{ width: `${meter.percent}%` }} /></span>
+    <span className="meter" role="img" aria-label={meter.ariaLabel}><i style={{ width: `${meter.availablePercent}%` }} /></span>
     {meter.label === "Restricted" && <FundRulesLink name={meter.name} />}
   </div>;
 }

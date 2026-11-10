@@ -81,7 +81,8 @@ async function create(page: Page) {
 test("GB-02: 375-pixel receipt quotes, explicit confirmation, allocation and edits requiring new review", async ({ page }) => {
   await create(page); const receiptUrl = page.url().split("?")[0]!;
   // IAC-383: before any suggestion exists the page names no provider, and never derives one from the environment.
-  await expect(page.locator(".receipt-evidence .muted")).toContainText("No AI suggestion is saved yet"); await expect(page.locator(".receipt-evidence")).not.toContainText("Claude Haiku 5.5");
+  // November 10 cut 4: the empty-state evidence lines are left out until a suggestion exists.
+  await expect(page.locator(".receipt-evidence .muted")).toHaveCount(0); await expect(page.locator(".receipt-evidence")).not.toContainText("No AI suggestion is saved yet"); await expect(page.locator(".receipt-evidence")).not.toContainText("Claude Haiku 5.5");
   await page.getByRole("button", { name: "Request AI suggestions" }).click();
   await expect(page.locator(".notice")).toContainText("AI suggestions are ready"); expect(modelCalls).toBe(1);
   await expect(page.locator(".receipt-evidence .muted")).toHaveText("Text in, category suggestions out. No PayPal tools or approval access."); await expect(page.locator(".ai-recommendation .ai-model-line")).toContainText("Powered by Claude Haiku 5.5.");
@@ -195,6 +196,9 @@ test("GB-02: double submit shows progress and duplicate/stale posts return to th
   try {
     await page.locator(".action-form").evaluate((form: HTMLFormElement) => { form.requestSubmit(); form.requestSubmit(); });
     await expect(page.getByRole("button", { name: "AI review in progress...", exact: true })).toBeDisabled();
+    // CL-E01 (November 10): while the request is held, the wait indicator shows the real elapsed seconds and its dot moves; it names no stage.
+    await expect(page.getByTestId("ai-wait")).toBeVisible(); await expect(page.getByTestId("ai-wait-time")).toHaveText(/^\d+ s$/); await expect(page.getByTestId("ai-wait-time")).toHaveText("1 s", { timeout: 10000 });
+    expect(await page.locator(".ai-wait-line i").evaluate(node => getComputedStyle(node).animationName)).toBe("at-wait"); await expect(page.getByTestId("ai-wait")).not.toContainText(/stage|step/i);
     await expect.poll(() => modelCalls).toBe(1);
     const overlapping = await page.request.post(endpoint, { form: fields, headers: { origin: "http://127.0.0.1:3100" }, maxRedirects: 0 });
     expect(overlapping.status()).toBe(303); expect(overlapping.headers().location).toContain("notice=running");

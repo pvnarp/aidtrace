@@ -31,7 +31,7 @@ const SDK_STUB = `window.paypal = { Buttons(config) { return {
 }; } };`;
 
 let admin: ReturnType<typeof postgres>; let connection: ReturnType<typeof connectDatabase>; let name: string; let url: URL;
-let server: ChildProcess | undefined;
+let server: ChildProcess | undefined; let userPasswords: Record<string, string> = {};
 async function stopServer() {
   if (!server?.pid) return;
   const child = server; server = undefined;
@@ -60,6 +60,7 @@ test.beforeAll(async () => {
   connection = connectDatabase(url.toString());
   await migrate(connection.db, { migrationsFolder: 'db/migrations' });
   const passwords = Object.fromEntries(['maria', 'tara', 'ben'].map(user => [user, randomBytes(18).toString('hex')]));
+  userPasswords = passwords as Record<string, string>;
   await seedFixture(connection.db, { passwords: passwords as Record<'maria' | 'tara' | 'ben', string>, payeeEmail: 'synthetic-ui@personal.example.com', payeeAllowlist: ['synthetic-ui@personal.example.com'] });
   await connection.db.transaction(tx => ensureFixtureOpening(tx, 'cedar-hollow'));
 });
@@ -332,4 +333,20 @@ test('IAC-413: the one-time private link shows once, copies, sits in no storage,
   await expect(page.getByTestId('gift-link-field')).toHaveCount(0); await expect(page.getByTestId('gift-link-copy')).toHaveCount(0);
   await contained(page);
   expect(await orderRows()).toBe(0); expect(await violations(page)).toEqual([]); expect(watched.errors).toEqual([]); expect(watched.external).toEqual([]);
+});
+
+// CL-E04 (November 10 calm cuts, docs/GATE_REPORT.md section 119). The keyless request shape is collapsed until opened, and the way back appears only for a visitor with a live session.
+test('CL-E04 keyless give: the request shape starts collapsed, and Back to your workspace shows only for a signed-in visitor', async ({ page }) => {
+  await startServer(KEYLESS_ENV);
+  const panel = () => page.getByTestId('give-keyless-panel');
+  await page.goto('/give'); await expect(panel()).toBeVisible();
+  await expect(page.getByTestId('give-back')).toHaveCount(0);
+  const shape = panel().locator('details'); await expect(shape).toHaveCount(1);
+  expect(await shape.evaluate(node => (node as HTMLDetailsElement).open)).toBe(false); await expect(panel().locator('pre')).toBeHidden();
+  await panel().getByText('Request shape the server would send').click(); await expect(panel().locator('pre')).toBeVisible(); await expect(panel().locator('pre')).toContainText('"value": "25.00"');
+  await page.goto('/login'); await page.getByLabel('Username').fill('tara'); await page.getByLabel('Password').fill(userPasswords.tara!); await page.getByRole('button', { name: 'Sign in', exact: true }).click(); await page.waitForURL(target => target.pathname === '/');
+  await page.goto('/give'); const back = page.getByTestId('give-back'); await expect(back).toHaveText('Back to your workspace');
+  const box = (await back.boundingBox())!; expect(box.height).toBeGreaterThanOrEqual(44);
+  await back.click(); await page.waitForURL(target => target.pathname === '/');
+  expect(await orderRows()).toBe(0);
 });

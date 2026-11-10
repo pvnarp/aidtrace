@@ -59,11 +59,12 @@ export default async function FundRulesPage({ params, searchParams }: { params: 
         <h2 id="rules-current-heading">Current approved rules, version {view.current.version}</h2>
         <CurrentRulesView rules={view.current} />
       </section>
-      <section className="rules-section" aria-labelledby="rules-drafts-heading">
+      {/* November 10 cut 24: a fund with no drafts shows no empty drafts section. */}
+      {view.drafts.length > 0 && <section className="rules-section" aria-labelledby="rules-drafts-heading">
         <h2 id="rules-drafts-heading">Drafts of this fund</h2>
         <p className="muted">Newest first, up to {DRAFT_LIST_LIMIT}.</p>
         <DraftList fundId={view.fundId} drafts={view.drafts} />
-      </section>
+      </section>}
     </div>
     <footer>Rules drafted by AI are checked by the same validator as a hand edit, and nothing binds until two different approvers approve.</footer>
   </main></>;

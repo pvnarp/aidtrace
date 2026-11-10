@@ -19,21 +19,20 @@ export function aiModelLine(audit: ReceiptAudit | null): string {
 /**
  * Presentation only. Names the saved AI suggestion (model, record, count) before the person decides. The per-line suggestions and quotes live once,
  * beside each category choice. It reads stored data, adds no model call and grants no authority.
- * Before any suggestion exists it is a compact strip with a plain in-page link to the Prepare card.
+ * Before any suggestion exists it is a compact one-line strip. It has no control of its own: the Expense preparation card below holds the one button for preparing (November 10 cut 3).
  * A saved suggestion is named from its validated stored audit (readReceiptAudit), never from the
  * environment; the idle strip names the configured model and Anthropic (configuredReceiptAiName), or says AI is off (aiOff).
  * The READY header also carries the one instruction for a new review, "Edit the receipt to request a new review.", after the saved record line and
  * only while the receipt is editable (the editable prop, read from the page's own view, never the environment). The receipt page does not repeat it
  * in the review column (IAC-415 PR 5).
  */
-export function AiRecommendation({ lines, ready, audit, configured, aiOff = null, running, prepareHref = null, editable = false }: {
-  lines: Line[]; ready: boolean; audit: ReceiptAudit | null; configured: { name: string } | null; aiOff?: string | null; running: boolean; prepareHref?: string | null; editable?: boolean;
+export function AiRecommendation({ lines, ready, audit, configured, aiOff = null, running, editable = false }: {
+  lines: Line[]; ready: boolean; audit: ReceiptAudit | null; configured: { name: string } | null; aiOff?: string | null; running: boolean; /** Unused since November 10: the strip no longer links to the Prepare card. Kept so the receipt page's prop still type-checks. */ prepareHref?: string | null; editable?: boolean;
 }) {
   if (!ready) {
     return <section className="ai-recommendation ai-strip" aria-labelledby="ai-recommendation-title" data-state={running ? "RUNNING" : "NONE"}>
       <p className="eyebrow" id="ai-recommendation-title">AI recommendation</p><span className="ai-tag idle">{running ? "Running" : aiOff ? "AI off" : "Not run yet"}</span>
       <p className="ai-model-line">{aiOff ? `${aiOff} ` : configured ? `${poweredByNames([configured.name])} The receipt text goes to Anthropic. `.trimStart() : ""}<strong>A person confirms each category.</strong></p>
-      {prepareHref && !running && !aiOff && <a className="ai-strip-link" href={prepareHref}>Prepare with AI<span aria-hidden="true"> →</span></a>}
     </section>;
   }
   // Each suggestion and its quote appear once, beside the category choice (ProposalReview or the plain form). This header only counts them.

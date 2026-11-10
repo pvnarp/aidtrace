@@ -17,7 +17,7 @@ export default async function LedgerPage() {
       <div className="reference-screen">
         <p className="kicker">{view.organization}</p>
         <h1 className="screen-heading">Read the ledger, one posting at a time.</h1>
-        <p className="reference-intro">A read-only view of every journal posting with its entry, fund, claim, approvals and PayPal reference. This page makes no payment, approval or balance request.</p>
+        <p className="reference-intro">A read-only view of every journal posting with its entry, fund, claim, approvals and PayPal reference.</p>
         <p className="snapshot-time">View observed <time dateTime={view.observedAt}>{reviewTime(new Date(view.observedAt))}</time>. <a href="/ledger">Reload view</a></p>
         <LedgerClient view={view} userId={user.id} />
       </div>

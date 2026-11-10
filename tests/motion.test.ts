@@ -41,13 +41,14 @@ describe("MO-02 inside it, motion is short", () => {
     const values = declarationsOf(inside, "transition"); expect(values.length).toBeGreaterThanOrEqual(3);
     for (const value of values) for (const time of seconds(value)) expect(time, value).toBeLessThanOrEqual(0.24);
   });
-  it("keeps every animation at 240 ms or less, except the one-time meter fill and the pending spinner", () => {
+  it("keeps every animation at 240 ms or less, except the one-time meter fill, the pending spinner, the AI wait dot and the skeleton shimmer", () => {
     const values = declarationsOf(inside, "animation"); expect(values.length).toBeGreaterThanOrEqual(4);
     for (const value of values) {
       const [duration = 0, delay = 0] = seconds(value);
       if (/\bat-fill\b/.test(value)) { expect(duration).toBeLessThanOrEqual(0.6); expect(delay).toBeLessThanOrEqual(0.1); expect(value).not.toMatch(/infinite/); }
       else if (/\bat-spin\b/.test(value)) expect(duration).toBeLessThanOrEqual(1);
-      else { expect(duration, value).toBeLessThanOrEqual(0.24); expect(value, "only the spinner loops").not.toMatch(/infinite/); }
+      else if (/\bat-(wait|shimmer)\b/.test(value)) { expect(duration, value).toBeLessThanOrEqual(1.6); expect(value, "the two named loops are the only others that loop").toMatch(/infinite/); } // November 10 (CL, rule 8): at-wait and at-shimmer, capped at 1.6 s
+      else { expect(duration, value).toBeLessThanOrEqual(0.24); expect(value, "only the spinner, at-wait and at-shimmer loop").not.toMatch(/infinite/); }
     }
   });
 });
@@ -61,7 +62,7 @@ describe("MO-03 reduced motion turns every transition and animation off", () => 
 
 describe("MO-04 no whole-screen wash", () => {
   it("animates only opacity and transform in keyframes", () => {
-    const names = keyframes.map(frame => frame.name); expect(names).toEqual(expect.arrayContaining(["at-page-in", "at-rise", "at-fill", "at-spin"]));
+    const names = keyframes.map(frame => frame.name); expect(names).toEqual(expect.arrayContaining(["at-page-in", "at-rise", "at-fill", "at-spin", "at-wait", "at-shimmer", "at-row-in"]));
     for (const frame of keyframes) for (const match of frame.body.matchAll(/([\w-]+)\s*:/g)) expect(["opacity", "transform"], frame.name).toContain(match[1]);
   });
   it("never animates or fades html, body, :root or the page wrapper itself", () => {

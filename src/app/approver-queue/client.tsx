@@ -2,6 +2,7 @@
 import dynamic from 'next/dynamic';
 import { useMemo, type CSSProperties } from 'react';
 import './approver-queue.css';
+import { GridSkeleton } from '../grid-skeleton';
 import type { ApproverQueueRow } from '../../server/approver-queue';
 import type { DataGrid as DataGridComponent } from '../grid/grid';
 import { queueColumns, QUEUE_PHONE_COLUMNS } from './columns';
@@ -9,7 +10,7 @@ import type { AssistedChecks } from '../../server/assisted-checks';
 import { AssistedQueueClient } from '../assisted-queue/client';
 
 // A grid cannot render on the server in this setup, so it loads in the browser only.
-const DataGrid = dynamic(() => import('../grid/grid'), { ssr: false, loading: () => <p role="status">Loading approval queue...</p> }) as unknown as typeof DataGridComponent;
+const DataGrid = dynamic(() => import('../grid/grid'), { ssr: false, loading: () => <GridSkeleton label="Loading approval queue..." /> }) as unknown as typeof DataGridComponent;
 
 const rowId = (row: ApproverQueueRow) => row.id;
 /** Only the filtered copy: an empty queue has its own home on the page and keeps it. */

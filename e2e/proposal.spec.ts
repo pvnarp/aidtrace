@@ -266,11 +266,9 @@ test.describe("Isolated single-receipt judging", () => {
     // Before any suggestion: a compact idle strip, no "AI suggested" tag, and a plain anchor to the Prepare card.
     const strip = page.locator(".ai-recommendation.ai-strip"); await expect(strip).toContainText("Not run yet"); await expect(strip).toContainText("Claude Haiku 5.5"); await expect(strip).toContainText("The receipt text goes to Anthropic."); await expect(strip).toContainText("A person confirms each category.");
     await expect(page.locator(".ai-recommendation .ai-tag", { hasText: "AI suggested" })).toHaveCount(0);
-    for (const [width, height] of [[1440, 900], [390, 844]] as const) {
-      await page.setViewportSize({ width, height }); await page.evaluate(() => window.scrollTo(0, 0));
-      const link = (await strip.getByRole("link", { name: /Prepare with AI/ }).boundingBox())!; expect(link.y).toBeGreaterThanOrEqual(0); expect(link.y + link.height).toBeLessThanOrEqual(width === 390 ? Math.round(height * 1.25) : height); // IAC-373: at 390 px the summary cards sit above the decision area by design (amendment 5), so the link may be up to 1.25 screens down
-    }
-    await strip.getByRole("link", { name: /Prepare with AI/ }).click(); await expect(page).toHaveURL(/#prepare-proposal$/); await expect(page.locator("#prepare-proposal")).toContainText("Expense preparation");
+    // November 10 cut 3: one control for one act. The strip carries no link now ("Prepare with AI" is gone); the Expense preparation card holds the one "Prepare expense proposal" button.
+    await expect(strip.getByRole("link")).toHaveCount(0); await expect(page.getByRole("link", { name: /Prepare with AI/ })).toHaveCount(0);
+    await expect(page.locator("#prepare-proposal")).toContainText("Expense preparation");
     await page.setViewportSize({ width: 375, height: 812 });
     await page.getByRole("button", { name: "Prepare expense proposal", exact: true }).click();
     await expect(page.locator(".proposal-split")).toHaveText("$430.00 from restricted funds, $70.00 from General.");

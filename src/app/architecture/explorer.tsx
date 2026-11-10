@@ -32,7 +32,7 @@ export function ArchitectureExplorer({ stages }: { stages: ArchitectureStage[] }
       <div className="deployment-external"><p className="eyebrow">External API</p>{component("model", 0)}</div>
       <div className="deployment-edge"><p className="eyebrow">External service</p>{component("paypal", 3)}</div>
     </div>
-    <p className="muted">Click a stage or a component. Highlights illustrate the selected explanation; they do not indicate live traffic.</p>
+    <p className="muted">Click a stage or a component to highlight its explanation.</p>
     <details className="architecture-boundaries"><summary>Deployment boundaries</summary><p>Rules, authentication, approvals, the PayPal adapter and the ledger are modules in one Next.js app container. Postgres is a separate Docker container. PayPal and the hosted AI API are external services. This view calls none of them and reads no claim or account data.</p></details>
   </div>;
 }

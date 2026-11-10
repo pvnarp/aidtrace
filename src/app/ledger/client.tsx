@@ -2,6 +2,7 @@
 import dynamic from 'next/dynamic';
 import { useMemo } from 'react';
 import './ledger.css';
+import { GridSkeleton } from '../grid-skeleton';
 import { usd } from '../../analytics/model';
 import type { LedgerRow, LedgerView } from '../../ledger/view';
 import type { DataGrid as DataGridComponent } from '../grid/grid';
@@ -9,7 +10,7 @@ import { WRAP_MODULES } from '../grid/modules';
 import { ledgerColumns, ledgerTotalLabel, LEDGER_PHONE_COLUMNS, LEDGER_TOTAL_FIELDS } from './columns';
 
 // A grid cannot render on the server in this setup, so it loads in the browser only.
-const DataGrid = dynamic(() => import('../grid/grid'), { ssr: false, loading: () => <p role="status">Loading ledger table...</p> }) as unknown as typeof DataGridComponent;
+const DataGrid = dynamic(() => import('../grid/grid'), { ssr: false, loading: () => <GridSkeleton label="Loading ledger table..." /> }) as unknown as typeof DataGridComponent;
 
 const TOTALS = { label: ledgerTotalLabel, fields: LEDGER_TOTAL_FIELDS };
 const rowId = (row: LedgerRow) => row.id;

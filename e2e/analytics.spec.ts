@@ -72,7 +72,8 @@ test('AN-F03: native requests admit one call and reject altered, stale and empty
   const before=modelCalls;
   await page.evaluate(()=>{const button=[...document.querySelectorAll('button')].find(b=>b.textContent==='How does book cash relate to recorded activity?')!;button.click();button.click();});
   await expect.poll(()=>calls).toBe(1);await expect(page.getByTestId('analytics-status')).toHaveText('Checking snapshot facts...');
-  release();await expect(page.getByTestId('analytics-answer')).toHaveText(fact.text);expect(calls).toBe(1);
+  /* CL-E02 (November 10): while the request is held the wait indicator counts real seconds, beside the unchanged status text. */await expect(page.getByTestId('ai-wait')).toBeVisible();await expect(page.getByTestId('ai-wait-time')).toHaveText('1 s',{timeout:10000});
+  release();await expect(page.getByTestId('analytics-answer')).toHaveText(fact.text);expect(calls).toBe(1);await expect(page.getByTestId('ai-wait')).toHaveCount(0);
   for(const next of ['altered','stale','empty'] as const){
     mode=next;await page.getByRole('button',{name:'How does book cash relate to recorded activity?',exact:true}).click();
     await expect(page.getByTestId('analytics-status')).toContainText(next==='stale'?'Snapshot changed. Reload':'Read the snapshot facts below');

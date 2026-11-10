@@ -90,11 +90,11 @@ describe("TV-07 fundMeter turns one snapshot fund into an honest meter", () => {
     expect(fundMeter(fund({ restriction: "UNRESTRICTED" })).label).toBe("Unrestricted");
     const meter = fundMeter(fund({ bookCents: "123456789", reservedCents: "2345", availableCents: "123454444" }));
     expect(meter.book).toBe("$1,234,567.89"); expect(meter.reserved).toBe("$23.45"); expect(meter.available).toBe("$1,234,544.44");
-    expect(meter.ariaLabel).toBe("0 percent of book balance reserved");
+    expect(meter.ariaLabel).toBe("99 percent of book balance still available"); // November 10: the label names the available share, which the bar shows
   });
   it("carries no mode word and no extra field beyond the meter", () => {
     const meter = fundMeter(fund());
-    expect(Object.keys(meter).sort()).toEqual(["ariaLabel", "available", "book", "label", "name", "percent", "reserved"]);
+    expect(Object.keys(meter).sort()).toEqual(["ariaLabel", "available", "availablePercent", "book", "label", "name", "percent", "reserved"]);
     expect(JSON.stringify(meter)).not.toMatch(/Autopilot|Assisted|Manual/i);
     expect(readFileSync("src/app/fund-meter.ts", "utf8")).not.toMatch(/Autopilot|Assisted|Passed every check|Design preview/);
   });
