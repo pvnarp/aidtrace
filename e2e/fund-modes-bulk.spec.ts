@@ -89,6 +89,8 @@ test("AS-40: with the flag on, an approver selects the two claims with no holds,
   const queue = page.getByTestId("gx-approver-queue-assisted");
   await expect(queue).toBeVisible();
   await expect(page.getByTestId("gx-approver-queue")).toHaveCount(0);
+  // GV-08: the assisted queue caption adds row selection.
+  await expect(page.getByTestId("gx-caption")).toHaveText("Table by AG Grid Community, read only: search, sort and filter any column, select rows. Your column layout is kept for you.");
   await expect(page.locator(".reference-intro")).toHaveText("Check the items, the recipient and the funding. Two different approvers must approve the same frozen terms before anything is payable. In Assisted funds, a claim with no holds needs one approver.");
   await expect(page.getByRole("columnheader", { name: "Checks" })).toBeVisible();
   await expect(rowOf(page, "Ember Bulk One")).toContainText("No holds found");

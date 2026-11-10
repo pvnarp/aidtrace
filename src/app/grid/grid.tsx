@@ -4,6 +4,7 @@ import { AgGridReact } from 'ag-grid-react';
 import type { ColDef, GetRowIdParams, GridApi, GridReadyEvent, GridState, Module, StateUpdatedEvent } from 'ag-grid-community';
 import { useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import { leafColumns, mapLeaves, type GridColumn } from './columns';
+import { CAPTION_PREFIX, gridCaption } from './caption';
 import { csvExportParams } from './csv';
 import { columnsBeyondEdge, overlayParamsFor, type EmptyMessages } from './edge';
 import { gridModules } from './modules';
@@ -131,6 +132,7 @@ export function DataGrid<Row extends object>(props: DataGridProps<Row>) {
   const resetView = () => { clearGridState(userId, gridId); setSearch(''); setAppliedSearch(''); setResets(count => count + 1); };
 
   return <div ref={rootRef} className="gx-root" role="region" aria-label={ariaLabel} data-testid={`gx-${gridId}`}>
+    <p className="gx-caption" data-testid="gx-caption"><span className="gx-caption-mark" aria-hidden="true" />Table by <strong className="gx-caption-name">AG Grid Community</strong>{gridCaption({ selection: Boolean(selection), csv: Boolean(csv), totals: Boolean(totals) }).slice(CAPTION_PREFIX.length)}</p>
     <div className="gx-toolbar">
       <div className="gx-search"><label htmlFor={searchId}>Search this table</label>
         <input id={searchId} type="search" value={search} onChange={event => setSearch(event.target.value)} autoComplete="off" spellCheck={false} /></div>

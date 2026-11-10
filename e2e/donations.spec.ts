@@ -285,6 +285,8 @@ test('GT-31 columns: three groups and twelve columns in the order of the scope, 
 test('GT-31 filters: the BigInt, date, text and quick filters change the visible rows and the pinned totals', async ({ page }) => {
   const seen = watch(page); await login(page, 'tara'); await openDonations(page, 1440);
   const view = await loadDonationsGrid(connection.db, 'tara'); const all = view.rows.length;
+  // GV-06: the caption names AG Grid and this grid's abilities.
+  await expect(page.getByTestId('gx-caption')).toHaveText('Table by AG Grid Community, read only: search, sort and filter any column, export CSV. The total row follows the filter. Your column layout is kept for you.');
   expect(all).toBe(10); expect(view.total).toBe(10);
   await expectVisible(page, view.rows, all);
   await expect(pinned(page, 'amountCents')).toHaveText(usd(BigInt(view.totals.amountCents)));

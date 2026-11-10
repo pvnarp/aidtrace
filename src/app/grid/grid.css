@@ -7,6 +7,10 @@
   --gx-stop: var(--block, var(--stop, #b42318));     --gx-ok: var(--ok, #05603a);
 }
 .gx-root { display: block; min-width: 0; max-width: 100%; margin: 20px 0; color: var(--gx-ink); }
+.gx-caption { margin: 0 0 12px; padding: 10px 14px; border-radius: 10px; background: var(--gx-tint); color: var(--gx-ink); font-size: 14px; line-height: 1.5; overflow-wrap: anywhere; }
+.gx-caption-name { font-weight: 600; }
+/* A small two by two grid mark before the caption. Decorative: the words name the library. */
+.gx-caption-mark { display: inline-block; width: 14px; height: 14px; margin-right: 8px; vertical-align: -2px; background: linear-gradient(var(--gx-accent), var(--gx-accent)) 0 0 / 6px 6px no-repeat, linear-gradient(var(--gx-accent), var(--gx-accent)) 8px 0 / 6px 6px no-repeat, linear-gradient(var(--gx-accent), var(--gx-accent)) 0 8px / 6px 6px no-repeat, linear-gradient(var(--gx-accent), var(--gx-accent)) 8px 8px / 6px 6px no-repeat; }
 .gx-toolbar { display: flex; flex-wrap: wrap; align-items: end; gap: 12px; margin: 0 0 12px; }
 .gx-search { display: grid; gap: 4px; flex: 1 1 260px; min-width: 0; max-width: 420px; }
 .gx-search label { font-size: 13px; font-weight: 600; color: var(--gx-muted); }

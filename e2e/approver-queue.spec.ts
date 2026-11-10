@@ -147,6 +147,8 @@ test("AQ-21 to AQ-25: the approver queue grid in the real flow, wide and on a ph
     await expect(grid.getByRole("button", { name: /approve|reject|pay|send/i })).toHaveCount(0);
     await row.locator('[col-id="claimant"]').dblclick(); await expect(grid.locator(".ag-cell-inline-editing, .ag-cell-edit-wrapper")).toHaveCount(0);
     await expect(page.getByTestId("gx-status")).toHaveText("Showing 1 of 1");
+    // GV-07: the caption names AG Grid, and names no selection, CSV or totals because this grid has none.
+    await expect(page.getByTestId("gx-caption")).toHaveText("Table by AG Grid Community, read only: search, sort and filter any column. Your column layout is kept for you.");
 
     await test.step("AQ-24 the grid is styled: computed styles of the frame, the dots, the vendor and the link", async () => {
       // An unstyled grid would keep the foundation's 360 px minimum frame, plain dots and no weight on the link.

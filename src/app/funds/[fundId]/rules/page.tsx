@@ -26,7 +26,7 @@ const ID = /^[A-Za-z0-9_-]{1,64}$/;
 export default async function FundRulesPage({ params, searchParams }: { params: Promise<{ fundId: string }>; searchParams: Promise<NoticeParams> }) {
   const user = await findSession((await cookies()).get(SESSION_COOKIE)?.value);
   if (!user) redirect("/login");
-  if (user.role !== "APPROVER") return <main className="analytics-page"><AppHeader user={user} /><h1>Approver access required.</h1><p>Only approvers can draft or approve fund rules.</p></main>;
+  if (user.role !== "APPROVER") return <><AppHeader user={user} /><main className="analytics-page"><h1>Approver access required.</h1><p>Only approvers can draft or approve fund rules.</p></main></>;
   const { fundId } = await params;
   const result = ID.test(fundId) ? await readFundRules(getDatabase(), { id: user.id }, fundId) : null;
   if (!result || result.status !== "OK") notFound();
@@ -38,8 +38,7 @@ export default async function FundRulesPage({ params, searchParams }: { params: 
   // The kill switch section needs the second flag as well. With it off the page is exactly the PR F page.
   const autopilot = automationFlagOn();
   const automation = autopilot ? await readAutomationSwitch(getDatabase(), { id: user.id }) : null;
-  return <main className="analytics-page reference-page rules-page">
-    <AppHeader user={user} />
+  return <><AppHeader user={user} /><main className="analytics-page reference-page rules-page">
     <div className="reference-screen rules-screen">
       <p className="kicker"><a href="/">Review</a></p>
       <h1 className="screen-heading">Rules for {view.fundName}</h1>
@@ -67,5 +66,5 @@ export default async function FundRulesPage({ params, searchParams }: { params: 
       </section>
     </div>
     <footer>Rules drafted by AI are checked by the same validator as a hand edit, and nothing binds until two different approvers approve.</footer>
-  </main>;
+  </main></>;
 }

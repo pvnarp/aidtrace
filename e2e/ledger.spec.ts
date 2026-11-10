@@ -147,6 +147,8 @@ test('LG-04, LG-06, LG-07, GS-14 and GS-15: the contract holds at 1280 and at 39
     await openLedger(page, width);
     // LG-04 and the GS-14 count line: the visible line, the server tile and a server query all agree.
     await expect(status(page)).toHaveText(`Showing ${count} of ${count}`);
+    // GV-05: the caption names AG Grid and this grid's abilities.
+    await expect(page.getByTestId('gx-caption')).toHaveText('Table by AG Grid Community, read only: search, sort and filter any column, export CSV. The total row follows the filter. Your column layout is kept for you.');
     await expect(page.getByTestId('ledger-total-count')).toHaveText(String(count));
     await expect(page.locator('.gx-row-total')).toContainText(`Total of ${count} shown`);
     // GS-14: a labeled region, and the table is a labeled grid.

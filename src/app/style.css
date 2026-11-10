@@ -778,3 +778,33 @@ fieldset.rules-field-group { padding: 0; }
   .rules-scroll { overflow: visible; }
   .report-page a { color: inherit; text-decoration: none; }
 }
+
+/* November 10 motion pass (docs/DESIGN_LANGUAGE.md section 3 rule 8, Pavan November 10: "simple animations and visual transitions").
+   Every move sits inside prefers-reduced-motion: no-preference, so reduced motion keeps the still app. Motion uses opacity and transform only,
+   at 240 ms or less, except the pending spinner and the one-time fund meter fill. Nothing fades the body or the page background: no whole-screen wash. */
+@media (prefers-reduced-motion: no-preference) {
+  html { scroll-behavior: smooth; }
+  .page-shell main { animation: at-page-in .22s cubic-bezier(.2, .7, .2, 1) both; }
+  .notice { animation: at-rise .24s cubic-bezier(.2, .7, .2, 1) both; }
+  button, .button-link { transition: background-color .15s, color .15s, box-shadow .15s, transform .12s; }
+  button:active:not(:disabled), .button-link:active { transform: translateY(1px) scale(.99); }
+  input, textarea, select { transition: border-color .15s, box-shadow .15s; }
+  details { interpolate-size: allow-keywords; }
+  details::details-content { block-size: 0; overflow: clip; transition: block-size .22s cubic-bezier(.2, .7, .2, 1), content-visibility .22s allow-discrete; }
+  details[open]::details-content { block-size: auto; }
+  .meter i { transform-origin: left center; animation: at-fill .6s cubic-bezier(.2, .7, .2, 1) .1s both; }
+  button[aria-busy="true"]::before, form[aria-busy="true"] button[type="submit"]::before { content: ""; flex: none; width: 14px; height: 14px; border-radius: 50%; border: 2px solid currentColor; border-right-color: transparent; animation: at-spin .8s linear infinite; }
+}
+@keyframes at-page-in { from { opacity: 0; } }
+@keyframes at-rise { from { opacity: 0; transform: translateY(-4px); } }
+@keyframes at-fill { from { transform: scaleX(0); } }
+@keyframes at-spin { to { transform: rotate(1turn); } }
+/* Calmer forms: a hover ring on fields and a soft focus halo beside the always-visible focus outline. */
+input:where(:not([type=checkbox]):not([type=radio])):hover:not(:disabled), textarea:hover:not(:disabled), select:hover:not(:disabled) { border-color: var(--navy); }
+input:focus-visible, textarea:focus-visible, select:focus-visible { box-shadow: 0 0 0 4px var(--tint); }
+/* Receipt review at desktop width: when a line needs a reason, the reason sits beside the category instead of under it, so three lines take less scrolling. */
+@media (min-width: 1100px) {
+  .category-choice:has(> .manual-reason:not([hidden])) { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); column-gap: 16px; align-items: start; }
+  .category-choice:has(> .manual-reason:not([hidden])) > .category-choice-head, .category-choice:has(> .manual-reason:not([hidden])) > select { grid-column: 1; }
+  .category-choice:has(> .manual-reason:not([hidden])) > .manual-reason { grid-column: 2; grid-row: 1 / span 2; margin-top: 0; }
+}
