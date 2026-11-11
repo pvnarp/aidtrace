@@ -226,7 +226,7 @@ test('GT-27: anonymous is redirected to /login, a claimant is denied with no dat
   // The raw HTML, including Next's own serialized payload, carries none of it either.
   const body = await (await page.request.get('/donations', { maxRedirects: 0, headers: { cookie: await requestAs(page, 'maria') } })).text();
   for (const secret of ['Pat Rivera', 'Zoe Quinn', 'Tallow Creek', 'Ashmere', 'Brightbench', 'Being verified', '=1+1', 'CAPTURE_DG', 'DG_BIG', 'amountCents', 'payoutStatus', '9007199254740993', OTHER_FUND, OTHER_DONOR, OTHER_CAPTURE, OTHER_ORG]) expect(body, secret).not.toContain(secret);
-  await page.goto('/'); await page.getByRole('button', { name: 'Sign out' }).click();
+  await page.goto('/'); await page.getByRole('button', { name: 'Sign out', exact: true }).click();
   await login(page, 'tara'); await page.getByRole('navigation', { name: 'Primary' }).getByRole('link', { name: 'Donations', exact: true }).click();
   await page.waitForURL(url => url.pathname === '/donations');
   await expect(page.getByRole('region', { name: 'Donations, newest first' })).toBeVisible();

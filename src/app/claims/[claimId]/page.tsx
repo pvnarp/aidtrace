@@ -14,7 +14,10 @@ import { requireReceiptConfirmation } from "../../../receipt/guard";
 import { claimFailureNotices } from "../../../server/claim-notices";
 import { categoryNames as categories, reviewTime } from "../../../server/display";
 import { BUDGET_NAMES } from "../../../ai/categories";
-import { Journey } from "../../journey";
+import { Journey, TraceComplete } from "../../journey";
+import { checksStatus, remainingApprovers, threadFor } from "../../thread";
+import { users } from "../../../../db/schema";
+import { and, desc, eq } from "drizzle-orm";
 import { AiStatusCard, ClaimHeader, DecisionPanel, PayPalStatusCard, Workspace, type ShellState, type SummaryData } from "../../workspace";
 import { shortClaimRef } from "../../claim-ref";
 import { usd as usdGrouped } from "../../../analytics/model";
@@ -90,6 +93,8 @@ export default async function ClaimPage({ params, searchParams }: { params: Prom
   const recognized = ["APPROVED", "PAYOUT_PROCESSING", "PAID", "PAYOUT_ISSUE"].includes(claim.status);
   const giftNotes = recognized ? await db.transaction(tx => readGiftNotes(tx, claim.organizationId, claimId, claim.version), { isolationLevel: "repeatable read" }) : [];
   const approvedByMe = approvals.some(row => row.approverId === user.id);
+  // The thread: names of the next person come only from the organization's approvers as stored (a stable tie-break by username, descending, which puts tara first in the walkthrough).
+  const orgApprovers = claim.status === "AWAITING_APPROVAL" ? await db.select({ id: users.id, username: users.username, displayName: users.displayName }).from(users).where(and(eq(users.organizationId, claim.organizationId), eq(users.role, "APPROVER"))).orderBy(desc(users.username)) : [];
   const notice = (await searchParams).notice;
   const lineDescription = (id: string) => view.lines.find(line => line.id === id)?.description ?? id;
   const split = (rows: readonly { fundId: string; lineId: string; amountCents: string | bigint }[]) => <ul className="split-list">{rows.map(row => <li key={`${row.fundId}:${row.lineId}`}><span>{lineDescription(row.lineId)} · {view.funds.find(fund => fund.id === row.fundId)?.name ?? row.fundId}</span><strong>{usd(BigInt(row.amountCents))}</strong></li>)}</ul>;
@@ -144,9 +149,8 @@ export default async function ClaimPage({ params, searchParams }: { params: Prom
   // "Approved does not mean paid." The keyless handoff rows, the attempt facts and the send, refresh and retry forms follow it. Forms are unchanged.
   const paymentSection = (
     <div className="sec payout" id="payment"><PayPalStatusCard card={shellState.paypal} />
-      <p>Organization-wide open payable: {usd(report.openPayableCents)}.</p>
       {words.balance && <p>{words.balance}</p>}
-      {!canPay && !attempt && (claim.status === "APPROVED" ? <PayPalHandoff amount={total} recipient={claim.payeeEmail} /> : <p>Payment access is disabled for this review. After two approvals, inspect the read-only PayPal handoff. No payment will be sent.</p>)}
+      {!canPay && !attempt && claim.status === "APPROVED" && <PayPalHandoff amount={total} recipient={claim.payeeEmail} />}
       {attempt && <><dl className="payment-details"><dt>Attempt</dt><dd>{attempt.state}</dd><dt>Batch status</dt><dd>{attempt.batchStatus ?? "Not known"}</dd><dt>PayPal item status</dt><dd>{attempt.itemStatus ?? "Not known"}</dd><dt>Reported fee</dt><dd>{attempt.feeCents === null ? "Not yet reported" : usd(attempt.feeCents)}</dd><dt>Last error</dt><dd>{attempt.lastErrorCode ?? "None recorded"}</dd><dt>Settlement date</dt><dd>{attempt.settledOn ?? "Not settled"}</dd></dl><details><summary>Inspect payment identifiers</summary><dl className="payment-details"><dt>Sender batch ID</dt><dd>{attempt.senderBatchId}</dd><dt>PayPal batch ID</dt><dd>{attempt.payoutBatchId ?? "Not known"}</dd><dt>PayPal item ID</dt><dd>{attempt.payoutItemId ?? "Not known"}</dd></dl></details></>}
       {canPay && approver && decision && approvedByMe && claim.status === "APPROVED" && !attempt && <ActionForm claimId={claimId} action="send" decisionHash={decision.decisionHash} button={`Send ${usd(total)} with PayPal`}><label className="confirm"><input type="checkbox" name="confirmSandbox" value="yes" required /> I confirm this is the approved {usd(total)} reimbursement.</label></ActionForm>}
       {view.historicalReviews.map(review => <div key={review.id}><p role="note" className="notice">{historicalReviewLine(review.eventAttemptNumber)}</p>
@@ -162,12 +166,16 @@ export default async function ClaimPage({ params, searchParams }: { params: Prom
     {view.feasible && !policyBlocked && user.id === claim.claimantId && claim.status === "AWAITING_APPROVAL" && <details className="refreeze"><summary>Receipt or fund policy changed? Re-check the frozen terms</summary>
       <p>If nothing changed, the same frozen terms and their approvals stay. If the receipt or fund policy changed, the old terms and their reservations are released, new terms are frozen when funds cover them, and earlier approvals no longer apply.</p>
       <ActionForm claimId={claimId} action="freeze" button="Re-check the frozen terms" /></details>}
+    {approver && decision && claim.status === "AWAITING_APPROVAL" && !approvedByMe && view.policyChecks && <p className="checks-line" data-testid="checks-status">{checksStatus(view.policyChecks.run)} <a href="#policy-checks">See the checks</a></p>}
     {approver && decision && claim.status === "AWAITING_APPROVAL" && !approvedByMe && <ActionForm claimId={claimId} action="approve" decisionId={decision.id} decisionHash={decision.decisionHash} button="Approve these terms" />}
     {approver && ["DRAFT", "AWAITING_APPROVAL"].includes(claim.status) && <details><summary>Reject this claim instead</summary><ActionForm claimId={claimId} action="reject" button="Reject claim"><label htmlFor="reason">Reason for rejection</label><input id="reason" name="reason" required maxLength={500} /></ActionForm></details>}
   </>;
   // Say it once: the Next decision card only guides a claim that still needs a decision or has a payment in flight. Approved, paid and rejected claims
   // state themselves in the title and the Decision panel.
   const guided = ["DRAFT", "AWAITING_APPROVAL", "PAYOUT_PROCESSING", "PAYOUT_ISSUE"].includes(claim.status);
+  const thread = threadFor({ status: claim.status, claimant: user.id === claim.claimantId, approver, approvedByMe, feasible: view.feasible, policyBlocked, viewerName: user.displayName, remaining: remainingApprovers(orgApprovers, claim.claimantId, approvals.map(row => row.approverId)) });
+  // The closing card: an approved (not waiting on a takeover) or paid claim. Approvers get the two places to look next; the claimant gets the card alone.
+  const closing = claim.status === "PAID" || (claim.status === "APPROVED" && !autoWaiting);
   return <Workspace user={user} stage={stage} summary={summary} state={shellState} policyBlocked={policyBlocked} {...(oneApproval ? { required: 1 as const } : {})} {...(autoReview ? { required: "auto" as const } : {})} decisionFirst={handoffReady} links={{ ...(receiptLink ? { 1: receiptLink, 2: receiptLink } : {}), 3: "#funding-review", 4: "#approvals" }}
     header={<ClaimHeader claimId={claim.id} heading={heading} data={summary} />}
     decision={<DecisionPanel data={summary}
@@ -178,19 +186,20 @@ export default async function ClaimPage({ params, searchParams }: { params: Prom
       payout={paymentSection}
       actions={claimForms}
       more={<>
-        <details className="hybrid-case-details accounting"><summary>Accounting</summary><p>Restricted funds: {usdGrouped(report.restrictedCents)}. General: {usdGrouped(report.generalCents)}.</p>{view.fixtureNotStarted ? <p className="notice">Opening journals have not been created yet. No ledger tie-out is claimed for this untouched fixture.</p> : <p className={report.matches ? "notice" : "notice warning"}>Ledger tie-out: {report.matches ? "Matches" : "Needs investigation"}.</p>}<p>Opening fixture cash: {usdGrouped(report.fixtureCashCents)}. Recorded provider activity: {usdGrouped(report.providerActivityCashDeltaCents)}. Book cash: {usdGrouped(report.bookCashCents)}. These are accounting figures, not PayPal available funds.</p></details>
+        <details className="hybrid-case-details accounting"><summary>Accounting</summary><p>Organization-wide open payable: {usd(report.openPayableCents)}.</p><p>Restricted funds: {usdGrouped(report.restrictedCents)}. General: {usdGrouped(report.generalCents)}.</p>{view.fixtureNotStarted ? <p className="notice">Opening journals have not been created yet. No ledger tie-out is claimed for this untouched fixture.</p> : <p className={report.matches ? "notice" : "notice warning"}>Ledger tie-out: {report.matches ? "Matches" : "Needs investigation"}.</p>}<p>Opening fixture cash: {usdGrouped(report.fixtureCashCents)}. Recorded provider activity: {usdGrouped(report.providerActivityCashDeltaCents)}. Book cash: {usdGrouped(report.bookCashCents)}. These are accounting figures, not PayPal available funds.</p></details>
         <details className="hybrid-case-details reference"><summary>Reference</summary><p>Claim {claim.id}. {decision ? `Decision ${decision.decisionHash.slice(0, 16)}.` : "No frozen decision."}</p><RecipientNote recipient={claim.payeeEmail} /></details>
       </>} />}>
     {notice && notices[notice] && !(handoffReady && notice === "approved") && <p role="status" className="notice">{notices[notice]}</p>}
-    {guided && <Journey emphasizeDetail={["PAYOUT_ISSUE", "PAYOUT_PROCESSING"].includes(claim.status)}
+    {guided && <Journey emphasizeDetail={["PAYOUT_ISSUE", "PAYOUT_PROCESSING"].includes(claim.status)} {...(thread?.actor ? { actor: thread.actor } : {})} {...(thread?.handoff ? { handoff: thread.handoff } : {})}
       title={policyBlocked ? "Organization policy stops this expense." : claim.status === "DRAFT" ? approver ? "The claimant must freeze the terms first." : view.feasible ? "Check the split, then freeze these terms." : "More eligible funding is needed." : claim.status === "AWAITING_APPROVAL" ? approver && !approvedByMe ? "Review the frozen terms." : user.id === claim.claimantId ? "Waiting for two approvers." : "Hand this claim to a different approver." : claim.status === "PAYOUT_PROCESSING" ? "Check the payment result. Do not send again." : "Resolve the payment issue before another attempt."}
       detail={policyBlocked ? "A confirmed item is prohibited by organization policy. General cannot cover it either. Correct the receipt before freezing any terms." : claim.status === "DRAFT" ? approver ? "You can inspect the draft, but only its claimant can freeze an allocation for approval." : view.feasible ? "Review the expense and funding below. Freezing holds the eligible funds and sends the same terms to two independent approvers. It does not pay the claim." : "The current rules and fund balances cannot cover the whole expense. No partial allocation can be frozen." : claim.status === "AWAITING_APPROVAL" ? approver && !approvedByMe ? "Check the expense, categories, recipient and split below before you approve. One person's approval cannot authorize payment." : user.id === claim.claimantId ? "Two different approvers must approve these frozen terms. You cannot approve your own expense." : "Sign out above, then have another authorized approver sign in and open this same claim from the home page. The claimant cannot approve their own expense." : words.detail ?? "Review the attempt and error below. Unknown outcomes need manual reconciliation; confirmed terminal failures need separate retry authorization."}
       href={policyBlocked ? `/claims/${claimId}/receipt` : claim.status === "DRAFT" ? "#funding-review" : claim.status === "AWAITING_APPROVAL" ? "#approvals" : "#payment"}
       action={policyBlocked ? "Review the receipt" : claim.status === "DRAFT" ? "Inspect funding and terms" : claim.status === "AWAITING_APPROVAL" ? "Inspect the approvals" : "Inspect payment status"}
       aside={claimId === "C-104" ? "C-104 is a separate preclassified $500 example. It did not pass through the new receipt's AI review." : `You are still reviewing the same claim: ${claim.vendor}.`} />}
+    {closing && <TraceComplete title={claim.status === "PAID" ? "Approval and payout are complete." : "Approval is complete."} links={user.role === "APPROVER" ? [{ href: "/ledger", label: "See it in the ledger" }, { href: "/analytics/report", label: "Open the funder report" }] : []} />}
     <section aria-labelledby="expense-review-title" className="panel receipt-panel expense-review"><h2 id="expense-review-title">Review the expense terms</h2>
       <p className="sub">{claim.vendor} · {usd(total)}. Receipt dated {claim.incurredOn}. Program: {claim.program}.</p>
-      <p>{decision ? "Approvals bind the frozen version of these terms. Review the current details below; the server checks for changed claim or policy terms before accepting approval." : "Review the items and categories before freezing the allocation."}</p>
+      <p>{decision ? "Both approvals bind these exact terms." : "Review the items and categories before freezing the allocation."}</p>
       <ul className="expense-lines">{view.lines.map(line => {
         const review = view.receiptReview?.lines.find(item => item.lineId === line.id);
         // The verdict row states who decided and, for a prohibited category, the stop. It never shows an eligibility pass: the AI suggests, rules and people decide.
@@ -209,22 +218,21 @@ export default async function ClaimPage({ params, searchParams }: { params: Prom
       <AiStatusCard card={shellState.ai} />
     </section>
     <section className="panel rules-panel" id="rule-checks" aria-labelledby="rule-checks-title"><h2 id="rule-checks-title">Checks</h2>
-      <p className="sub">{ruleChecksSummary(clearRules, rules.length, view.policyChecks?.run?.flags)} Each row comes from stored data this page loaded.</p>
+      <p className="sub">{ruleChecksSummary(clearRules, rules.length, view.policyChecks?.run?.flags)}</p>
       <ul className="rules">{rules.map(rule => <li key={rule.key} data-state={rule.state}><span className="rule-state">{stateWord[rule.state]}</span><span className="rule-body"><strong>{rule.label}</strong>{rule.detail}</span></li>)}</ul>
     {view.policyChecks && <PolicyChecks claimId={claimId} decisionHash={view.policyChecks.decisionHash} run={view.policyChecks.run} canRun={claim.status === "AWAITING_APPROVAL"} modelEligible={Boolean(view.receiptReview)} aiOff={complianceAi.on ? null : AI_OFF_MESSAGES[complianceAi.reason]} headingLevel={3} {...(oneApproval ? { footer: claim.status === "AWAITING_APPROVAL" ? FOOTER_NO_HOLDS_WAITING : FOOTER_NO_HOLDS_DONE } : {})} {...(autoReview ? { footer: FOOTER_AUTOPILOT } : {})} />}
     </section>
     <AutomatedTrail claimId={claimId} viewer={user} />
     <section className="panel funding-evidence" id="funding-review"><h2>Check the funding rules</h2><p>Each split uses an approved policy. General still follows organization-wide prohibitions.</p>
       <div className="comparison-grid">
-      <section className="comparison-card chosen"><p className="eyebrow">Computed by funding rules</p><h2>{view.feasible ? `${usd(view.generalCents)} from General` : "No partial allocation"}</h2>{baselineGeneral !== undefined && view.feasible && baselineGeneral > view.generalCents && <p><strong>{usd(baselineGeneral - view.generalCents)} less General than this comparison</strong>, under its fixed fund order. More flexible funding remains for expenses restricted funds cannot cover.</p>}{split(edges)}</section>
+      <section className="comparison-card chosen"><p className="eyebrow">Computed by funding rules</p><h2>{view.feasible ? `${usd(view.generalCents)} from General` : "No partial allocation"}</h2>{baselineGeneral !== undefined && view.feasible && baselineGeneral > view.generalCents && <p><strong>{usd(baselineGeneral - view.generalCents)} less General than this comparison</strong>, under its fixed fund order. More flexible funding remains for expenses restricted funds cannot cover.</p>}</section>
       <section className="comparison-card"><p className="eyebrow">Pay from the first fund that allows it</p><h2>{baselineGeneral === undefined ? comparison ? "Cannot fully fund" : "Historical comparison unavailable" : `${usd(baselineGeneral)} from General`}</h2><p>This comparison takes each line in order and spends from its first eligible fund. It can leave less room for later items.</p><details><summary>See comparison allocation</summary>{split(comparison?.edges ?? [])}<p>Sorted line IDs, then fund IDs. A different fund order can remove the difference. This is not measured savings over a treasurer.</p></details></section>
       </div>
-      <details><summary>Why each fund can pay</summary><ul className="reasons">{edges.map(edge => <li key={`${edge.fundId}:${edge.lineId}`}><strong>{lineDescription(edge.lineId)} · {usd(edge.amountCents)} · policy v{edge.policyVersion}</strong><p>{edge.reason}</p></li>)}</ul></details>
-      {!handoffReady && <p>Recipient: the claimant's configured PayPal account {recipient[0]?.slice(0, 2)}***@{recipient[1]}. The full configured recipient is bound to the decision hash.</p>}
+      <details><summary>Why each fund can pay</summary><p>General is flexible funding. The rule engine computes this split from the confirmed categories and fund limits.</p><ul className="reasons">{edges.map(edge => <li key={`${edge.fundId}:${edge.lineId}`}><strong>{lineDescription(edge.lineId)} · {usd(edge.amountCents)} · policy v{edge.policyVersion}</strong><p>{edge.reason}</p></li>)}</ul></details>
       {approver && <details className="recipient-review"><summary>Review exact recipient</summary><p>{claim.payeeEmail}</p><p>Compare this address with the intended recipient before approving. Hash binding prevents changed terms from reusing approval; it does not establish who owns an account. This address is private review data. Keep it out of shared reports and recordings.</p></details>}
     </section>
     {giftNotes.length > 0 ? <GiftNotes claimId={claimId} entries={giftNotes} canApprove={approver} /> : recognized && judgeSession() ? <section id="donor-notes"><h2>Donor impact notes</h2><p>No gift has been applied to this receipt.</p></section> : null}
     {view.donations.length > 0 && <section><h2>Designated donations</h2><p>These are additional provider-backed donations. Opening credits remain labeled separately.</p>{view.donations.map(donation => <div key={donation.orderId}><p>{view.funds.find(fund => fund.id === donation.fundId)?.name}: {donation.status === "COMPLETED" ? `${usd(donation.grossCents!)} gross, ${usd(donation.feeCents!)} fee charged to General, ${usd(donation.netCents!)} net cash.` : "Pending, no accounting posted."}</p><details><summary>Inspect donation identifiers</summary><p>Order {donation.orderId}. Capture {donation.captureId ?? "not yet known"}. Status {donation.providerStatus}.</p></details></div>)}</section>}
-    <footer>Paid appears only after an independently fetched payout item reports success. This page does not enable production payments.</footer>
+    {recognized && <footer>Paid appears only after an independently fetched payout item reports success. This page does not enable production payments.</footer>}
   </Workspace>;
 }

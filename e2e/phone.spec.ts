@@ -54,7 +54,7 @@ async function login(page: Page, user: keyof typeof passwords) {
   await page.getByRole("button", { name: "Sign in", exact: true }).click(); expect((await response).status()).toBe(303);
   await page.waitForURL(url => url.pathname === "/"); await page.goto("/claims/C-104");
 }
-async function freeze(page: Page) { await login(page, "maria"); await page.getByRole("button", { name: "Freeze allocation for approval" }).click(); await expect(page.getByRole("status")).toContainText("allocation is frozen"); await noOverflow(page); await page.getByRole("button", { name: "Sign out" }).click(); }
+async function freeze(page: Page) { await login(page, "maria"); await page.getByRole("button", { name: "Freeze allocation for approval" }).click(); await expect(page.getByRole("status")).toContainText("allocation is frozen"); await noOverflow(page); await page.getByRole("button", { name: "Sign out", exact: true }).click(); }
 test("UX-01: 375-pixel allocation, both independent approvals and synthetic payout status", async ({ page }) => {
   await freeze(page);
   for (const user of ["tara", "ben"] as const) {
@@ -65,7 +65,7 @@ test("UX-01: 375-pixel allocation, both independent approvals and synthetic payo
     const first = await cards.nth(0).boundingBox(); const second = await cards.nth(1).boundingBox();
     expect(second!.y).toBeGreaterThanOrEqual(first!.y + first!.height);
     await noOverflow(page); await page.getByRole("button", { name: "Approve these terms" }).click(); await noOverflow(page);
-    if (user === "tara") { await expect(page.getByRole("status")).toContainText("different approver"); await page.getByRole("button", { name: "Sign out" }).click(); }
+    if (user === "tara") { await expect(page.getByRole("status")).toContainText("different approver"); await page.getByRole("button", { name: "Sign out", exact: true }).click(); }
   }
   await expect(page.getByRole("status")).toContainText("Both approvals are complete"); await expect(page.getByRole("button", { name: "Send $500.00 with PayPal" })).toBeVisible();
   const [decision] = await connection.db.select().from(s.allocationDecisions).where(eq(s.allocationDecisions.claimId, "C-104"));
@@ -82,7 +82,7 @@ test("UX-01: 375-pixel allocation, both independent approvals and synthetic payo
 });
 test("UI-348: a denied batch stays visible beside retry authority without sending a retry", async ({ page }) => {
   await freeze(page);
-  for (const user of ["tara", "ben"] as const) { await login(page, user); await page.getByRole("button", { name: "Approve these terms" }).click(); if (user === "tara") await page.getByRole("button", { name: "Sign out" }).click(); }
+  for (const user of ["tara", "ben"] as const) { await login(page, user); await page.getByRole("button", { name: "Approve these terms" }).click(); if (user === "tara") await page.getByRole("button", { name: "Sign out", exact: true }).click(); }
   const [decision] = await connection.db.select().from(s.allocationDecisions).where(eq(s.allocationDecisions.claimId, "C-104"));
   let sent: PersistedPayout | undefined;
   const provider: PayoutTransport = {
@@ -130,7 +130,7 @@ async function fits(page: Page, width: number) {
 }
 test("PC-23: the claimant sees no policy section, an approver runs it once and sees the stored holds at 390 and 1440 pixels", async ({ page }) => {
   await login(page, "maria"); await page.getByRole("button", { name: "Freeze allocation for approval" }).click(); await expect(page.getByRole("status")).toContainText("allocation is frozen");
-  await expect(page.locator("#policy-checks")).toHaveCount(0); await page.getByRole("button", { name: "Sign out" }).click();
+  await expect(page.locator("#policy-checks")).toHaveCount(0); await page.getByRole("button", { name: "Sign out", exact: true }).click();
   await login(page, "tara"); await page.setViewportSize({ width: 390, height: 844 });
   const section = page.locator("#policy-checks"); await expect(section).toBeVisible();
   await expect(section.getByRole("heading", { name: "Policy checks" })).toBeVisible(); await expect(section).toContainText("Policy checks have not run for this frozen decision.");

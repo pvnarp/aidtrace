@@ -62,8 +62,7 @@ export function DecisionPanel({ data, split, approvals, payout, actions, more }:
     {approvals}
     {payout}
     {actions && <div className="actions">{actions}</div>}
-    <details className="hybrid-case-details"><summary>Expense details</summary><dl>{data.details.map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}</dl>
-      <p className="caption">An expense becomes a payable only after both human approvals.</p></details>
+    <details className="hybrid-case-details"><summary>Expense details</summary><dl>{data.details.map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}</dl></details>
     {more}
   </aside>;
 }

@@ -111,7 +111,7 @@ test("polish stills for the AI states, answered by a loopback stub (stubbed)", a
   await shot(page, "receipt-ai-suggested-stubbed");
   await page.getByLabel(/I checked every category/).check(); await page.getByRole("button", { name: "Confirm categories", exact: true }).click();
   await expect(page.getByRole("heading", { name: "Human confirmation recorded" })).toBeVisible(); await shot(page, "receipt-confirmed-stubbed");
-  await page.getByRole("link", { name: "View allocation", exact: true }).click();
+  await page.getByRole("link", { name: "Continue to funding", exact: true }).click();
   await expect(page.getByRole("heading", { name: "$5.00 restricted. $1.00 General.", exact: true })).toBeVisible(); const claim = page.url(); await shot(page, "claim-draft-stubbed");
   await page.getByRole("button", { name: "Freeze allocation for approval" }).click(); await expect(page.getByRole("status")).toContainText("allocation is frozen");
   await logout(page); await login(page, "tara"); await page.goto(claim);

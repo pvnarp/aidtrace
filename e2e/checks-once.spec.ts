@@ -89,7 +89,7 @@ async function frozenClaim(page: Page, suggestions: boolean) {
   }
   await page.getByLabel(/I checked every category/).check(); await page.getByRole("button", { name: "Confirm categories", exact: true }).click();
   await expect(page.getByRole("heading", { name: "Human confirmation recorded" })).toBeVisible();
-  await page.getByRole("link", { name: suggestions ? "View allocation" : "Continue to funding", exact: true }).click();
+  await page.getByRole("link", { name: "Continue to funding", exact: true }).click();
   await expect(page.getByRole("button", { name: "Freeze allocation for approval", exact: true })).toBeVisible(); const claim = page.url();
   await page.getByRole("button", { name: "Freeze allocation for approval", exact: true }).click(); await expect(page.locator(".trace [aria-current=step] .t")).toHaveText("Approvals");
   return claim;
@@ -120,7 +120,7 @@ test("CO-01a: Tara's checked claim with stubbed model rows has one Checks h2, 'c
   const holds = stored.length; expect(holds, "the stored policy run has Hold flags").toBeGreaterThan(0);
   const shownHolds = await section.locator("ul.reasons li").filter({ hasText: /^Hold: / }).count(); expect(shownHolds, "Hold rows shown beside the summary").toBe(holds);
   const expected = `Rule checks: ${clear} of ${total} clear. ${holds} ${holds === 1 ? "Hold below goes" : "Holds below go"} to the approvers.`;
-  const summary = page.locator("#rule-checks > p.sub"); await expect(summary).toHaveText(`${expected} Each row comes from stored data this page loaded.`);
+  const summary = page.locator("#rule-checks > p.sub"); await expect(summary).toHaveText(`${expected}`);
   expect((await summary.innerText()), "the summary never calls a Hold approved, passed or cleared").not.toMatch(/\b(approved|passed|cleared)\b/i);
   // The word clear: only the Clear state word of each rule row and the one in the summary, none in the Policy checks block (rows or footer).
   const text = await page.locator("main").innerText(); const clearWords = count(text, /\bclear\b/gi);
@@ -142,7 +142,7 @@ test("CO-01b: the AI-off approved claim page, as an approver, keeps its Checks p
   await oneChecksPanel(page);
   const total = await page.locator("#rule-checks ul.rules li").count(); const clear = await page.locator('#rule-checks ul.rules li[data-state="ok"]').count();
   // No stored policy run exists, so the summary is the count alone. It adds no Hold clause and no other words beyond the provenance sentence it had before.
-  await expect(page.locator("#rule-checks > p.sub")).toHaveText(`Rule checks: ${clear} of ${total} clear. Each row comes from stored data this page loaded.`);
+  await expect(page.locator("#rule-checks > p.sub")).toHaveText(`Rule checks: ${clear} of ${total} clear.`);
   const section = page.locator("#policy-checks"); await expect(section).toContainText("Policy checks have not run for this frozen decision."); await expect(section).toContainText(FOOTER);
   expect(await section.locator("ul.reasons").count(), "no rule rows without a stored run").toBe(0);
   expect(count(await page.locator("main").innerText(), /\bclear\b/gi), `"clear" in main: ${clear} rule rows plus the summary`).toBe(clear + 1);

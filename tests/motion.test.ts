@@ -91,3 +91,19 @@ describe("MO-07 the header never sits inside main", () => {
     expect(inside).toEqual([]);
   });
 });
+
+describe("MO-08 the trace connector fill and current-step settle (judge thread, docs/DESIGN_LANGUAGE.md section 3 rule 8)", () => {
+  const rules = [...inside.matchAll(/([^{}]+)\{([^{}]*)\}/g)].map(match => ({ selector: match[1]!.trim(), body: match[2]! }));
+  it("defines both keyframes with opacity and transform only, scaleX and a scale from .8", () => {
+    const connect = keyframes.find(frame => frame.name === "at-connect"), settle = keyframes.find(frame => frame.name === "at-settle");
+    expect(connect?.body.replace(/\s+/g, " ")).toContain("transform: scaleX(0)"); expect(settle?.body.replace(/\s+/g, " ")).toContain("transform: scale(.8)");
+  });
+  it("plays each once, inside the no-preference block, at 240 ms or less, on the trace marks only", () => {
+    const connect = rules.filter(rule => /\bat-connect\b/.test(rule.body)), settle = rules.filter(rule => /\bat-settle\b/.test(rule.body));
+    expect(connect).toHaveLength(1); expect(settle).toHaveLength(1);
+    expect(connect[0]!.selector).toContain(".trace li[data-state=done]"); expect(connect[0]!.selector).toContain("[data-state=current])::after");
+    expect(settle[0]!.selector).toBe(".trace li[data-state=current]::before");
+    for (const rule of [...connect, ...settle]) { const [duration = 0, delay = 0] = seconds(declarationsOf(rule.body, "animation")[0]!); expect(duration).toBeLessThanOrEqual(0.24); expect(delay).toBe(0); expect(rule.body).not.toMatch(/infinite/); }
+  });
+  it("is named in rule 8 of the design language", () => expect(readFileSync("docs/DESIGN_LANGUAGE.md", "utf8").replace(/\s+/g, " ")).toContain("a trace connector fill and current-step settle"));
+});

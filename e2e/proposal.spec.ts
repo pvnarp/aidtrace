@@ -153,7 +153,7 @@ test.describe("Synthetic response interface checks", () => {
     await page.getByLabel("Category for L1", { exact: true }).selectOption("classroom_supplies"); await page.getByLabel("Reason for manual choice L1", { exact: true }).fill("Human correction for this fixture");
     await expect(page.locator(".proposal-split")).toHaveCount(0); await expect(page.getByRole("button", { name: "Refresh funding preview" })).toBeDisabled();
     await page.getByLabel(/I checked every category/).check(); await page.getByRole("button", { name: "Confirm categories", exact: true }).click(); await expect(page.getByRole("heading", { name: "Human confirmation recorded" })).toBeVisible();
-    await page.getByRole("link", { name: "View allocation", exact: true }).click(); await expect(page.getByRole("button", { name: "Freeze allocation for approval" })).toBeVisible();
+    await page.getByRole("link", { name: "Continue to funding", exact: true }).click(); await expect(page.getByRole("button", { name: "Freeze allocation for approval" })).toBeVisible();
     await page.locator("details.accounting > summary").click(); await expect(page.getByText(/Opening journals have not been created yet/)).toBeVisible();
     await expect(page.locator(".recipient-note")).toHaveText("Placeholder recipient for Maria. PayPal cannot pay it.");
     await expect(page.getByText(/less General than this comparison/)).toHaveCount(0);
@@ -165,7 +165,7 @@ test.describe("Synthetic response interface checks", () => {
     await expect(page.locator(".expense-review")).toContainText("Original AI suggestion: Robot kits and parts");
     await expect(page.locator(".recipient-review")).toHaveCount(0);
     const claimUrl = receipt.replace(/\/receipt$/, "");
-    await page.getByRole("button", { name: "Sign out" }).click(); await login(page, "tara"); await page.goto(claimUrl);
+    await page.getByRole("button", { name: "Sign out", exact: true }).click(); await login(page, "tara"); await page.goto(claimUrl);
     await expect(page.locator(".expense-review")).toContainText("L1: Science experiment kit");
     // IAC-415 PR 4: the provenance sentences were removed; the tags beside them state the same facts once.
     await expect(page.locator(".expense-review .provenance-tags", { hasText: "Person chose" }).first()).toBeVisible(); await expect(page.locator(".expense-review")).not.toContainText("Claimant made a manual category choice");
@@ -175,9 +175,9 @@ test.describe("Synthetic response interface checks", () => {
     await expect(page.locator(".recipient-review")).toContainText("review@example.invalid"); await noOverflow(page);
     await page.getByRole("button", { name: "Approve these terms", exact: true }).click();
     await expect(page.getByText("A different approver is still required.", { exact: false })).toBeVisible();
-    await page.getByRole("button", { name: "Sign out" }).click(); await login(page, "ben"); await page.goto(claimUrl); await page.getByRole("button", { name: "Approve these terms", exact: true }).click();
+    await page.getByRole("button", { name: "Sign out", exact: true }).click(); await login(page, "ben"); await page.goto(claimUrl); await page.getByRole("button", { name: "Approve these terms", exact: true }).click();
     await expect(page.locator(".hybrid-review-count")).toContainText("2 of 2"); // IAC-415 polish: a keyless approved claim states itself in the title and the Decision panel, so the banner is not repeated
-    await expect(page.getByText("Organization-wide open payable: $6.00.", { exact: false })).toBeVisible();
+    await page.getByText("Accounting", { exact: true }).click(); await expect(page.getByText("Organization-wide open payable: $6.00.", { exact: false })).toBeVisible();
     expect(await connection.db.select().from(s.approvals)).toHaveLength(2);
     expect(await connection.db.select().from(s.disbursements)).toHaveLength(0); await noOverflow(page);
     await page.goto(receipt); await expect(page.getByRole("button", { name: "Prepare expense proposal", exact: true })).toHaveCount(0);
@@ -218,7 +218,7 @@ test.describe("Synthetic response interface checks", () => {
     await create(page, true); mode = "alcohol"; await page.getByRole("button", { name: "Prepare expense proposal", exact: true }).click(); await expect(page.getByRole("heading", { name: "Funding blocked by current rules", exact: true })).toBeVisible(); await expect(page.locator(".proposal-issues")).toContainText("prohibited category"); await noOverflow(page);
     await expect(page.locator(".notice.warning")).toContainText("Alcohol is prohibited across all funds");
     await page.getByLabel(/I checked every category/).check(); await page.getByRole("button", { name: "Confirm categories", exact: true }).click();
-    await page.getByRole("link", { name: "View allocation", exact: true }).click();
+    await page.getByRole("link", { name: "Continue to funding", exact: true }).click();
     await expect(page.getByRole("heading", { level: 1 })).toHaveText("Organization policy stops this expense.");
     await expect(page.getByRole("button", { name: "Freeze allocation for approval" })).toHaveCount(0);
     expect(await connection.db.select().from(s.approvals)).toHaveLength(0);
@@ -285,7 +285,7 @@ test.describe("Isolated single-receipt judging", () => {
     expect(phoneBlock.y + phoneBlock.height).toBeLessThanOrEqual(Math.round(844 * 1.6)); expect(phoneAction.y + phoneAction.height).toBeLessThanOrEqual(Math.round(844 * 1.6)); // IAC-373: summary cards above the decision area at 390 px (amendment 5), so 1.6 screens, was 1
     await page.setViewportSize({ width: 375, height: 812 });
     await page.getByLabel(/I checked every category/).check(); await page.getByRole("button", { name: "Confirm categories", exact: true }).click();
-    const claimUrl = (await page.getByRole("link", { name: "View allocation", exact: true }).getAttribute("href"))!;
+    const claimUrl = (await page.getByRole("link", { name: "Continue to funding", exact: true }).getAttribute("href"))!;
     await page.goto(claimUrl); await expect(page.getByText("$200.00 from General", { exact: true })).toBeVisible();
     await expect(page.getByRole("heading", { level: 1 })).toContainText("$430.00 restricted. $70.00 General.");
     await page.getByRole("button", { name: "Freeze allocation for approval", exact: true }).click();
@@ -301,7 +301,7 @@ test.describe("Isolated single-receipt judging", () => {
     expect(handoffBox.y).toBeGreaterThan(titleBox.y); expect(handoffBox.y).toBeLessThan(receiptTop); expect(handoffBox.y).toBeLessThan(Math.round(812 * 1.6));
     await expect(page.locator(".provenance-tags .ai-tag.confirmed", { hasText: "Person confirmed" })).toHaveCount(3);
     await expect(page.getByRole("button", { name: /Send .* with PayPal/ })).toHaveCount(0);
-    await expect(page.getByText("Organization-wide open payable: $500.00.", { exact: false })).toBeVisible();
+    await page.getByText("Accounting", { exact: true }).click(); await expect(page.getByText("Organization-wide open payable: $500.00.", { exact: false })).toBeVisible();
     const before = await financial();
     await page.getByText("Inspect the proposed request structure", { exact: true }).click();
     await expect(page.locator(".paypal-handoff pre")).toContainText('"value": "500.00"');
@@ -328,7 +328,7 @@ test.describe("Isolated single-receipt judging", () => {
     await expect(page.getByRole("button", { name: "Freeze allocation for approval", exact: true })).toHaveCount(0);
     for (const [line, category] of [["L1", "alcohol"], ["L2", "classroom_supplies"], ["L3", "participant_meals"]]) { await page.getByLabel(`Category for ${line}`, { exact: true }).selectOption(category!); await page.getByLabel(`Reason for manual choice ${line}`, { exact: true }).fill("Manual prohibited-item boundary check"); }
     await page.getByLabel(/I checked every category/).check(); await page.getByRole("button", { name: "Confirm categories", exact: true }).click();
-    await page.getByRole("link", { name: "View allocation", exact: true }).click();
+    await page.getByRole("link", { name: "Continue to funding", exact: true }).click();
     await expect(page.getByRole("heading", { level: 1, name: "Organization policy stops this expense.", exact: true })).toBeVisible();
     await expect(page.getByRole("button", { name: "Freeze allocation for approval", exact: true })).toHaveCount(0);
     expect(await connection.db.select().from(s.approvals)).toHaveLength(0); expect(await connection.db.select().from(s.disbursementAttempts)).toHaveLength(0);

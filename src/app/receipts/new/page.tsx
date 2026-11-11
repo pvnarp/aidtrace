@@ -5,6 +5,7 @@ import { findSession, SESSION_COOKIE } from "../../../server/auth";
 import { DraftForm } from "../draft-form";
 import { WORKSHOP_EXAMPLE } from "../examples";
 import { Journey } from "../../journey";
+import { firstName } from "../../thread";
 import { Workspace, type ShellState, type SummaryData } from "../../workspace";
 import { TraceKicker } from "../../trace";
 import { aiCard, currentNote, paypalCard } from "../../shell-copy";
@@ -30,10 +31,10 @@ export default async function NewReceipt({ searchParams }: { searchParams: Promi
     details: [["Program", "robotics"], ["Expense", "New receipt"]], note: currentNote("DRAFT") };
   // IAC-373 shell cards: no claim exists yet, so nothing is run, approved or sent. Wording only.
   const shellState: ShellState = { typedReceipt: true, ...(photo ? { photoIntake: true } : {}), ai: aiCard({ applicable: true, suggestion: "NONE", confirmed: false, aiAccepted: false, savedModel: null, configured: configuredReceiptAiName() }), paypal: paypalCard({ claimStatus: null, approvals: 0, payout: null }) };
-  return <Workspace user={user} stage={1} summary={summary} state={shellState} layout="single">
+  return <Workspace user={user} stage={1} summary={summary} state={shellState} layout="single" statusCards={false}>
     <TraceKicker stage={1} state={shellState} reviews={summary.reviews} suffix=" / New receipt" /><h1>Start with the expense.</h1>
-    <Journey title="Save the receipt to begin." detail="The example is filled in for you. Check the personal-details box, then create the draft below. Next you will review categories, not send a payment." href="#receipt-entry" action="Go to the receipt" />
+    <Journey title="Save the receipt to begin." detail="The example is filled in for you. Check the personal-details box, then create the draft below. Next you will review categories, not send a payment." href="#receipt-entry" action="Go to the receipt" actor={`Your move, ${firstName(user.displayName)}.`} />
     <p className="intro">{workshop ? "$280 of robot kit parts. $150 of engineering notebooks. $70 of sandwiches and juice. Which funds may cover each part?" : "A $3 science kit. A $2 notebook. $1 of refreshments. Which funds may cover each part?"}</p>
     {!judge && <p><Link className="button-link secondary" href={workshop ? "/receipts/new" : "/receipts/new?example=workshop"} prefetch={false}>{workshop ? "Use the $6 small example" : "Use the $500 workshop example"}</Link></p>}
-    <p className="muted">This creates an unpaid draft. It does not reserve funds, approve an expense or request payment.</p><div className={photo ? "photo-layout with-photo" : undefined}><div id="receipt-entry"><DraftForm key={workshop ? "workshop" : "small"} photo={photo} {...(workshop ? WORKSHOP_EXAMPLE : {})} /></div>{photo && <PhotoReader poweredBy={poweredByNames([configuredReceiptAiName()?.name ?? ""])} />}</div></Workspace>;
+    <div className={photo ? "photo-layout with-photo" : undefined}><div id="receipt-entry"><DraftForm key={workshop ? "workshop" : "small"} photo={photo} {...(workshop ? WORKSHOP_EXAMPLE : {})} /></div>{photo && <PhotoReader poweredBy={poweredByNames([configuredReceiptAiName()?.name ?? ""])} />}</div></Workspace>;
 }

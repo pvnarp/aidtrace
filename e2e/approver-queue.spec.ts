@@ -164,9 +164,9 @@ test("AQ-21 to AQ-25: the approver queue grid in the real flow, wide and on a ph
       expect(await style(page, ".aq-vendor small", "font-size")).toBe("13px"); expect(await style(page, ".aq-vendor small", "color")).toBe("rgb(91, 107, 128)");
       expect(await style(page, ".aq-review", "font-weight")).toBe("600"); expect(await style(page, ".aq-review", "color")).toBe("rgb(8, 80, 204)");
       const link = await page.locator(".aq-review").first().boundingBox(); expect(link!.width).toBeGreaterThanOrEqual(44); expect(link!.height).toBeGreaterThanOrEqual(40);
-      // Wide layout (desktop polish, HP-01): the head text, the fund meters and the queue are three full-width rows, in that order, so nothing sits in a rail beside the head text.
+      // Wide layout (desktop polish, HP-01): the head text, the queue and the fund meters (judge thread: the queue comes first) are three full-width rows, in that order, so nothing sits in a rail beside the head text.
       const queue = await page.getByTestId("aq-queue").boundingBox(); const funds = await page.locator(".funds").boundingBox(); const head = await page.locator(".home-head-text").boundingBox();
-      expect(queue!.width).toBeGreaterThan(900); expect(funds!.y).toBeGreaterThanOrEqual(head!.y + head!.height - 1); expect(queue!.y).toBeGreaterThanOrEqual(funds!.y + funds!.height - 1);
+      expect(queue!.width).toBeGreaterThan(900); expect(queue!.y).toBeGreaterThanOrEqual(head!.y + head!.height - 1); expect(funds!.y).toBeGreaterThanOrEqual(queue!.y + queue!.height - 1);
       await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
       if (process.env.AQ_STILLS) { mkdirSync(process.env.AQ_STILLS, { recursive: true }); await page.screenshot({ path: `${process.env.AQ_STILLS}/approver-queue-1440.png`, fullPage: true }); }
     });
@@ -184,24 +184,24 @@ test("AQ-21 to AQ-25: the approver queue grid in the real flow, wide and on a ph
       await page.setViewportSize({ width, height }); await page.goto("/");
       await expect(dataRows(page)).toHaveCount(1); await expect(page.getByTestId("fund-meter").first()).toBeVisible();
       const lede = await boxOf(page, ".home-head-text .reference-intro"), funds = await boxOf(page, '[aria-label="Fund balances"]'), queue = await boxOf(page, '[data-testid="aq-queue"]'), column = await boxOf(page, ".reference-screen.home-grid");
-      // No empty band: the next block starts within 48 px of the bottom of the lede, and the queue within 48 px of the meters.
-      const bandUnderLede = funds.y - (lede.y + lede.height), bandUnderMeters = queue.y - (funds.y + funds.height);
-      expect(bandUnderLede, `${width}: lede to fund meters`).toBeGreaterThanOrEqual(0); expect(bandUnderLede, `${width}: lede to fund meters`).toBeLessThanOrEqual(48);
-      expect(bandUnderMeters, `${width}: fund meters to queue`).toBeGreaterThanOrEqual(0); expect(bandUnderMeters, `${width}: fund meters to queue`).toBeLessThanOrEqual(48);
+      // No empty band: the queue starts within 48 px of the bottom of the lede, and the fund meters within 48 px of the bottom of the queue (judge thread: the queue comes before the meters).
+      const bandUnderLede = queue.y - (lede.y + lede.height), bandUnderQueue = funds.y - (queue.y + queue.height);
+      expect(bandUnderLede, `${width}: lede to the queue`).toBeGreaterThanOrEqual(0); expect(bandUnderLede, `${width}: lede to the queue`).toBeLessThanOrEqual(48);
+      expect(bandUnderQueue, `${width}: queue to the fund meters`).toBeGreaterThanOrEqual(0); expect(bandUnderQueue, `${width}: queue to the fund meters`).toBeLessThanOrEqual(48);
       // The meters and the queue are as wide as the content column.
       expect(Math.abs(funds.width - column.width), `${width}: meters width`).toBeLessThanOrEqual(1); expect(Math.abs(queue.width - column.width), `${width}: queue width`).toBeLessThanOrEqual(1);
       // One horizontal row of white 14 px panels. An unstyled page keeps the rail's block layout, with a transparent meter and a square corner, and fails here.
       const meters = await page.getByTestId("fund-meter").evaluateAll(nodes => nodes.map(node => { const rect = node.getBoundingClientRect(); const computed = getComputedStyle(node); return { top: Math.round(rect.top), bottom: rect.bottom, background: computed.backgroundColor, radius: computed.borderTopLeftRadius }; }));
       expect(meters.length).toBeGreaterThanOrEqual(2);
       expect(new Set(meters.map(meter => meter.top)).size, `${width}: one row`).toBe(1);
-      for (const meter of meters) { expect(meter.background).toBe("rgb(255, 255, 255)"); expect(meter.radius).toBe("14px"); expect(meter.bottom, `${width}: meter above the fold`).toBeLessThanOrEqual(height); }
+      for (const meter of meters) { expect(meter.background).toBe("rgb(255, 255, 255)"); expect(meter.radius).toBe("14px"); expect(meter.top, `${width}: order, head then queue then meters`).toBeGreaterThanOrEqual(Math.round(queue.y + queue.height) - 1); }
       expect(await style(page, '[aria-label="Fund balances"]', "background-color")).toBe("rgba(0, 0, 0, 0)");
       expect(await style(page, '[aria-label="Fund balances"]', "display")).toBe("grid");
       // auto-fit keeps an empty track at 0px in the computed value (four tracks fit at 1440, three meters fill three), so count the tracks with width.
       expect((await style(page, '[aria-label="Fund balances"]', "grid-template-columns")).split(" ").filter(track => track !== "0px").length).toBe(meters.length);
-      // The rules link of each restricted fund is visible above the fold too.
+      // The rules link of each restricted fund is visible, in the fund area under the queue (judge thread: the queue comes first, so it is no longer above the fold at 1280 by 800, measured 821 px).
       const links = page.getByTestId("fund-rules-link"); expect(await links.count()).toBeGreaterThanOrEqual(1);
-      for (const link of await links.all()) { await expect(link).toBeVisible(); const found = await link.boundingBox(); expect(found!.y + found!.height, `${width}: rules link above the fold`).toBeLessThanOrEqual(height); }
+      for (const link of await links.all()) { await expect(link).toBeVisible(); const found = await link.boundingBox(); expect(found!.y, `${width}: rules link sits in the fund area, below the queue`).toBeGreaterThanOrEqual(queue.y + queue.height - 1); }
       // All seven columns, no sideways scroll inside the grid or on the page.
       expect(await headerIds(page)).toEqual(["claimant", "vendor", "approvals", "amountCents", "approvalCount", "waitingSince", "href"]);
       await expect(page.locator(".aq-queue .ag-body-horizontal-scroll-viewport")).toHaveCount(1);
@@ -259,9 +259,9 @@ test("AQ-21 to AQ-25: the approver queue grid in the real flow, wide and on a ph
     await expect(extras).toContainText(`${claim!.vendor}, Amount ${money(total)}`);
     for (const [label, value] of [["Claimant", maria!.displayName], ["Status", "Approvals: 1 of 2"], ["Progress", "Step 5 of 6, Approvals"]]) await expect(extras.locator("dl > div", { hasText: label! }).first()).toContainText(value!);
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
-    await test.step("HP-03 on a phone the order is still the head text, the fund meters in one panel, then the queue", async () => {
+    await test.step("HP-03 on a phone the order is the head text, the queue, then the fund meters in one panel (judge thread)", async () => {
       const head = await page.locator(".home-head-text").boundingBox(), funds = await page.locator('[aria-label="Fund balances"]').boundingBox(), queue = await page.getByTestId("aq-queue").boundingBox();
-      expect(funds!.y).toBeGreaterThanOrEqual(head!.y + head!.height - 1); expect(queue!.y).toBeGreaterThanOrEqual(funds!.y + funds!.height - 1);
+      expect(queue!.y).toBeGreaterThanOrEqual(head!.y + head!.height - 1); expect(funds!.y).toBeGreaterThanOrEqual(queue!.y + queue!.height - 1);
       expect(await style(page, '[aria-label="Fund balances"]', "background-color")).toBe("rgb(255, 255, 255)");
       expect(await style(page, '[data-testid="fund-meter"]', "background-color")).toBe("rgba(0, 0, 0, 0)");
       expect(Math.abs(funds!.width - queue!.width)).toBeLessThanOrEqual(1);

@@ -793,6 +793,9 @@ fieldset.rules-field-group { padding: 0; }
   details::details-content { block-size: 0; overflow: clip; transition: block-size .22s cubic-bezier(.2, .7, .2, 1), content-visibility .22s allow-discrete; }
   details[open]::details-content { block-size: auto; }
   .meter i { transform-origin: left center; animation: at-fill .6s cubic-bezier(.2, .7, .2, 1) .1s both; }
+  .trace li[data-state=done]:has(+ li[data-state=current])::after { transform-origin: left center; animation: at-connect .24s cubic-bezier(.2, .7, .2, 1) both; }
+  .trace li[data-state=current]::before { animation: at-settle .24s cubic-bezier(.2, .7, .2, 1) both; }
+  .journey-handoff { animation: at-rise .24s cubic-bezier(.2, .7, .2, 1) both; }
   button[aria-busy="true"]::before, form[aria-busy="true"] button[type="submit"]::before { content: ""; flex: none; width: 14px; height: 14px; border-radius: 50%; border: 2px solid currentColor; border-right-color: transparent; animation: at-spin .8s linear infinite; }
   /* November 10 AI moments and books: the AI wait dot, the skeleton shimmer and the suggestion row stagger (rule 8). The two loops are capped at 1.6 s and move opacity or transform only. */
   .ai-wait-line i { animation: at-wait 1.1s ease-in-out infinite alternate; }
@@ -805,6 +808,8 @@ fieldset.rules-field-group { padding: 0; }
 @keyframes at-row-in { from { opacity: 0; transform: translateY(8px); } }
 @keyframes at-rise { from { opacity: 0; transform: translateY(-4px); } }
 @keyframes at-fill { from { transform: scaleX(0); } }
+@keyframes at-connect { from { transform: scaleX(0); } }
+@keyframes at-settle { from { transform: scale(.8); } }
 @keyframes at-spin { to { transform: rotate(1turn); } }
 /* Calmer forms: a hover ring on fields and a soft focus halo beside the always-visible focus outline. */
 input:where(:not([type=checkbox]):not([type=radio])):hover:not(:disabled), textarea:hover:not(:disabled), select:hover:not(:disabled) { border-color: var(--navy); }
@@ -837,3 +842,24 @@ input:focus-visible, textarea:focus-visible, select:focus-visible { box-shadow: 
 .sk-cell.wide { flex: 2 1 0; }
 .sk-cell.narrow { flex: .6 1 0; }
 .give-back { margin: 8px 0 12px; }
+/* November 10 judge thread. The Next decision card gains a muted actor line, a handoff button for the two states where the viewer cannot act, and a quiet
+   closing card. A scroll-only action (href starting with #) is a quiet text link so each screen keeps one filled primary. Tokens only; motion lives in the no-preference block above. */
+.journey-actor { margin: 4px 0 0; font-size: 14px; line-height: 1.4; color: var(--muted); }
+.action-footer .journey-action[href^="#"] { background: transparent; color: var(--accent-ink); padding: 8px 0; min-height: 44px; border-radius: 0; font-weight: 600; justify-content: flex-start; width: auto; text-decoration: none; }
+.action-footer .journey-action[href^="#"]:hover { background: transparent; text-decoration: underline; }
+.journey-critical.calm { border-left-color: var(--accent); }
+.journey-handoff { margin: 10px 0 4px; }
+.journey-handoff p { margin: 8px 0 0; font-size: 13px; }
+.trace-complete-links { display: flex; flex-wrap: wrap; gap: 4px 24px; margin: 6px 0 0; }
+.journey-link { display: inline-flex; align-items: center; min-height: 44px; font-size: 14px; font-weight: 600; color: var(--accent-ink); }
+.checks-line { margin: 0 0 8px; font-size: 14px; line-height: 1.4; }
+.checks-line a { font-weight: 600; }
+.trace-legend { margin-top: 16px; }
+/* Approver home: the queue comes before the fund cards. The desktop rule in approver-queue.css puts the meters on row 2; the [role] attribute here out-ranks it. */
+@media (min-width: 901px) { .reference-screen.home-grid.aq-home > .funds[role="group"] { grid-row: 3; } }
+@media (max-width: 900px) { .home-grid.aq-home > .funds { order: 3; } }
+/* One filled primary per screen: the policy check runs are a step before Approve, so their buttons take the quiet secondary look (the same tokens as .secondary). */
+#policy-checks .action-form button[type=submit] { background: var(--paper); color: var(--navy); box-shadow: inset 0 0 0 1px var(--field-line); }
+#policy-checks .action-form button[type=submit]:hover:not(:disabled) { background: var(--bg); }
+/* Shorter pages: the two funding comparison cards size to their own content instead of stretching to the taller one. */
+.comparison-grid { align-items: start; }

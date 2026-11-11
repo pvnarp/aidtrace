@@ -10,6 +10,7 @@ import type { RulesNotice } from "../../server/rules-notices";
 import { refusedDraftReason } from "../../server/rules-notices";
 import { ruleDraftReviewDisclosure } from "../ai-disclosure";
 import { EditForm } from "./edit-form";
+import { HandoffButton } from "../handoff-button";
 import { MAX_APPROVALS, STATE_LABELS, pathLabel } from "./labels";
 import { reviewRows, thresholdsBlocked, type ReviewRow } from "./review-rows";
 
@@ -57,7 +58,7 @@ function Approvals({ review, viewerId, rows }: { review: DraftReview; viewerId: 
     {count === 0 && open && <p>No one has approved yet. Two different approvers must approve before these rules take effect.</p>}
     {open && analysis?.changesPayOrder === true && <p className="notice warning rules-payorder" role="note" data-testid="rules-payorder-warning">
       <strong>Approving these rules changes the pay order.</strong> Receipts that are frozen but not yet approved twice go back to draft and need both approvals again. Paid claims are untouched.</p>}
-    {open && viewerApproved && <p className="notice" role="status" data-testid="rules-second-approver">You approved this draft. A second, different approver must approve it before anything changes.</p>}
+    {open && viewerApproved && <><p className="notice" role="status" data-testid="rules-second-approver">You approved this draft. A second, different approver must approve it before anything changes.</p><HandoffButton username={null} label="Sign out and continue as another approver" /></>}
     {open && !viewerApproved && missing.length === 0 && blocked && <p className="notice warning" role="status" id="rules-missing">
       Some review limits are set and some are blank, and this fund has no earlier limits to fill the blanks. Fill in all six review limits, or clear them all, before approving.</p>}
     {open && !viewerApproved && missing.length > 0 && <p className="muted rules-approve-wait">Approval opens once the {missing.length === 1 ? "value above is" : "values above are"} filled in.</p>}

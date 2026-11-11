@@ -61,7 +61,7 @@ async function login(page: Page, user: keyof typeof passwords) {
   await page.getByRole("button", { name: "Sign in", exact: true }).click(); expect((await response).status()).toBe(303);
   await page.waitForURL(url => url.pathname === "/");
 }
-async function signOut(page: Page) { await page.getByRole("button", { name: "Sign out" }).click(); await page.waitForURL(url => url.pathname === "/login"); }
+async function signOut(page: Page) { await page.getByRole("button", { name: "Sign out", exact: true }).click(); await page.waitForURL(url => url.pathname === "/login"); }
 const post = (page: Page, path: string, form: Record<string, string>, headers: Record<string, string> = { origin: ORIGIN }) => page.request.post(path, { form, headers, maxRedirects: 0 });
 
 test("AU-30: with both flags on, one approver proposes automation, cannot confirm it, a second confirms it, and an approver turns it off", async ({ page }) => {

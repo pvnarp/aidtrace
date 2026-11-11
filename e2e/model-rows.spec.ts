@@ -89,11 +89,11 @@ async function frozenReceiptClaim(page: Page) {
   await page.getByRole("button", { name: "Request AI suggestions" }).click(); await expect(page.locator(".notice")).toContainText("AI suggestions are ready");
   await page.getByLabel(/I checked every category/).check(); await page.getByRole("button", { name: "Confirm categories", exact: true }).click();
   await expect(page.getByRole("heading", { name: "Human confirmation recorded" })).toBeVisible();
-  await page.getByRole("link", { name: "View allocation", exact: true }).click();
+  await page.getByRole("link", { name: "Continue to funding", exact: true }).click();
   await expect(page.getByRole("heading", { name: "$5.00 restricted. $1.00 General.", exact: true })).toBeVisible();
   const claimId = new URL(page.url()).pathname.split("/")[2]!;
   await page.getByRole("button", { name: "Freeze allocation for approval" }).click(); await expect(page.getByRole("status")).toContainText("allocation is frozen");
-  await page.getByRole("button", { name: "Sign out" }).click();
+  await page.getByRole("button", { name: "Sign out", exact: true }).click();
   expect(suggestions).toBe(1); expect(compliance).toHaveLength(0);
   return claimId;
 }

@@ -177,7 +177,7 @@ test("WX-04: in a judge session the example runs end to end with stubbed suggest
   await expect(page.locator(".category-choice .ai-tag", { hasText: "AI suggested" })).toHaveCount(3);
   await page.getByLabel(/I checked every category/).check(); await page.getByRole("button", { name: "Confirm categories", exact: true }).click();
   await expect(page.getByRole("heading", { name: "Human confirmation recorded" })).toBeVisible();
-  const claimUrl = (await page.getByRole("link", { name: "View allocation", exact: true }).getAttribute("href"))!;
+  const claimUrl = (await page.getByRole("link", { name: "Continue to funding", exact: true }).getAttribute("href"))!;
   await page.goto(claimUrl); await page.getByRole("button", { name: "Freeze allocation for approval", exact: true }).click();
   await expect(page.locator(".trace [aria-current=step] .t")).toHaveText("Approvals");
   // The split on the claim page, per fund, as the page prints it.

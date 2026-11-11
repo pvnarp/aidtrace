@@ -42,7 +42,7 @@ describe("WR-01 to WR-08 wrapped name columns", () => {
     const plain = textColumn<{ name: string }>({ field: "name", headerName: "Name" });
     expect(unwrapped(plain)).toBe(true); expect(plain.cellClass).toBeUndefined();
     const widths = (leaves: { field?: string; width?: number }[], fields: string[]) => fields.map(field => leaves.find(leaf => leaf.field === field)!.width);
-    expect(widths(leafColumns(ledgerColumns()), ["account", "fund"])).toEqual([172, 128]);
+    expect(widths(leafColumns(ledgerColumns()), ["account", "fund"])).toEqual([164, 122]); // Nov 10: 14 px moved to Recorded (UTC) so a two-digit day and hour fit.
     expect(widths(leafColumns(donationsColumns()), ["donor", "fund", "vendor"])).toEqual([112, 170, 170]);
   });
   it("WR-08: RowAutoHeight is an extra, not a base module, and exactly the two wrapping grids pass it", () => {

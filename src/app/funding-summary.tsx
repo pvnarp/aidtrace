@@ -19,6 +19,5 @@ export function FundingSummary({ total, general, edges, funds }: { total: bigint
   return <div className="funding-summary" aria-label={`Computed split: ${money(total - general)} restricted, ${money(general)} General`}>
     <div className="funding-bar" aria-hidden="true">{rows.map(row => <span key={row.id} data-fund={row.id} style={{ width: `${Number(row.amount) / Number(total) * 100}%` }} />)}</div>
     <ul className="funding-legend">{rows.map(row => <li key={row.id} data-fund={row.id}><span>{row.name}</span><strong>{money(row.amount)}</strong></li>)}</ul>
-    <p className="muted">General is flexible funding. The rule engine computes this split from the confirmed categories and fund limits.</p>
   </div>;
 }

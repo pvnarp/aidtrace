@@ -107,7 +107,7 @@ test("GB-02: 375-pixel receipt quotes, explicit confirmation, allocation and edi
   await page.getByRole("button", { name: "Confirm categories", exact: true }).click();
   expect(await page.getByLabel(/I checked every category/).evaluate((el: HTMLInputElement) => el.validity.valueMissing)).toBe(true);
   await page.getByLabel(/I checked every category/).check(); await page.getByRole("button", { name: "Confirm categories", exact: true }).click();
-  await expect(page.getByRole("heading", { name: "Human confirmation recorded" })).toBeVisible(); await page.getByRole("link", { name: "View allocation", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "Human confirmation recorded" })).toBeVisible(); await page.getByRole("link", { name: "Continue to funding", exact: true }).click();
   await expect(page.getByRole("heading", { name: "$5.00 restricted. $1.00 General.", exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: "Freeze allocation for approval" })).toBeVisible(); await noOverflow(page);
   await page.goto(receiptUrl); await page.getByText("Edit receipt or amounts", { exact: true }).click();
@@ -130,7 +130,7 @@ test("Demo UI: changing one category shows Changed by you on review and Person c
   await expect(tags).toHaveText(["Changed by you", "AI suggested", "AI suggested"]);
   await page.getByLabel("Reason for manual choice L1").fill("Receipt shows this item is a snack");
   await page.getByLabel(/I checked every category/).check(); await page.getByRole("button", { name: "Confirm categories", exact: true }).click();
-  await expect(page.getByRole("heading", { name: "Human confirmation recorded" })).toBeVisible(); await page.getByRole("link", { name: "View allocation", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "Human confirmation recorded" })).toBeVisible(); await page.getByRole("link", { name: "Continue to funding", exact: true }).click();
   const provenance = page.locator(".provenance-tags");
   await expect(provenance).toHaveCount(3);
   await expect(provenance.nth(0)).toHaveText("Person chose"); await expect(provenance.nth(0)).not.toContainText("AI suggested");
@@ -184,7 +184,7 @@ test("GB-02: unavailable model leaves human review usable and approvers read-onl
   }
   await noOverflow(page); await page.getByLabel(/I checked every category/).check(); await page.getByRole("button", { name: "Confirm categories", exact: true }).click();
   await expect(page.getByText(/Human choice: Checked fictional receipt/)).toHaveCount(3); const url = page.url();
-  await page.getByRole("button", { name: "Sign out" }).click(); await login(page, "tara"); await page.goto(url);
+  await page.getByRole("button", { name: "Sign out", exact: true }).click(); await login(page, "tara"); await page.goto(url);
   await expect(page.getByRole("heading", { name: "Human confirmation recorded" })).toBeVisible(); await expect(page.getByText("Edit receipt or amounts", { exact: true })).toHaveCount(0); await noOverflow(page);
   expect(modelCalls).toBe(1); expect(await connection.db.select().from(s.disbursements)).toHaveLength(0);
 });
@@ -236,7 +236,7 @@ test("PTG-22: a gift card mention shows the notice, needs the unticked acknowled
   await choose(); await acknowledge.check(); await page.getByLabel(/I checked every category/).check(); await page.getByRole("button", { name: "Confirm categories", exact: true }).click();
   await expect(page.getByRole("heading", { name: "Human confirmation recorded" })).toBeVisible();
   await expect(page.locator(".prohibited-flag")).toContainText("Receipt text flag (prohibited-terms-v1): mentions gift card (Gift cards: needs pre-approval). You acknowledged it is not claimed under another category."); await noOverflow(page);
-  await page.getByRole("link", { name: "View allocation", exact: true }).click();
+  await page.getByRole("link", { name: "Continue to funding", exact: true }).click();
   await expect(page.locator(".prohibited-flag")).toContainText("Receipt text flag (prohibited-terms-v1): mentions gift card (Gift cards: needs pre-approval). The claimant acknowledged it is not claimed under another category.");
   await expect(page.getByRole("button", { name: "Freeze allocation for approval" })).toBeVisible(); await noOverflow(page);
   const [confirmation] = await connection.db.select().from(s.receiptConfirmations);

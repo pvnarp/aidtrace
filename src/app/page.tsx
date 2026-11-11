@@ -57,7 +57,6 @@ export default async function Home() {
         </div>
         {meters.length > 0 && <div className="funds" role="group" aria-label="Fund balances">{meters.map(meter => <FundRow key={meter.name} meter={meter} />)}</div>}
       </div>
-      <footer>Funds follow organization-approved rules. General Operating is flexible, not exempt from those rules.</footer>
     </main></>;
   }
 
@@ -71,7 +70,6 @@ export default async function Home() {
           <div className="case-head"><h2 id="start-expense">{judge ? "No expense is saved in this session yet" : "No expense yet"}</h2></div>
           <p>{judge ? "Start with the receipt, check the AI suggestions, then review funding. Nothing is paid by this walkthrough." : "A receipt starts a new unpaid draft. Nothing is paid by this walkthrough."}</p>
           <Link className="button-link" href="/receipts/new" prefetch={false}>{judge ? "Review Maria's $500 receipt" : "Start an expense"}</Link></article>}
-      {judge && <p className="muted">One receipt carries this session from AI review through funding and two approvals to an unpaid PayPal handoff. Earlier sessions stay preserved; a fresh session starts with fresh funds.</p>}
       <div className="reference-links">
         {!judge && cards.length > 0 && <Link className="button-link secondary" href="/receipts/new" prefetch={false}>Start an expense</Link>}
         <Link className="button-link secondary" href="/architecture" prefetch={false}>Explore how it works</Link>
@@ -80,6 +78,5 @@ export default async function Home() {
       </div>
       {!judge && <p className="muted">C-104 is a separate, preclassified example. The receipt you start is your own draft.</p>}
     </div>
-    <footer>Funds follow organization-approved rules. General Operating is flexible, not exempt from those rules.</footer>
   </main></>;
 }

@@ -151,7 +151,7 @@ test("AS-40: with the flag on, an approver selects the two claims with no holds,
   expect(skipped.status()).toBe(200);
   expect((await skipped.json()).skipped[0].reason).toBe("HOLD_FOUND");
   expect(await statusOf(claims.held.id)).toBe("AWAITING_APPROVAL");
-  await page.getByRole("button", { name: "Sign out" }).click(); await page.waitForURL(url => url.pathname === "/login");
+  await page.getByRole("button", { name: "Sign out", exact: true }).click(); await page.waitForURL(url => url.pathname === "/login");
   await login(page, "maria");
   expect((await post(page, "/api/approvals/bulk", { claim: `${claims.held.id}:1` })).status()).toBe(403);
 });

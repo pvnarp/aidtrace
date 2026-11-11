@@ -132,7 +132,7 @@ test('LG-03: anonymous is redirected, a claimant is denied on the page and on an
   await page.goto('/ledger'); await expect(page.getByRole('heading', { name: 'Approver access required.' })).toBeVisible();
   await expect(page.locator('[role="grid"]')).toHaveCount(0);
   for (const path of ['/api/ledger', '/api/ledger/rows', '/api/analytics/ledger']) expect((await page.request.get(path)).status()).toBe(404);
-  await page.goto('/'); await page.getByRole('button', { name: 'Sign out' }).click();
+  await page.goto('/'); await page.getByRole('button', { name: 'Sign out', exact: true }).click();
   await login(page, 'tara'); await page.getByRole('navigation', { name: 'Primary' }).getByRole('link', { name: 'Ledger', exact: true }).click();
   await page.waitForURL(url => url.pathname === '/ledger');
   await expect(page.getByRole('region', { name: 'Ledger postings, newest first' })).toBeVisible();
@@ -182,6 +182,18 @@ test('LG-04, LG-06, LG-07, GS-14 and GS-15: the contract holds at 1280 and at 39
       const recorded = dataRows(page).first().locator('[col-id="recordedAt"]'); const effective = dataRows(page).first().locator('[col-id="effectiveOn"]');
       expect(await recorded.textContent()).toMatch(/UTC$/); expect(await effective.textContent()).toMatch(/^\d{4}-\d{2}-\d{2}$/);
       expect(await fits(recorded), 'recordedAt fits').toBe(true); expect(await fits(effective), 'effectiveOn fits').toBe(true);
+      // The widest recorded times fit whatever the clock says: a two-digit day and hour with wide month and digit glyphs (Nov 10 fix:
+      // 226 px overflowed by up to 6 px from 10:00 UTC on two-digit days, so this check used to pass or fail by time of day).
+      const widest = await recorded.evaluate(cell => {
+        const leaf = [cell, ...cell.querySelectorAll('*')].find(node => node.children.length === 0 && (node.textContent ?? '').endsWith('UTC')) as HTMLElement;
+        const keep = leaf.textContent; const over: string[] = [];
+        for (const text of ['May 28, 2026, 12:58 PM UTC', 'Aug 28, 2026, 12:08 AM UTC', 'Nov 10, 2026, 10:25 PM UTC', 'Dec 30, 2099, 11:59 PM UTC']) {
+          leaf.textContent = text;
+          if (![cell, ...cell.querySelectorAll('*')].filter(node => node.clientWidth > 0).every(node => node.scrollWidth <= node.clientWidth)) over.push(text);
+        }
+        leaf.textContent = keep; return over;
+      });
+      expect(widest, 'the widest recorded times fit').toEqual([]);
     }
     // GS-14 keyboard: Tab from the search box reaches the grid, and arrow keys then move focus header, filter row, first data cell, next cell.
     await page.getByLabel('Search this table').focus();

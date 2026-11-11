@@ -49,7 +49,7 @@ describe("CW-01 no visible sandbox wording outside the owner lab", () => {
     expect(GIFT_STATE_SENTENCES.PAID).toBe("Your gift was applied, approved by two people and paid through PayPal.");
     expect(readFileSync("src/app/gift/[token]/trail-view.tsx", "utf8")).not.toContain("Test payments only.");
     expect(readFileSync("src/app/give/page.tsx", "utf8")).toContain("No real money moves.");
-    expect(readFileSync("src/app/login/page.tsx", "utf8")).toContain("<footer>Sign in separately for each role.");
+    expect(readFileSync("src/app/login/page.tsx", "utf8")).toContain("Sign in separately for each role.");
     expect(readFileSync("src/app/receipts/draft-form.tsx", "utf8")).toContain("This receipt holds no real personal details.");
     expect(claimFailureNotices["provider-balance-short"]).toContain("The readable PayPal balance is too short");
   });

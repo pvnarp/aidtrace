@@ -92,7 +92,7 @@ async function login(page: Page, user: keyof typeof passwords) {
   await page.getByRole("button", { name: "Sign in", exact: true }).click(); expect((await response).status()).toBe(303);
   await page.waitForURL(url => url.pathname === "/");
 }
-async function signOut(page: Page) { await page.getByRole("button", { name: "Sign out" }).click(); await page.waitForURL(url => url.pathname === "/login"); }
+async function signOut(page: Page) { await page.getByRole("button", { name: "Sign out", exact: true }).click(); await page.waitForURL(url => url.pathname === "/login"); }
 // Maria makes the $6 practice receipt through the page, confirms the categories the stub proposes and reads the allocation headline. Nothing is frozen.
 async function practiceAllocation(page: Page, headline: string) {
   await login(page, "maria"); await page.goto("/"); await page.getByRole("link", { name: "Start an expense", exact: true }).click();
@@ -101,7 +101,7 @@ async function practiceAllocation(page: Page, headline: string) {
   await page.getByRole("button", { name: "Request AI suggestions" }).click(); await expect(page.locator(".notice")).toContainText("AI suggestions are ready");
   await page.getByLabel(/I checked every category/).check(); await page.getByRole("button", { name: "Confirm categories", exact: true }).click();
   await expect(page.getByRole("heading", { name: "Human confirmation recorded" })).toBeVisible();
-  await page.getByRole("link", { name: "View allocation", exact: true }).click();
+  await page.getByRole("link", { name: "Continue to funding", exact: true }).click();
   await expect(page.getByRole("heading", { name: headline, exact: true })).toBeVisible();
   await signOut(page);
 }

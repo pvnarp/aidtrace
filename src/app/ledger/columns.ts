@@ -9,19 +9,19 @@ export const ledgerTotalLabel = (shown: number) => `Total of ${shown} shown`;
 
 /** Column groups read as one sentence per row: Entry, then Money, then Source. The Entry and Money widths sum to 1170 px, the inner width
  * of the grid frame at 1280 and 1440 px viewports, so the frame's right edge falls on the Credit and Source boundary and no column is cut
- * there; Source scrolls in from the right and the status line says so. Recorded fits its full UTC time, Effective on a date filter
+ * there; Source scrolls in from the right and the status line says so. Recorded fits its widest full UTC time (240 px: "May 28, 2026, 12:58 PM UTC" needs 230 px with padding; 226 px overflowed from 10:00 UTC on two-digit days), Effective on a date filter
  * with its whole mm/dd/yyyy placeholder (220 px: the input needs about 177 to 184 px plus the 32 px cell padding), and Type its longest label.
  * Long account and fund names wrap onto more lines and the row grows, so the name is read whole; the tooltips still carry the full text. Claim ids are 38 characters, so Claim stays in Source. */
 export function ledgerColumns(): GridColumn<LedgerRow>[] {
   return [
     { headerName: 'Entry', children: [
-      dateColumn<LedgerRow>({ field: 'recordedAt', headerName: 'Recorded (UTC)', withTime: true, width: 226 }),
+      dateColumn<LedgerRow>({ field: 'recordedAt', headerName: 'Recorded (UTC)', withTime: true, width: 240 }),
       dateColumn<LedgerRow>({ field: 'effectiveOn', headerName: 'Effective on', width: 220 }),
       textColumn<LedgerRow>({ field: 'entryType', headerName: 'Type', width: 184, tip: row => row.entryTypeTip }),
     ] },
     { headerName: 'Money', children: [
-      textColumn<LedgerRow>({ field: 'account', headerName: 'Account', width: 172, wrap: true, tip: row => row.account }),
-      textColumn<LedgerRow>({ field: 'fund', headerName: 'Fund', width: 128, wrap: true, tip: row => (row.fund ? `${row.fund}. ${row.fundTip}` : row.fundTip) }),
+      textColumn<LedgerRow>({ field: 'account', headerName: 'Account', width: 164, wrap: true, tip: row => row.account }),
+      textColumn<LedgerRow>({ field: 'fund', headerName: 'Fund', width: 122, wrap: true, tip: row => (row.fund ? `${row.fund}. ${row.fundTip}` : row.fundTip) }),
       centsColumn<LedgerRow>({ field: 'debitCents', headerName: 'Debit', width: 120 }),
       centsColumn<LedgerRow>({ field: 'creditCents', headerName: 'Credit', width: 120 }),
     ] },

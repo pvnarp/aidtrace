@@ -115,7 +115,7 @@ test("AW-02a: with AI configured and stubbed, no screen says Claude, fictional o
   // Public pages. The header tag and the footer say AI, and the sign-in footer drops the old demo wording.
   await page.goto("/login"); expect((await words(page, "sign-in")).found).toEqual(NONE);
   await expect(page.locator(".header-tag")).toHaveText("AI + PayPal"); await expect(page.locator(".footer-built")).toHaveText("Built with PayPal Payouts and AI");
-  await expect(page.locator("footer").filter({ hasText: "Sign in separately for each role." })).toHaveCount(1);
+  await expect(page.locator(".reference-caption").filter({ hasText: "Sign in separately for each role." })).toHaveCount(1);
   await page.goto("/give"); const give = await words(page, "Give"); expect(give.found).toEqual(NONE); expect(give.text.match(/No real money moves\./g)).toHaveLength(1);
   await page.goto(`/gift/${giftToken}`); const gift = await words(page, "gift trail"); expect(gift.found).toEqual(NONE);
   await expect(page.getByTestId("gift-footer")).toBeVisible(); await expect(page.getByTestId("gift-footer")).not.toContainText(/test payments/i);
@@ -138,7 +138,7 @@ test("AW-02a: with AI configured and stubbed, no screen says Claude, fictional o
   await page.getByLabel(/I checked every category/).check(); await page.getByRole("button", { name: "Confirm categories", exact: true }).click();
   await expect(page.getByRole("heading", { name: "Human confirmation recorded" })).toBeVisible();
   const confirmed = await words(page, "receipt page, confirmed"); expect(confirmed.found).toEqual({ idle: 0, saved: 1, check: 0 });
-  await page.getByRole("link", { name: "View allocation", exact: true }).click(); await expect(page.getByRole("heading", { name: "$5.00 restricted. $1.00 General.", exact: true })).toBeVisible();
+  await page.getByRole("link", { name: "Continue to funding", exact: true }).click(); await expect(page.getByRole("heading", { name: "$5.00 restricted. $1.00 General.", exact: true })).toBeVisible();
   const claimId = new URL(page.url()).pathname.split("/")[2]!;
   expect((await words(page, "claim page, draft")).found).toEqual(NONE); await expect(page.locator(".card-model").first()).toHaveText("Powered by Claude Haiku 5.5.");
   await page.getByRole("button", { name: "Freeze allocation for approval", exact: true }).click(); await expect(page.getByRole("status")).toContainText("allocation is frozen");

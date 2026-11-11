@@ -86,5 +86,5 @@ describe("HOST-06 the login page says the data is sample data and AI is limited 
     expect(notice).toContain("sample data with no real personal details"); expect(notice).toContain("AI requests are limited per workspace");
     expect(notice).not.toMatch(/claude|sandbox|fictional|AI is off|turned off/i);
   });
-  test("the existing sign-in footer line is untouched", () => { expect(page).toContain("<footer>Sign in separately for each role."); });
+  test("the sign-in card caption keeps its line (the duplicate footer was cut, judge thread)", () => { expect(page).toContain("Sign in separately for each role."); expect(page).not.toContain("<footer>Sign in separately"); });
 });
