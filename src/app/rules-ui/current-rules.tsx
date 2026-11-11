@@ -15,7 +15,7 @@ export function CurrentRulesView({ rules }: { rules: CurrentRules }) {
     <dl className="rules-facts">
       <div><dt>Programs</dt><dd>{list(rules.programs, programLabel)}</dd></div>
       <div><dt>Categories</dt><dd>{list(rules.allowedCategories, categoryLabel)}</dd></div>
-      <div><dt>Grant period</dt><dd>{rules.periodStart && rules.periodEnd ? `${rules.periodStart} to ${rules.periodEnd}` : "Not set"}</dd></div>
+      <div><dt>Grant period</dt><dd className="plain-figures">{rules.periodStart && rules.periodEnd ? `${rules.periodStart} to ${rules.periodEnd}` : "Not set"}</dd></div>
       {capped.map(line => <div key={line}><dt>{capLabel(line)}</dt><dd>{moneyText(rules.caps[line]!)}</dd></div>)}
     </dl>
     {uncapped.length > 0 && <p className="muted rules-uncapped" data-testid="rules-uncapped">No cap on {uncapped.map(line => (line === "other" ? "other costs" : (BUDGET_NAMES[line] ?? humanize(line)).toLowerCase())).join(", ")}.</p>}

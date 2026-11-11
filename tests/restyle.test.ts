@@ -45,3 +45,40 @@ describe("RS-02 the hosted landing page", () => {
     expect(page).toContain("@media (prefers-reduced-motion:reduce){a.open{transition:none}a.open:hover{transform:none}}");
   });
 });
+
+// CP-01 (November 11 calm pass, docs/GATE_REPORT.md sections 123 and 125): one unbroken bridge rule, tight date hyphens, a single line for a
+// funding comparison that matches, and the keyless give panel's unassigned PayPal IDs folded into its existing disclosure.
+describe("CP-01 the calm pass", () => {
+  it("draws the bridge rule across the column gap and keeps date ranges in normal figures", () => {
+    expect(css).toContain(".analytics-cash dd.bridge-total { margin-left:-12px; padding-left:12px; }");
+    expect(css).toMatch(/\.analytics-widget dl \{[^}]*gap: 6px 12px;/);
+    expect(css).toContain(".plain-figures { font-variant-numeric: normal; }");
+    expect(source("src/app/rules-ui/current-rules.tsx")).toContain('<dt>Grant period</dt><dd className="plain-figures">');
+    expect(css).toContain(".gx-root .ag-cell, .gx-root .ag-header-cell-text, .gx-root .ag-floating-filter input { font-variant-numeric: normal; }");
+    expect(css.indexOf(".gx-root .ag-cell.gx-cell-num { font-variant-numeric: tabular-nums; }")).toBeGreaterThan(css.indexOf(".gx-root .ag-cell, "));
+    expect(css).toContain(".comparison-same { margin: 12px 0 16px; padding: 14px 16px; background: var(--tint);");
+    expect(css).toContain(".comparison-same > details { margin: 0; }");
+    expect(source("src/app/grid/money.ts")).toContain("cellClass: ['gx-cell-num', 'ag-right-aligned-cell']");
+  });
+  it("shows one line when the comparison matches and two cards only when they differ", () => {
+    const page = source("src/app/claims/[claimId]/page.tsx");
+    expect(page).toContain("view.feasible && baselineGeneral !== undefined && baselineGeneral === view.generalCents ? <div className=\"comparison-same\" data-testid=\"comparison-same\">");
+    expect(page).toContain("Paying each line from the first fund that allows it gives the same split.");
+    expect(page).toContain(': <div className="comparison-grid">');
+  });
+  it("keeps state, funds and amounts in view and puts the unassigned IDs inside the request-shape disclosure", () => {
+    const panel = source("src/app/give/keyless-panel.tsx");
+    const open = panel.indexOf("<details><summary>Request shape the server would send</summary>");
+    expect(open).toBeGreaterThan(panel.indexOf("<dt>Amounts you could choose</dt>"));
+    expect(panel.indexOf("<dt>PayPal order ID</dt>")).toBeGreaterThan(open); expect(panel.indexOf("<dt>Capture ID</dt>")).toBeGreaterThan(open);
+  });
+  it("says a shared claimant reason once, quiets the suggestion notice and ends the give panel on its disclosure", () => {
+    const page = source("src/app/claims/[claimId]/page.tsx");
+    expect(page).toContain("const sharedReason = view.lines.length > 1 && lineReasons.every(reason => reason && reason === lineReasons[0]) ? lineReasons[0] : undefined;");
+    expect(page).toContain("{review.reason && !sharedReason && <p>Claimant's reason: {review.reason}</p>}");
+    expect(page).toContain("<p className=\"shared-reason\" data-testid=\"shared-reason\">Claimant's reason for all {view.lines.length} lines: {sharedReason}</p>");
+    expect(source("src/app/claims/[claimId]/receipt/page.tsx")).toContain('className={notice === "suggested" ? "notice notice-quiet" : "notice"}');
+    expect(css).toContain(".notice.notice-quiet { padding: 0; border: 0; border-radius: 0; background: none; color: var(--muted); font-size: 14px; }");
+    expect(css).toContain(".give-panel > details:last-child { margin-bottom: 0; }");
+  });
+});

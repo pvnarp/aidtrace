@@ -107,6 +107,8 @@ test("PL-00: walk the real flow at 1440 and measure each page", async ({ page })
   await expect(page.getByRole("heading", { name: "Human confirmation recorded" })).toBeVisible(); await measure(page, "receipt page (confirmed)", false);
   await page.getByRole("link", { name: "Continue to funding", exact: true }).click();
   await expect(page.getByRole("button", { name: "Freeze allocation for approval", exact: true })).toBeVisible(); const claim = page.url(); await measure(page, "claim draft", true);
+  // November 11 calm pass (CP-01): the same reason typed on all three lines is said once under the list.
+  await expect(page.getByTestId("shared-reason")).toHaveText("Claimant's reason for all 3 lines: Checked this receipt directly"); await expect(page.locator(".expense-lines")).not.toContainText("Claimant's reason");
   await page.goto("/"); await expect(page.getByRole("heading", { level: 1 })).toBeVisible(); await measure(page, "claimant home", false);
   await page.goto(claim); await page.getByRole("button", { name: "Freeze allocation for approval", exact: true }).click();
   await expect(page.locator(".trace [aria-current=step] .t")).toHaveText("Approvals"); await measure(page, "claim awaiting (claimant)", true);

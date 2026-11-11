@@ -497,6 +497,7 @@ a.trace-body:hover .t { text-decoration: underline; }
 .analytics-funds .analytics-meter { margin:2px 0 12px; }
 .analytics-cash { row-gap:14px !important; }
 .analytics-cash .bridge-total { border-top:1px solid var(--line); padding-top:14px; font-weight:700; }
+.analytics-cash dd.bridge-total { margin-left:-12px; padding-left:12px; } /* one unbroken rule: the value cell reaches back across the 12 px column gap */
 .analytics-explain .analytics-answer { background:var(--tint); border-color:var(--accent); }
 .analytics-explain details > summary { display:inline-block; padding:6px 2px; font-weight:600; cursor:pointer; border-radius:var(--radius-small); }
 .analytics-explain details ul { margin:12px 0 0; padding-left:18px; }
@@ -877,3 +878,18 @@ input:focus-visible, textarea:focus-visible, select:focus-visible { box-shadow: 
 #policy-checks .action-form button[type=submit]:hover:not(:disabled) { background: var(--bg); }
 /* Shorter pages: the two funding comparison cards size to their own content instead of stretching to the taller one. */
 .comparison-grid { align-items: start; }
+
+/* November 11 calm pass: a date range in a value cell keeps its hyphens tight, and a funding comparison that matches the computed split
+   reads as one tinted line with its disclosure. */
+.plain-figures { font-variant-numeric: normal; }
+.comparison-same { margin: 12px 0 16px; padding: 14px 16px; background: var(--tint); border-radius: var(--radius-small); }
+.comparison-same > p { margin: 0 0 6px; }
+.comparison-same > details { margin: 0; }
+/* Grid text and dates use normal figures, so ISO dates keep tight hyphens; money cells keep tabular figures (gx-cell-num). Kept here, not in
+   grid/grid.css, which declares gx- classes only (GS-05). */
+.gx-root .ag-cell, .gx-root .ag-header-cell-text, .gx-root .ag-floating-filter input { font-variant-numeric: normal; }
+.gx-root .ag-cell.gx-cell-num { font-variant-numeric: tabular-nums; }
+/* November 11 calm pass: the keyless give panel ends on its disclosure, so the disclosure adds no bottom margin inside the panel padding. */
+.give-panel > details:last-child { margin-bottom: 0; }
+/* November 11 calm pass: the receipt page confirms a suggestion request in one muted line under the AI card. */
+.notice.notice-quiet { padding: 0; border: 0; border-radius: 0; background: none; color: var(--muted); font-size: 14px; }

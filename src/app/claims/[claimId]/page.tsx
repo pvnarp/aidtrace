@@ -86,6 +86,8 @@ export default async function ClaimPage({ params, searchParams }: { params: Prom
   const total = view.lines.reduce((sum, line) => sum + line.amountCents, 0n);
   const canPay = paymentConfigured(claim.payeeEmail);
   const baselineGeneral = comparison?.status === "FUNDED" && comparison.unrestrictedCents !== undefined ? BigInt(comparison.unrestrictedCents) : undefined;
+  const lineReasons = view.lines.map(line => view.receiptReview?.lines.find(item => item.lineId === line.id)?.reason);
+  const sharedReason = view.lines.length > 1 && lineReasons.every(reason => reason && reason === lineReasons[0]) ? lineReasons[0] : undefined;
   const approver = user.role === "APPROVER" && user.id !== claim.claimantId;
   // IAC-405 piece G: display only. Reads the flag, a valid configuration, the key's presence and the budget, never the key's value.
   const complianceAi = claudeAiStatus(process.env, "AI_COMPLIANCE_ENABLED");
@@ -200,6 +202,7 @@ export default async function ClaimPage({ params, searchParams }: { params: Prom
     <section aria-labelledby="expense-review-title" className="panel receipt-panel expense-review"><h2 id="expense-review-title">Review the expense terms</h2>
       <p className="sub">{claim.vendor} · {usd(total)}. Receipt dated {claim.incurredOn}. Program: {claim.program}.</p>
       <p>{decision ? "Both approvals bind these exact terms." : "Review the items and categories before freezing the allocation."}</p>
+      {/* November 11 calm pass: when every reviewed line carries the same claimant reason, it is said once under the list, not on each line. */}
       <ul className="expense-lines">{view.lines.map(line => {
         const review = view.receiptReview?.lines.find(item => item.lineId === line.id);
         // The verdict row states who decided and, for a prohibited category, the stop. It never shows an eligibility pass: the AI suggests, rules and people decide.
@@ -208,11 +211,12 @@ export default async function ClaimPage({ params, searchParams }: { params: Prom
           <p>Category: <strong>{categories[line.category] ?? line.category}</strong>. Budget: {BUDGET_NAMES[line.budgetLine] ?? line.budgetLine}.</p>
           {stopped && <p className="verdict-stop"><span className="stop-icon" aria-hidden="true" /><strong>Not allowed by organization policy.</strong></p>}
           {review ? <><div className="provenance-row"><p className="provenance-tags">{review.provenance === "AI_ACCEPTED" ? <><span className="ai-tag">AI suggested</span><span className="ai-tag confirmed">Person confirmed</span></> : <span className="ai-tag confirmed">Person chose</span>}</p></div>
-            {review.reason && <p>Claimant's reason: {review.reason}</p>}
+            {review.reason && !sharedReason && <p>Claimant's reason: {review.reason}</p>}
             {review.proposal && <details><summary>Original AI suggestion: {categories[review.proposal.category] ?? review.proposal.category}</summary><blockquote>{review.proposal.quote}</blockquote><p>The quote matches receipt text. It does not prove the category or funding eligibility.</p></details>}
           </> : <p>Preclassified example. No AI review or receipt confirmation is claimed for this item.</p>}
         </li>;
       })}</ul>
+      {sharedReason && <p className="shared-reason" data-testid="shared-reason">Claimant's reason for all {view.lines.length} lines: {sharedReason}</p>}
       {view.receiptReview?.prohibitedScreen?.unresolved.length ? <p className="notice prohibited-flag" role="note">Receipt text flag ({view.receiptReview.prohibitedScreen.version}): mentions {describeMatches(view.receiptReview.prohibitedScreen.unresolved)}. The claimant acknowledged it is not claimed under another category. This flag does not change the allocation or any approval.</p> : null}
       {(view.receiptReview || CLAIM_ID.test(claimId)) && <p className="receipt-meta-line">{view.receiptReview && <span className="muted">Claimant confirmed categories at <time dateTime={view.receiptReview.confirmedAt.toISOString()}>{reviewTime(view.receiptReview.confirmedAt)}</time>. This is separate from expense approval.</span>}{CLAIM_ID.test(claimId) && <Link href={`/claims/${claimId}/receipt`}>Review receipt and confirmed categories</Link>}</p>}
       <AiStatusCard card={shellState.ai} />
@@ -224,10 +228,14 @@ export default async function ClaimPage({ params, searchParams }: { params: Prom
     </section>
     <AutomatedTrail claimId={claimId} viewer={user} />
     <section className="panel funding-evidence" id="funding-review"><h2>Check the funding rules</h2><p>Each split uses an approved policy. General still follows organization-wide prohibitions.</p>
-      <div className="comparison-grid">
+      {/* November 11 calm pass: when the fixed-order comparison lands on the same General amount, one line says so instead of two cards repeating it. */}
+      {view.feasible && baselineGeneral !== undefined && baselineGeneral === view.generalCents ? <div className="comparison-same" data-testid="comparison-same">
+        <p><strong>{usd(view.generalCents)} from General.</strong> Paying each line from the first fund that allows it gives the same split.</p>
+        <details><summary>See comparison allocation</summary>{split(comparison?.edges ?? [])}<p>Sorted line IDs, then fund IDs. A different fund order can remove the difference. This is not measured savings over a treasurer.</p></details>
+      </div> : <div className="comparison-grid">
       <section className="comparison-card chosen"><p className="eyebrow">Computed by funding rules</p><h2>{view.feasible ? `${usd(view.generalCents)} from General` : "No partial allocation"}</h2>{baselineGeneral !== undefined && view.feasible && baselineGeneral > view.generalCents && <p><strong>{usd(baselineGeneral - view.generalCents)} less General than this comparison</strong>, under its fixed fund order. More flexible funding remains for expenses restricted funds cannot cover.</p>}</section>
       <section className="comparison-card"><p className="eyebrow">Pay from the first fund that allows it</p><h2>{baselineGeneral === undefined ? comparison ? "Cannot fully fund" : "Historical comparison unavailable" : `${usd(baselineGeneral)} from General`}</h2><p>This comparison takes each line in order and spends from its first eligible fund. It can leave less room for later items.</p><details><summary>See comparison allocation</summary>{split(comparison?.edges ?? [])}<p>Sorted line IDs, then fund IDs. A different fund order can remove the difference. This is not measured savings over a treasurer.</p></details></section>
-      </div>
+      </div>}
       <details><summary>Why each fund can pay</summary><p>General is flexible funding. The rule engine computes this split from the confirmed categories and fund limits.</p><ul className="reasons">{edges.map(edge => <li key={`${edge.fundId}:${edge.lineId}`}><strong>{lineDescription(edge.lineId)} · {usd(edge.amountCents)} · policy v{edge.policyVersion}</strong><p>{edge.reason}</p></li>)}</ul></details>
       {approver && <details className="recipient-review"><summary>Review exact recipient</summary><p>{claim.payeeEmail}</p><p>Compare this address with the intended recipient before approving. Hash binding prevents changed terms from reusing approval; it does not establish who owns an account. This address is private review data. Keep it out of shared reports and recordings.</p></details>}
     </section>

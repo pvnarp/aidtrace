@@ -10,10 +10,9 @@ export function KeylessPanel({ funds }: { funds: readonly GiveFund[] }) {
       <dt>State</dt><dd>{model.state}</dd>
       <dt>Funds you could choose</dt><dd>{model.funds.length ? <ul className="give-list">{model.funds.map(fund => <li key={fund.id}>{fund.name}</li>)}</ul> : "No restricted fund is available."}</dd>
       <dt>Amounts you could choose</dt><dd>{model.amounts.join(", ")}</dd>
-      <dt>PayPal order ID</dt><dd>{model.ids.paypalOrderId}</dd>
-      <dt>Capture ID</dt><dd>{model.ids.captureId}</dd>
     </dl>
     {model.requestShape && <details><summary>Request shape the server would send</summary>
+      <dl className="payment-details"><dt>PayPal order ID</dt><dd>{model.ids.paypalOrderId}</dd><dt>Capture ID</dt><dd>{model.ids.captureId}</dd></dl>
       <p>Example for {model.exampleLabel}. The amount text is built from integer cents. This is a read-only illustration, never a submitted request.</p>
       <pre>{JSON.stringify(model.requestShape, null, 2)}</pre></details>}
   </section>;
