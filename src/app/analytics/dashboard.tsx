@@ -3,17 +3,23 @@ import { useEffect, useRef, useState } from 'react';
 import { QUESTIONS, questionFacts, usd,type AnalyticsSnapshot, type Question } from '../../analytics/model';
 import { snapshotAnswer } from '../../analytics/client-facts';
 import { AiWait } from '../ai-wait';
+import { fundMeter } from '../fund-meter';
 
+/** The available share of one fund, the same bar and label as the approver home (fund-meter.ts). Presentation only. */
+function FundBar({ fund }: { fund: AnalyticsSnapshot["funds"][number] }) {
+  const meter = fundMeter(fund);
+  return <span className="meter analytics-meter" role="img" aria-label={meter.ariaLabel}><i style={{ width: `${meter.availablePercent}%` }} /></span>;
+}
 function Funding({ snapshot }: { snapshot: AnalyticsSnapshot }) {
   const [restriction, setRestriction] = useState('ALL');
   const funds = snapshot.funds.filter(fund => restriction === 'ALL' || fund.restriction === restriction);
   return <article className="analytics-widget reference-card" data-testid="funding-widget"><h2>Funding balances</h2><label>Show funds<select value={restriction} onChange={event => setRestriction(event.target.value)}><option value="ALL">All funds</option><option value="RESTRICTED">Restricted</option><option value="UNRESTRICTED">General</option></select></label>
-    <ul className="analytics-funds">{funds.map((fund, i) => <li key={i}><div className="fund-head"><h3>{fund.name}</h3><span className="fund-type">{fund.restriction === "RESTRICTED" ? "Restricted" : "General"}</span></div><dl><dt>Book balance</dt><dd>{usd(fund.bookCents)}</dd><dt>Reserved</dt><dd>{usd(fund.reservedCents)}</dd><dt>After reservations</dt><dd>{usd(fund.availableCents)}</dd></dl></li>)}</ul>
+    <ul className="analytics-funds">{funds.map((fund, i) => <li key={i}><div className="fund-head"><h3>{fund.name}</h3><span className="fund-type">{fund.restriction === "RESTRICTED" ? "Restricted" : "General"}</span></div><FundBar fund={fund}/><dl><dt>Book balance</dt><dd>{usd(fund.bookCents)}</dd><dt>Reserved</dt><dd>{usd(fund.reservedCents)}</dd><dt>After reservations</dt><dd>{usd(fund.availableCents)}</dd></dl></li>)}</ul>
     <p role="status">Visible book balance: {usd(funds.reduce((sum, fund) => sum + BigInt(fund.bookCents), 0n))}</p><p>Eligibility still depends on fund policies.</p>
   </article>;
 }
 function Cash({ snapshot }: { snapshot: AnalyticsSnapshot }) {
-  return <article className="analytics-widget reference-note" data-testid="cash-widget"><h2>Book cash bridge</h2><dl className="analytics-cash"><dt>Fixture opening cash</dt><dd>{usd(snapshot.cash.openingCents)}</dd><dt>Recorded activity</dt><dd>{usd(snapshot.cash.providerDeltaCents)}</dd><dt>Book cash</dt><dd>{usd(snapshot.cash.bookCents)}</dd><dt>Open payable</dt><dd>{usd(snapshot.cash.payableCents)}</dd></dl>
+  return <article className="analytics-widget reference-note" data-testid="cash-widget"><h2>Book cash bridge</h2><dl className="analytics-cash"><dt>Fixture opening cash</dt><dd>{usd(snapshot.cash.openingCents)}</dd><dt>Recorded activity</dt><dd>{usd(snapshot.cash.providerDeltaCents)}</dd><dt className="bridge-total">Book cash</dt><dd className="bridge-total">{usd(snapshot.cash.bookCents)}</dd><dt>Open payable</dt><dd>{usd(snapshot.cash.payableCents)}</dd></dl>
     <p className={snapshot.fixtureNotStarted || snapshot.matches ? 'notice' : 'notice warning'}>{snapshot.fixtureNotStarted ? 'Opening journals have not been created yet. No ledger tie-out is claimed for this untouched fixture.' : `Ledger tie-out: ${snapshot.matches ? 'Matches' : 'Review required'}.`}</p><p>Source: existing local journals and fund records. Recorded activity is book cash less the fixture opening.</p>
   </article>;
 }

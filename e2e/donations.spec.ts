@@ -538,8 +538,9 @@ test('GE-09: the status line names the columns past the edge exactly when the ce
   const cue = page.getByTestId('gx-more-columns');
   for (const size of SIZES) {
     await openAt(page, size);
+    // The grid sizes its horizontal scroll viewport after first paint, so a single read can see scrollWidth equal to clientWidth (1 in 3 on November 10).
+    await expect.poll(async () => (await centerOverflow(page)).overflows, `${size.width} px: four columns are past the edge`).toBe(true);
     const overflow = await centerOverflow(page);
-    expect(overflow.scrollWidth, `${size.width} px: four columns are past the edge`).toBeGreaterThan(overflow.clientWidth);
     await expect(cue).toHaveCount(overflow.overflows ? 1 : 0); await expect(cue).toHaveText(cueText);
     await expect(status(page)).toHaveText(/^Showing \d+ of \d+$/);
     expect(await cue.evaluate(element => getComputedStyle(element).fontSize)).toBe('14px');
