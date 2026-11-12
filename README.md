@@ -23,8 +23,7 @@
 </p>
 
 <p align="center">
-  <a href="https://youtu.be/m7TSm0lgbVI"><b>1-minute overview</b></a> ·
-  <a href="DEVPOST_URL_TODO"><b>Devpost</b></a>
+  <a href="https://youtu.be/m7TSm0lgbVI"><b>1-minute overview</b></a>
 </p>
 
 All payments are PayPal sandbox payments. The nonprofit, grants and receipts are invented.
