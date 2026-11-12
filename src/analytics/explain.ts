@@ -6,7 +6,7 @@ import { CLAUDE_TIMEOUT_MS, claudeClientFor, type ClaudeMessagesClient, type Cla
 import { CLAUDE_NAMES } from '../ai/audit';
 import { createClaudeBudget, processClaudeBudget, type ClaudeBudget } from '../ai/budget';
 
-// Hosted Claude fact selector (docs/plans/CLAUDE_ONLY_SCOPE.md section 3). Bounded fact selection, unchanged in design: the model
+// Hosted Claude fact selector. Bounded fact selection, unchanged in design: the model
 // picks validated snapshot facts by ID and the app renders them. No tools, no free text shown, no tool_choice, no amounts computed.
 export const ANALYTICS_PROMPT_VERSION = 'analytics-facts-claude-v1';
 const MAX_RESPONSE_BYTES = 16384;

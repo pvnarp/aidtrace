@@ -13,7 +13,7 @@ import { createPayPalAdapter, type PayoutTransport, type PersistedPayout } from 
 import { pause, recognizeClaim, recordGift } from "./support/attribution-db";
 import { financialHash, tableHash } from "./support/policy-db";
 
-// IAC-413 PR B (docs/plans/DONOR_TRAIL_SCOPE.md sections 4 and 6, test GT-28 and the row states behind GT-31). Real Postgres, stubbed provider
+// IAC-413 PR B (test GT-28 and the row states behind GT-31). Real Postgres, stubbed provider
 // observations and a stubbed payout transport, no network. Each test gets its own database. Gifts are created inside each test.
 const ORG = "cedar-hollow"; const PAYEE = "donations-grid-test@personal.example.com"; const BATCH = "BATCH_GRID_1";
 const BIG = 9007199254740993n; // 2^53 + 1: the first integer a JavaScript number cannot hold

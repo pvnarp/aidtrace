@@ -18,7 +18,7 @@ import { AutomationSwitchSection } from "../../../rules-ui/automation-switch-sec
 import { RulesDraftForm } from "../../../rules-ui/draft-form";
 import { SAMPLE_GRANT_FUND_ID, SAMPLE_GRANT_TEXT } from "../../../rules-ui/sample-grant";
 
-// IAC-440 Package B (docs/plans/AI_DRAFTED_RULES_SCOPE.md section 5, docs/ASSUMPTIONS.md section 72). The approver's rules page for one fund: the current approved rules,
+// IAC-440 Package B. The approver's rules page for one fund: the current approved rules,
 // the form that drafts rules from a grant, and the fund's drafts. Approver only. Another organization's fund reads as not found. Only a restricted fund offers the form.
 export const dynamic = "force-dynamic";
 const ID = /^[A-Za-z0-9_-]{1,64}$/;

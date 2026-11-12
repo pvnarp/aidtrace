@@ -1,7 +1,7 @@
 import { BRAND, TraceMark } from "../../brand";
 import { GIFT_METHOD_SENTENCE, type GiftPageData } from "../../../donation/trail";
 
-// IAC-413 PR A (docs/plans/DONOR_TRAIL_SCOPE.md section 3.2): the donor trail as a server component, so the grid page can reuse it.
+// IAC-413 PR A: the donor trail as a server component, so the grid page can reuse it.
 // It renders only the fields of GiftPageData: formatted gift text, step text, line cards and the optional note. It receives no
 // name, email, claim ID, decision hash, order ID or capture ID, so it cannot render one. Every string is escaped by React, and
 // nothing here uses dangerouslySetInnerHTML, a client component, a link out or a form.

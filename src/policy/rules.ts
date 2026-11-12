@@ -1,7 +1,7 @@
-// IAC-405 step 1: deterministic policy rules P1 to P7 (docs/plans/POLICY_CHECK_SCOPE.md section 2.1).
+// IAC-405 step 1: deterministic policy rules P1 to P7.
 // evaluatePolicy is a pure function of stored facts. It reads no database, no clock, no network and no model.
 // It returns flags and "not checked" rows. It never approves, clears or blocks anything, and it moves no money.
-// Which fund's thresholds apply is the strictest-fund rule in docs/ASSUMPTIONS.md: a per-line threshold uses the strictest
+// Which fund's thresholds apply is the strictest-fund rule: a per-line threshold uses the strictest
 // limit among the funds that pay that line, and a claim-level threshold uses the strictest among all funds that pay the claim.
 import { assertCents, assertDays, assertPositiveCents, formatUsd, sumCents } from "./money";
 import { NOT_CHECKED_TEXT } from "./copy";
@@ -9,7 +9,7 @@ import { boundedText, dayNumber, normalizeVendor, plural } from "./text";
 import { THRESHOLD_RULES, type PolicyEntry, type PolicyFacts, type PolicyFlag, type PolicyOutcome, type PolicyPeer, type PolicyThresholds, type ThresholdRuleId } from "./types";
 
 export const RULE_SET_VERSION = "policy-rules-v1";
-// Claims that count as earlier activity for P1 and P2. A DRAFT or REJECTED claim never does (docs/plans/POLICY_CHECK_SCOPE.md P1).
+// Claims that count as earlier activity for P1 and P2. A DRAFT or REJECTED claim never does.
 export const COUNTED_STATUSES: readonly string[] = ["AWAITING_APPROVAL", "APPROVED", "PAYOUT_PROCESSING", "PAID", "PAYOUT_ISSUE"];
 // Local copies of the category sets (decision 5). tests/policy-rules.test.ts checks them against BUDGET_LINE in src/ai/categories.ts,
 // so src/policy does not import src/ai. food_for_distribution and transit_passes are not meals or travel.
@@ -128,7 +128,7 @@ function p4(lines: readonly PolicyFacts["lines"][number][]): PolicyEntry[] {
 }
 
 // P5: a supplies or equipment line over the strictest limit among the funds that pay that line. A line whose own funds have no
-// settings falls back to the strictest limit among all funds on the claim that have settings (docs/ASSUMPTIONS.md).
+// settings falls back to the strictest limit among all funds on the claim that have settings.
 function p5(facts: PolicyFacts, settings: readonly PolicyThresholds[], lines: readonly PolicyFacts["lines"][number][]): PolicyEntry[] {
   const out: PolicyEntry[] = [];
   for (const line of lines) {

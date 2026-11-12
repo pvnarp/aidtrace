@@ -2,7 +2,7 @@ import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
-// IAC-405 step 1 static checks (docs/plans/POLICY_CHECK_SCOPE.md section 6): PC-14 (the only AI reach is src/policy/model-run.ts, and it imports
+// IAC-405 step 1 static checks: PC-14 (the only AI reach is src/policy/model-run.ts, and it imports
 // only the provider, budget and claude-client modules) and PC-17 (the policy module has no money, approval, payout or PayPal reach, and the money
 // paths have no reach into it). Piece G added the model files and widened exactly that one AI allowance. Source text only.
 const walk = (dir: string): string[] => readdirSync(dir).flatMap(name => { const path = join(dir, name); return statSync(path).isDirectory() ? walk(path) : [path]; });

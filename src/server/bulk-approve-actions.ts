@@ -1,4 +1,4 @@
-// IAC-405 step 2 PR A (docs/plans/FUND_MODES_SCOPE.md section 4, docs/ASSUMPTIONS.md section 77). The approver-only route that approves several Assisted claims at once. Fixed order of
+// IAC-405 step 2 PR A. The approver-only route that approves several Assisted claims at once. Fixed order of
 // checks: the flag first (a flag-off instance answers 404 as if the route did not exist, before anything else is read), method, origin, session, approver role, content type, a bounded body,
 // then the exact fields. The only field is `claim`, repeated, each value "<claim id>:<claim version>". A decision hash is never accepted: the server resolves it. At most 25 claims, and a longer
 // list is refused whole. The answer is JSON built only from claim ids that passed the id pattern and the fixed sentences in src/fund-modes/bulk-reasons.ts, never from request text or an error.

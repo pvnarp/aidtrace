@@ -1,4 +1,4 @@
-// IAC-405 step 2 PR F (docs/plans/FUND_MODES_SCOPE.md section 2.2; docs/ASSUMPTIONS.md section 76). "No holds", derived on the server from the stored runs of one
+// IAC-405 step 2 PR F. "No holds", derived on the server from the stored runs of one
 // exact decision hash, inside the recognizing transaction, never cached and never shown as a clearance. A decision has no holds only when:
 //   1. a RULES run exists, ended with RUN_END, has no HOLD flag and no NOT_CHECKED entry (notes are allowed);
 //   2. a MODEL run exists, finished, with at least one checked pair and every line OK (the app's NO_CONFLICT_FOUND). A CONFLICT, UNSURE or NOT_CHECKED

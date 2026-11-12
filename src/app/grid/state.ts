@@ -1,5 +1,5 @@
 /**
- * Per-user saved grid state, kept in this browser only (docs/plans/GRID_SURFACES_SCOPE.md section 2.6).
+ * Per-user saved grid state, kept in this browser only.
  * Stores column order, widths, sort and filter models. It never stores row data, selection or focus.
  */
 export const GRID_STATE_VERSION = 1;

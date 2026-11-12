@@ -2,7 +2,7 @@ import { sql } from "drizzle-orm";
 import { loginWindows } from "../../db/schema";
 import type { AppDatabase } from "./db";
 
-// IAC-413 PR A (docs/plans/DONOR_TRAIL_SCOPE.md section 3.4): one shared request window for the public gift page.
+// IAC-413 PR A: one shared request window for the public gift page.
 // It reuses the login_windows table and the same atomic upsert shape as authenticate() in auth.ts, with the fixed key "gift-page".
 // A hyphen cannot occur in a valid username (^[a-z][a-z0-9_]{0,31}$), so the key cannot collide with a login.
 // Cost: this is a global bound, not a per-client control. No trustworthy client address exists behind the loopback proxy, and

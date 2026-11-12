@@ -1,4 +1,4 @@
-// IAC-405 step 1 piece G (docs/plans/POLICY_CHECK_SCOPE.md sections 3.2, 3.3 and 3.7). The app copy of the evaluated compliance request:
+// IAC-405 step 1 piece G. The app copy of the evaluated compliance request:
 // the prompt `compliance-v1.1` (the Run 5b prompt `compliance-v1` plus one sentence that leaves amount caps to the rules engine, IAC-405 F1), the schema `compliance-lines-v1`, the user message, the line validator and the envelope checks.
 // It is pure: no client, no key, no environment, no network, no database. tests/compliance-parity.test.ts proves it equals
 // scripts/support/compliance-eval.ts byte for byte on every Run 5b receipt and on a table of valid and invalid outputs. Any change here
@@ -7,7 +7,7 @@ import { createHash } from "node:crypto";
 
 export const COMPLIANCE_PROMPT_VERSION = "compliance-v1.1";
 export const COMPLIANCE_SCHEMA_VERSION = "compliance-lines-v1";
-// The Run 5b pre-registered combination the owner adopted as arm C (docs/decisions.md decision 10): haiku-low first, sonnet-low only when
+// The Run 5b pre-registered combination the owner adopted as arm C: haiku-low first, sonnet-low only when
 // Haiku's valid answer has a line that is not OK. Models and effort are pinned here and never inherit the receipt default.
 export const COMPLIANCE_ARM = "escalate-haiku-low-to-sonnet-low";
 export const COMPLIANCE_PROMPT_SHA256 = "b6edb560aeb0ed63f33009d3bee0a04c35ab635f3a3aacafea6039e6a450040b";

@@ -1,5 +1,5 @@
 "use client";
-// IAC-440 Package B (docs/plans/AI_DRAFTED_RULES_SCOPE.md section 7, docs/decisions.md "Take the grant as pasted text or a PDF: November 1 IAC-440 D2").
+// IAC-440 Package B: take the grant as pasted text or a PDF.
 // The "Draft rules from a grant" form. The approver pastes the grant text or picks a PDF. A PDF is sent only to this app's own text route, and the text it holds
 // fills the box so the approver can read and edit it. Nothing goes to the model until the approver presses Draft rules, and the button cannot be pressed twice.
 // The counter counts code points the way the server does ([...text].length), and the box has no maxLength because a paste would be silently cut.

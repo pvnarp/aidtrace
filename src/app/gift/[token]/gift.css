@@ -1,5 +1,5 @@
-/* IAC-413 PR A (docs/plans/DONOR_TRAIL_SCOPE.md section 5.1): the public gift page.
-   It uses the final Trust v2 property names (docs/plans/TRUST_V2_PORT_SCOPE.md section 2.2), each with the Trust v2 literal as its
+/* IAC-413 PR A: the public gift page.
+   It uses the final Trust v2 property names, each with the Trust v2 literal as its
    fallback until the port lands. Where src/app/style.css already defines a name (--accent, --muted, --line, --tint) the app value
    wins until the port changes it, so the page follows the app. Never fall back to --warm: it is the pale quote background, not a hold color.
    The .gift-trace rules began as a copy of design/fintech-mocks/c2-trust.html. They keep their own class because the app stepper (.trace in style.css) hides its step text at 900 px and below, and a donor must read every step. */

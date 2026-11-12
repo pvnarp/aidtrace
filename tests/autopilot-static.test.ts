@@ -3,7 +3,7 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { fundAutopilotEnabled } from "../src/fund-modes/flag";
 
-// IAC-405 step 3 PR P (docs/plans/FUND_MODES_SCOPE.md section 5, docs/ASSUMPTIONS.md section 78), AU-21 onward: static boundaries of the second flag, the automated send, the kill switch routes and
+// IAC-405 step 3 PR P, AU-21 onward: static boundaries of the second flag, the automated send, the kill switch routes and
 // the FIXTURE history source. File reads only. No database, no network.
 const walk = (dir: string): string[] => readdirSync(dir).flatMap(name => { const path = join(dir, name); return statSync(path).isDirectory() ? walk(path) : [path]; });
 const sourceFiles = (dir: string) => walk(dir).filter(path => /\.(ts|tsx)$/.test(path));

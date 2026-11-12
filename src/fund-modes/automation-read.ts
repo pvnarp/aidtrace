@@ -1,4 +1,4 @@
-// IAC-405 step 3 PR P (docs/ASSUMPTIONS.md section 78). The read-only view of the automation kill switch for the fund rules page. It lives apart from the writers in switch.ts so the review
+// IAC-405 step 3 PR P. The read-only view of the automation kill switch for the fund rules page. It lives apart from the writers in switch.ts so the review
 // screen's import closure never reaches the ledger module. Approvers only, needs the second flag, writes nothing. Refusals carry closed codes, never database text.
 import { and, desc, eq, sql } from "drizzle-orm";
 import * as s from "../../db/schema";

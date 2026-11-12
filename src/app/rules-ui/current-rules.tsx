@@ -1,4 +1,4 @@
-// IAC-440 Package B (docs/ASSUMPTIONS.md section 72). The fund's current approved rules, read only. Presentation only.
+// IAC-440 Package B. The fund's current approved rules, read only. Presentation only.
 // November 10 calm rules pages: only the caps the rules set are listed one by one; the lines with no cap share one plain sentence, and the six review limits sit
 // in a closed list, so the page leads with what the fund pays for instead of a grid of "None".
 import type { CurrentRules } from "../../rules-draft/drafts";

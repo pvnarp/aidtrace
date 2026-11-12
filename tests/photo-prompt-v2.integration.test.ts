@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { recordPhotoRead } from "../src/receipt/photo-reads";
 import { createPolicyDatabase, type PolicyDatabase } from "./support/policy-db";
 
-// IAC-384 prompt v2, PH-76 (docs/GATE_REPORT.md section 75): migration 0022 widens photo_read_versions to v1 and v2 only, on real Postgres. No network, no key, no model.
+// IAC-384 prompt v2, PH-76: migration 0022 widens photo_read_versions to v1 and v2 only, on real Postgres. No network, no key, no model.
 vi.setConfig({ testTimeout: 60_000, hookTimeout: 60_000 });
 let ctx: PolicyDatabase; const open: PolicyDatabase[] = [];
 beforeEach(async () => { ctx = await createPolicyDatabase("aidtrace_photo_v2"); open.push(ctx); }, 60_000);

@@ -6,7 +6,7 @@ import { ledgerColumns } from "../src/app/ledger/columns";
 import { donationsColumns } from "../src/app/donations/columns";
 import { queueColumns } from "../src/app/approver-queue/columns";
 
-// IAC-440 grid report polish (docs/ASSUMPTIONS.md section 75). GE-11 to GE-16 are pure unit and static tests: no browser, no database. The browser
+// IAC-440 grid report polish. GE-11 to GE-16 are pure unit and static tests: no browser, no database. The browser
 // checks are GE-01 to GE-10 in e2e/ledger.spec.ts, e2e/donations.spec.ts and e2e/approver-queue.spec.ts.
 
 const stateOf = (columns: { id: string; width: number; hidden?: boolean }[]): EdgeState => ({

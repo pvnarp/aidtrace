@@ -8,7 +8,7 @@ import { connectDatabase } from "../src/server/db";
 import { seedFixture } from "../db/fixture";
 import { ensureFixtureOpening } from "../src/ledger/opening";
 
-// PL-01 to PL-06 (IAC-415 polish, "say it once", docs/GATE_REPORT.md section 50): the desktop pages at 1440 px.
+// PL-01 to PL-06 (IAC-415 polish, "say it once"): the desktop pages at 1440 px.
 // One isolated database and one next server on 3100 serve the whole serial group, like journey.spec. AI is off, so a person chooses the categories.
 // The first test walks the real flow (draft, freeze by the claimant, two separate approver sign-ins) and measures every page it reaches in the browser.
 // The PL tests then assert on those measurements, so one flow answers all six and each failure message names the offending element.

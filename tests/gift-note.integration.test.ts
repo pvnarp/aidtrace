@@ -19,7 +19,7 @@ import { handleNoteDownload } from "../src/server/gift-note-download";
 import { createPayPalAdapter, type PersistedPayout, type PayoutItemResult, type PayoutTransport } from "../src/paypal/adapter";
 import { pause, recognizeClaim, recordGift } from "./support/attribution-db";
 
-// DON-11 integration (docs/plans/DONATION_LOOP_SCOPE.md section 6, IAC-379 step 3b). Real Postgres, stubbed provider observations
+// DON-11 integration (IAC-379 step 3b). Real Postgres, stubbed provider observations
 // and a stubbed payout transport, no network. Each test gets its own database so no test depends on another's state.
 const ORG = "cedar-hollow"; const PAYEE = "note-test@personal.example.com"; const ORIGIN = "http://127.0.0.1:3100";
 interface Fixture { db: AppDatabase; client: ReturnType<typeof connectDatabase>["client"]; name: string; close: () => Promise<void> }
@@ -332,7 +332,7 @@ function transport2() {
   return { provider };
 }
 
-// DON-13 (IAC-379 Option A, docs/ASSUMPTIONS.md section 47): new approvals store "thanks-first", stored "default" notes are never rewritten.
+// DON-13 (IAC-379 Option A): new approvals store "thanks-first", stored "default" notes are never rewritten.
 describe("DON-13 Option A notes in a real database", () => {
   it("a newly approved note stores template_id thanks-first with the Option A text, and the page shows its meta line and audit line", async () => {
     const { db } = await fresh(); const { captureId } = await giftedClaim(db, "fund_b", 2500n);

@@ -153,7 +153,7 @@ async function recognize(tx: LedgerTransaction, decision: Decision, snapshot: Sn
   // A decision that is already recognized answers with the number of valid approvals it actually holds: 2 or more under Manual, 1 under Assisted (never a fixed 2).
   if (decision.recognizedAt) return { status: "APPROVED" as const, decisionId: decision.id, decisionHash: decision.decisionHash, approvalCount: valid.size };
   // Two valid approvals recognize in every mode: today's rule, unchanged. One valid approval recognizes only for an Assisted decision with no holds
-  // (docs/plans/FUND_MODES_SCOPE.md sections 2 and 3). Autopilot is treated as Manual here. The flag off, a Manual fund in the split, an unrecorded
+  //. Autopilot is treated as Manual here. The flag off, a Manual fund in the split, an unrecorded
   // decision and any hold all leave the claim waiting for its second approval. The hold check runs inside this transaction, on the stored runs of this exact hash.
   let noHolds: Extract<NoHoldsOutcome, { noHolds: true }> | undefined;
   if (!auto && valid.size < 2) {
@@ -221,7 +221,7 @@ export async function approveDecision(db: AppDatabase, decisionId: string, actor
     return recognize(tx, decision, snapshot, edges, deps.env);
   });
 }
-// IAC-405 PR P item 10 (docs/ASSUMPTIONS.md section 78 item 30). Two people finish a claim whose Autopilot recognition stands but whose automatic payment did not go out. Each of two distinct
+// IAC-405 PR P item 10. Two people finish a claim whose Autopilot recognition stands but whose automatic payment did not go out. Each of two distinct
 // approvers of the claim organization, neither the claimant, records an ordinary approval on the auto-recognized decision. Mode, switch and flag state do not matter and the count of two is for
 // good. The server resolves the decision: the claim's current recognized, valid decision that carries an AUTO_RECOGNIZED record and has no payout yet. approveDecision still refuses a
 // recognized decision. The first approval blocks the automated send (HUMAN_TAKEOVER); the human send waits for the second. Rejection is not offered: it would need a ledger reversal.
@@ -255,10 +255,10 @@ export async function recognizeDecision(db: AppDatabase, decisionId: string, act
     return recognize(tx, decision, snapshot, edges, deps.env);
   });
 }
-// For the policy sweep (docs/plans/FUND_MODES_SCOPE.md section 3, src/fund-modes/policy-sweep.ts). It recognizes a decision that already holds the approvals it needs, and does
+// For the policy sweep (src/fund-modes/policy-sweep.ts). It recognizes a decision that already holds the approvals it needs, and does
 // nothing otherwise: it takes the same two locks as an approval, in the same order, reads the same snapshot, runs the same hash check and calls the same recognize. It records no
 // approval, has no actor and never invalidates: a decision that is recognized, invalidated or changed answers STALE and is left for the approve and recognize paths to handle.
-// Snapshot caveat (docs/ASSUMPTIONS.md section 76): a serializable transaction takes its snapshot at its first statement, which is the claim row read in lockClaimRow and happens
+// Snapshot caveat: a serializable transaction takes its snapshot at its first statement, which is the claim row read in lockClaimRow and happens
 // before the advisory lock is won. Anything another transaction commits while this one waits for the lock is not seen. An approval path has the same property and the database
 // refuses its conflicting write (40001, retried), but this path writes nothing when the decision is not ready, so a missed approval is not an error here. It is not lost either:
 // every sweep pass calls this function again for each unrecognized Assisted decision that holds an approval, so the next pass sees the committed approval.
@@ -324,7 +324,7 @@ export async function advanceSolverPriorityInTransaction(tx: LedgerTransaction, 
   return { version, invalidatedDecisions: stale.length };
 }
 
-// IAC-405 step 3 PR P (docs/plans/FUND_MODES_SCOPE.md section 5; docs/ASSUMPTIONS.md section 78). The one place a decision is recognized with no human approval. Called only by the policy
+// IAC-405 step 3 PR P. The one place a decision is recognized with no human approval. Called only by the policy
 // sweep (src/fund-modes/policy-sweep.ts). It takes the same two locks as every ledger path, in the same order, reads the decision and snapshot, and runs the same hash check. It recognizes
 // only when: the second flag is on, the effective mode (the stricter of the recorded mode and every paying fund's current mode) is Autopilot, no earlier automated record routed the decision
 // to people, the kill switch is ON, the stored runs show no holds, G2 to G6 hold and the G7 draw is not sampled, all evaluated here inside the transaction. A failed guardrail or a sampled

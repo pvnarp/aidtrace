@@ -12,7 +12,7 @@ import { ensureFixtureOpening } from "../src/ledger/opening";
 import { runPolicyChecks } from "../src/policy/service";
 import * as s from "../db/schema";
 
-// IAC-405 step 1 piece G, the browser check (docs/GATE_REPORT.md section 48). The real flow: Maria's receipt review is confirmed, she freezes the allocation,
+// IAC-405 step 1 piece G, the browser check. The real flow: Maria's receipt review is confirmed, she freezes the allocation,
 // an approver presses Run policy checks (or, for rules that ran earlier, Run model check), and the stored model rows render under the rule rows.
 // Every model answer here comes from a loopback stub that this file defines (UI_TEST_CONTAINER sends Claude requests to 127.0.0.1:8080). It is NOT a
 // real model result. The stills are labeled STUBBED in their file names. Each test starts its own database and next server on 3100, like receipt.spec.

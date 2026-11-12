@@ -5,7 +5,7 @@ import * as copy from "../src/policy/copy";
 import { BUDGET_LINE } from "../src/ai/categories";
 import type { PolicyEntry, PolicyFacts, PolicyFlag, PolicyPeer, PolicyThresholds } from "../src/policy/types";
 
-// IAC-405 step 1 (docs/plans/POLICY_CHECK_SCOPE.md section 6): PC-01 to PC-07 at every boundary, plus the pure parts of PC-10, PC-12 and PC-20.
+// IAC-405 step 1: PC-01 to PC-07 at every boundary, plus the pure parts of PC-10, PC-12 and PC-20.
 // These are pure-function tests. No database, no clock, no network, no model.
 const settings = (fundId: string, over: Partial<PolicyThresholds> = {}): PolicyThresholds => ({ fundId, version: 1, suppliesLimitCents: 25000n, equipmentLimitCents: 50000n, claimLimitCents: 100000n, staleReceiptDays: 60, duplicateWindowDays: 90, splitWindowDays: 3, ...over });
 const line = (id: string, amountCents: bigint, category = "classroom_supplies", budgetLine = "supplies") => ({ id, description: `Line ${id}`, category, budgetLine, amountCents });

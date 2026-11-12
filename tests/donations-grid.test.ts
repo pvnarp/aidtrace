@@ -8,7 +8,7 @@ import { donationsColumns, donationsTotalLabel, DONATIONS_PHONE_COLUMNS, DONATIO
 import { leafColumns } from "../src/app/grid/columns";
 import { navLinksFor } from "../src/app/nav";
 
-// IAC-413 PR B (docs/plans/DONOR_TRAIL_SCOPE.md section 4). The row mapper and the column set run as pure unit tests. The static section is GT-29
+// IAC-413 PR B. The row mapper and the column set run as pure unit tests. The static section is GT-29
 // (and GT-30 for the modules this package adds): source text only, no database, no browser.
 const app = (over: Partial<TrailApplication> = {}): TrailApplication => ({ lineDescription: "Robot kit", vendor: "Maker Supply", appliedCents: 1000n, lineCents: 5000n, approvalCount: 2, payout: "NO_PAYMENT", batchId: null, ...over });
 const gift = (applications: TrailApplication[], over: Partial<TrailInput> = {}): TrailInput => ({

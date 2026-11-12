@@ -24,7 +24,7 @@ import { runPolicySweep } from "../src/fund-modes/policy-sweep";
 import { ORIGIN, RECEIPT_PAYEE, createPolicyDatabase, insertClaim, receiptClaim, sessionFor, type PolicyDatabase, type ReceiptLineSpec } from "./support/policy-db";
 import { ALL_AUTOPILOT, SWEEP_ENV, HAIKU, allOk, conflictAll, dbError, notJson, otherOrganization, setMode, setModes, stub, unsureAll, type Handler } from "./support/fund-modes";
 
-// IAC-405 step 3 PR P (docs/plans/FUND_MODES_SCOPE.md section 5, docs/ASSUMPTIONS.md section 78), AU-01 onward: the Autopilot guardrails G1 to G9, the automated send, the kill switch and the
+// IAC-405 step 3 PR P, AU-01 onward: the Autopilot guardrails G1 to G9, the automated send, the kill switch and the
 // database guards, on real Postgres in the isolated check project. The PayPal provider is a stub in every test, and every model call goes to a stub. Nothing here reaches a network or a key.
 vi.setConfig({ testTimeout: 90_000, hookTimeout: 90_000 });
 let ctx: PolicyDatabase;
@@ -702,7 +702,7 @@ describe("AU-20 SEC-01 repeated for the automated path", () => {
 });
 
 // ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-// IAC-405 PR P independent review, items 1 to 8 (docs/ASSUMPTIONS.md section 78). AU-40 onward.
+// IAC-405 PR P independent review, items 1 to 8. AU-40 onward.
 const BIG = [{ description: "Robot servo kit", amount: "200.00", category: "robot_kits_parts" }] satisfies ReceiptLineSpec[];
 const NO_SEND = () => provider("NO_BALANCE");
 // Holds the organization advisory lock in a separate transaction, runs the caller while it is held, then commits an OFF event before it releases the lock.
@@ -940,7 +940,7 @@ describe("AU-47 a failed trip fails closed", () => {
   });
 });
 
-// IAC-405 PR P item 10 (docs/ASSUMPTIONS.md section 78 item 30): two people finish a claim whose automatic payment did not go out.
+// IAC-405 PR P item 10: two people finish a claim whose automatic payment did not go out.
 describe("AU-49 two people finish a claim whose automatic payment was blocked", () => {
   // Recognized under Autopilot, send blocked (the balance is unreadable), then the switch is turned off the way a person would.
   async function stuck() {

@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { count, lineOf } from "../src/app/claims/[claimId]/automated-trail-copy";
 
-// AU-54 and AU-55 (IAC-405 guardrail trail plurals, docs/ASSUMPTIONS.md section 78 wording, GATE_REPORT section 76). Pure functions and a static source pin: no database, network or clock.
+// AU-54 and AU-55 (IAC-405 guardrail trail plurals). Pure functions and a static source pin: no database, network or clock.
 const COPY = "src/app/claims/[claimId]/automated-trail-copy.ts";
 
 describe("AU-54 the trail reads one line singular and every other count plural", () => {

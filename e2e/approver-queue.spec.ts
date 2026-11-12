@@ -11,7 +11,7 @@ import { ensureFixtureOpening } from "../src/ledger/opening";
 import * as s from "../db/schema";
 import { centerOverflow, measureEdge, measureFilters, MIN_FILTER_INPUT } from "./grid-edge";
 
-// IAC-414 Q1 (docs/plans/GRID_SURFACES_SCOPE.md section 3.2 step A), tests AQ-21 to AQ-25. The real flow in an isolated database and server: Maria submits and freezes
+// IAC-414 Q1, tests AQ-21 to AQ-25. The real flow in an isolated database and server: Maria submits and freezes
 // a practice expense, Tara approves it once, and Ben then sees it in the queue as "Approvals: 1 of 2". AI is off and no provider request is made. Every approval below
 // is a person's click on the claim page; the grid has no approve control.
 let admin: ReturnType<typeof postgres>, connection: ReturnType<typeof connectDatabase>;
@@ -176,7 +176,7 @@ test("AQ-21 to AQ-25: the approver queue grid in the real flow, wide and on a ph
     await expect(page.getByRole("button", { name: "Approve these terms", exact: true })).toBeVisible();
   });
 
-  // Desktop polish (docs/ASSUMPTIONS.md section 74, GATE_REPORT section 62): geometry of the approver home in the real flow, as the second approver with one queued claim.
+  // Desktop polish: geometry of the approver home in the real flow, as the second approver with one queued claim.
   const boxOf = async (page: Page, selector: string) => { const found = await page.locator(selector).first().boundingBox(); expect(found, selector).not.toBeNull(); return found!; };
   const hpStill = async (page: Page, name: string) => { if (process.env.AQ_STILLS) { mkdirSync(process.env.AQ_STILLS, { recursive: true }); await page.screenshot({ path: `${process.env.AQ_STILLS}/${name}.png`, fullPage: true }); } };
   await test.step("HP-01 the approver home with a queued claim has no empty band at 1440 and 1280, and the queue keeps the whole column with all seven columns", async () => {

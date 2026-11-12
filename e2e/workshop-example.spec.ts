@@ -10,7 +10,7 @@ import { seedFixture } from "../db/fixture";
 import { WORKSHOP_EXAMPLE, type DraftExample } from "../src/app/receipts/examples";
 import * as s from "../db/schema";
 
-// WX-01 to WX-05 (IAC-415 PR 7, "one workshop example", docs/GATE_REPORT.md section 55): the new-receipt form loads the one USD 500.00 workshop receipt in a judge session,
+// WX-01 to WX-05 (IAC-415 PR 7, "one workshop example"): the new-receipt form loads the one USD 500.00 workshop receipt in a judge session,
 // and in owner mode on request (?example=workshop), while the owner default stays the USD 6.00 practice expense that the older tests rely on. Each test starts its own
 // isolated database and next server on 3100 (judge or owner mode). WX-04 also starts a loopback Claude stub (UI_TEST_CONTAINER sends Claude requests to 127.0.0.1:8080).
 // The stub answers are synthetic. They are NOT a real model result, and no Claude or PayPal request leaves the container.

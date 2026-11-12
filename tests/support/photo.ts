@@ -1,4 +1,4 @@
-// IAC-384 test helpers (docs/GATE_REPORT.md section 72). Synthetic photo bytes and a good model answer in the flat wire shape. Nothing here calls a model or reads a key.
+// IAC-384 test helpers. Synthetic photo bytes and a good model answer in the flat wire shape. Nothing here calls a model or reads a key.
 // The marker is embedded in the image bytes so a test can search the database and the logs for it, as raw text and as base64.
 export const PNG_MARKER = "PHOTOMARKERxq7Zk93vLm2Rt8";
 export const pngBytes = (marker: string = PNG_MARKER): Buffer => Buffer.concat([Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]), Buffer.from(`IHDR-fake-${marker}-`), Buffer.alloc(64, 7)]);

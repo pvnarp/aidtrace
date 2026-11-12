@@ -1,4 +1,4 @@
-// IAC-405 step 1 piece G: the arm C compliance check (docs/plans/POLICY_CHECK_SCOPE.md section 3; docs/decisions.md decision 10).
+// IAC-405 step 1 piece G: the arm C compliance check.
 // This is the only policy module that imports a provider, budget or client module. It writes policy_check_runs (kind MODEL) and
 // policy_model_results only. It never changes a claim, an approval, a reservation or a journal entry, and no result blocks or grants anything.
 //
@@ -6,7 +6,7 @@
 //   1. Haiku 5.5 at low effort. Valid and every line OK: store those OK rows and stop.
 //   2. Anything else escalates to Sonnet 5.5 at low effort and stores Sonnet's rows: a valid answer with a line that is not OK, and also a
 //      Haiku call that timed out, threw, was refused by the request budget or came back invalid. That is how Run 5b scored the combination
-//      (docs/plans/CREDIT_EVALS.md: "a call that is invalid, errored or missing holds", otherwise call the second arm).
+// ("a call that is invalid, errored or missing holds", otherwise call the second arm).
 //   3. Sonnet fails or is invalid: store NOT_CHECKED with Sonnet's reason code. Its budget slot is still spent. After a Haiku failure the
 //      NOT_CHECKED row names Sonnet and its reason, and the Haiku CALL row keeps Haiku's reason.
 //   A request-budget refusal at Haiku also escalates, and Sonnet's reserve is then refused too (NOT_CHECKED, LIMIT). No bypass exists.

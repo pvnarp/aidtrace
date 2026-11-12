@@ -5,7 +5,7 @@ import { beforeAll, describe, expect, it } from "vitest";
 import { WORKSHOP_EXAMPLE } from "../src/app/receipts/examples";
 import { EXPORT_MODE } from "./support/export-mode";
 
-// IAC-384 demo receipt photo, DR-01 to DR-04 (docs/GATE_REPORT.md section 81, docs/ASSUMPTIONS.md section 88). The generator is owner-only: the judge export omits scripts/, so
+// IAC-384 demo receipt photo, DR-01 to DR-04. The generator is owner-only: the judge export omits scripts/, so
 // these checks run where the module exists (the owner tree) and skip elsewhere, as tests/rules-draft-static.test.ts does for the export script.
 const MODULE = "scripts/support/demo-receipt-photo.mjs", ENTRY = "scripts/demo-receipt-photo.mjs";
 // In the owner tree both files must exist (a missing one fails the tests below by path); only an export stands down.

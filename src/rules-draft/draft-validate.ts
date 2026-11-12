@@ -1,4 +1,4 @@
-// IAC-440 Package A (docs/plans/AI_DRAFTED_RULES_SCOPE.md sections 3 and 4). The pure validator for an AI-drafted fund rule set.
+// IAC-440 Package A. The pure validator for an AI-drafted fund rule set.
 // It reads raw model JSON (or a stored draft plus a human edit), the pasted grant text and the catalogs, and returns a normalized draft or a refusal
 // code. It is pure: no client, no key, no environment, no database, no network. Nothing is ever repaired: a model answer that breaks a rule is refused.
 //

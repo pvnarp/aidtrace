@@ -1,13 +1,13 @@
 import type { DonationRow } from '../../donation/donations-grid';
 import { centsColumn, dateColumn, textColumn, type GridColumn } from '../grid/columns';
 
-/** Phone layout keeps these fields in the table; the rest move to the details list under it (docs/plans/GRID_SURFACES_SCOPE.md section 2.8). */
+/** Phone layout keeps these fields in the table; the rest move to the details list under it. */
 export const DONATIONS_PHONE_COLUMNS = ['received', 'amountCents', 'state', 'payoutStatus'] as const;
 /** The pinned bottom row sums these three fields over the rows the filter leaves visible. */
 export const DONATIONS_TOTAL_FIELDS = ['amountCents', 'matchedCents', 'waitingCents'] as const;
 export const donationsTotalLabel = (shown: number) => `Total of ${shown} ${shown === 1 ? 'gift' : 'gifts'} shown`;
 
-/** Column groups read as one sentence per gift: the Gift, its Trail, then its Payout (docs/plans/DONOR_TRAIL_SCOPE.md section 4). Received is
+/** Column groups read as one sentence per gift: the Gift, its Trail, then its Payout. Received is
  * wide enough for the pinned total label. The Line and Vendor summaries stay searchable through their tooltips as well as their cells. */
 export function donationsColumns(): GridColumn<DonationRow>[] {
   return [

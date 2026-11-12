@@ -2,7 +2,7 @@ import { columnMeta, leafColumns, type GridColumn } from './columns';
 
 /**
  * The columns the grid hides below 640 px, shown as a native details list under the grid from the same rows
- * (docs/plans/GRID_SURFACES_SCOPE.md section 2.8). Presentation only: no state, no script, nothing editable.
+ *. Presentation only: no state, no script, nothing editable.
  */
 export const PHONE_EXTRAS_LIMIT = 200;
 

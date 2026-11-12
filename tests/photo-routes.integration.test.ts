@@ -15,7 +15,7 @@ import { FAKE_ENV, FAKE_KEY, claudeMessage, stubClient } from "./support/claude-
 import { RECEIPT_PAYEE, createPolicyDatabase, financialHash, sessionFor, type PolicyDatabase } from "./support/policy-db";
 import { PNG_MARKER, goodWire, jpegBytes, pngBytes } from "./support/photo";
 
-// IAC-384, PH-11 to PH-30 (docs/GATE_REPORT.md section 72): the photo route on real Postgres with a stubbed model. Every request is built by hand and handed to the handler
+// IAC-384, PH-11 to PH-30: the photo route on real Postgres with a stubbed model. Every request is built by hand and handed to the handler
 // the route file calls. No network, no key, no real model. The stub and the rate limiter count their calls, so "never reached" is a count.
 vi.setConfig({ testTimeout: 60_000, hookTimeout: 60_000 });
 const ORIGIN = "http://127.0.0.1:3100";

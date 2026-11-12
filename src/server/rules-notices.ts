@@ -1,4 +1,4 @@
-// IAC-440 Package B (docs/ASSUMPTIONS.md section 72). The plain sentences the rule drafting screens show after an action.
+// IAC-440 Package B. The plain sentences the rule drafting screens show after an action.
 // Only fixed application text crosses the HTTP boundary. A redirect carries a short code from the tables below (and at most two small integers and one
 // refusal name), never an error, a database message, a model answer or the grant text. A page that reads a code it does not know shows nothing.
 import { DRAFT_REFUSALS, type DraftRefusal } from "../rules-draft/draft-validate";

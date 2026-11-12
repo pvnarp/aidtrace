@@ -7,7 +7,7 @@ import { giveContentSecurityPolicy } from "./server/give-csp";
 
 // Next 16 proxy (the renamed middleware), matched to /give and /gift/:path*. It sets a fresh nonce per request: Next applies the
 // nonce from the request's Content-Security-Policy header to its own scripts, and the /give page reads x-nonce for the PayPal SDK.
-// /gift/[token] (docs/plans/DONOR_TRAIL_SCOPE.md sections 3.1, 3.3 and 3.4) also gets the static privacy headers on every response and
+// /gift/[token] also gets the static privacy headers on every response and
 // the shared request window, so an over-limit request gets a real 429 with Retry-After and no gift data.
 const GIFT_PATH = /^\/gift\/([^/]+)$/;
 const THROTTLED_BODY = "Too many requests. Try again in a minute.";

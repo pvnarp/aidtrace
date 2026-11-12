@@ -13,7 +13,7 @@ import type { AnalyticsSnapshot } from "../src/analytics/model";
 import { FOOTER_PROMISE, shellWording } from "../src/app/shell-copy";
 import { FAKE_ENV, FAKE_KEY, claudeMessage, stubClient } from "./support/claude-stub";
 
-// CLA-01 to CLA-14: Claude only AI (docs/plans/CLAUDE_ONLY_SCOPE.md). No test here reaches the Anthropic API: every call goes
+// CLA-01 to CLA-14: Claude only AI. No test here reaches the Anthropic API: every call goes
 // through a stub client or a stubbed global fetch, and the key is a fake string.
 const input: ReceiptInput = { source: "INVENTED RECEIPT\nScience experiment kits\nNotebooks\n", lines: [{ id: "L1", description: "Science kits" }, { id: "L2", description: "Notebooks" }] };
 const good = () => claudeMessage({ proposals: [{ lineId: "L1", category: "robot_kits_parts", quote: "Science experiment kits" }, { lineId: "L2", category: "classroom_supplies", quote: "Notebooks" }] });
@@ -251,7 +251,7 @@ describe("client", () => {
   });
 });
 
-// IAC-232 judge path validation (docs/GATE_REPORT.md section 93): three fixes found while validating a fresh export.
+// IAC-232 judge path validation: three fixes found while validating a fresh export.
 describe("judge path fixes", () => {
   const launcherText = () => readFileSync(first("release/judge/scripts/aidtrace", "scripts/aidtrace")!, "utf8");
   it("CLA-17 ui-check makes the local folder before it makes the snapshot folder inside it", () => {

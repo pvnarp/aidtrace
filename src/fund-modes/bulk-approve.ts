@@ -1,4 +1,4 @@
-// IAC-405 step 2 PR A (docs/plans/FUND_MODES_SCOPE.md section 4, docs/ASSUMPTIONS.md section 77). Approve several Assisted claims in one request. Each claim is decided on its own:
+// IAC-405 step 2 PR A. Approve several Assisted claims in one request. Each claim is decided on its own:
 // one serializable transaction resolves the claim at the version the page showed, requires the Assisted mode, recomputes "no holds" from the stored runs of that exact decision
 // hash and refuses the claimant, then the existing ledger function records the approval with the hash the server resolved (a client never sends a hash). approveDecision then
 // recognizes inside its own transaction, which repeats the mode and hold checks, so a hold that lands between the two steps can only leave an ordinary single approval waiting

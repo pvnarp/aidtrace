@@ -5,7 +5,7 @@ import { CLAUDE_EFFORT, CLAUDE_MODELS, CLAUDE_PROMPT_VERSION, CLAUDE_SCHEMA_VERS
 // Provider-tagged receipt audit. The receipt_suggestions.audit column is plain jsonb
 // (Record<string, string | number>). IAC-392 added the provider and model columns.
 //
-// Claude only (docs/plans/CLAUDE_ONLY_SCOPE.md): every new suggestion is a Claude suggestion. Suggestions saved before
+// Claude only: every new suggestion is a Claude suggestion. Suggestions saved before
 // October 30 by the retired on-device model still sit in the database, and the provider column still allows "local" for them,
 // so READERS keep recognizing that stored shape (six fields, no "provider" key, kept so every stored hash stays identical).
 // Nothing here can WRITE that shape any more.
@@ -39,7 +39,7 @@ export function storedReceiptAudit(result: ReceiptCategorizeResult, source: stri
     sourceSha256, requestSha256: value.requestSha256, responseSha256: value.responseSha256, latencyMs: value.latencyMs as number, inputTokens: value.inputTokens as number, outputTokens: value.outputTokens as number };
 }
 
-// The provider and model columns written with a READY suggestion (IAC-392, docs/plans/PROVIDER_COLUMNS.md). Derived only from an
+// The provider and model columns written with a READY suggestion (IAC-392). Derived only from an
 // audit that storedReceiptAudit returned. The database check refuses any row where the columns and the audit disagree.
 export function receiptAuditColumns(audit: StoredReceiptAudit): { provider: "claude"; model: string } {
   if (audit.provider === "claude" && typeof audit.model === "string") return { provider: "claude", model: audit.model };

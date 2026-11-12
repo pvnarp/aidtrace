@@ -12,7 +12,7 @@ import { SELECTION_MODULES } from '../grid/modules';
 import { assistedColumns, type AssistedQueueRow } from './columns';
 import { QUEUE_PHONE_COLUMNS } from '../approver-queue/columns';
 
-// IAC-405 PR A (docs/plans/FUND_MODES_SCOPE.md section 4, docs/ASSUMPTIONS.md section 77): the approver queue when the fund modes flag is on and at least one waiting claim is Assisted. It adds the Checks
+// IAC-405 PR A: the approver queue when the fund modes flag is on and at least one waiting claim is Assisted. It adds the Checks
 // column and row selection, and one button that posts claim ids and claim versions to /api/approvals/bulk. A row can be selected only when the server read "No holds found" for it. The browser sends no hash,
 // no mode and no check result: the route decides every one of those again. There is no send button here: a payment stays one click per claim on the claim page.
 const DataGrid = dynamic(() => import('../grid/grid'), { ssr: false, loading: () => <p role="status">Loading approval queue...</p> }) as unknown as typeof DataGridComponent;

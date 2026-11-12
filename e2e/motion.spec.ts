@@ -6,7 +6,7 @@ import { migrate } from "drizzle-orm/postgres-js/migrator";
 import { connectDatabase } from "../src/server/db";
 import { seedFixture } from "../db/fixture";
 
-// MO-06 (November 10 motion pass, docs/DESIGN_LANGUAGE.md section 3 rule 8, docs/GATE_REPORT.md section 116). Like copy-words.spec, the test starts its own
+// MO-06 (November 10 motion pass). Like copy-words.spec, the test starts its own
 // isolated database and next server on 3100. The sign-in page needs no account. With no motion preference, the main content fades in once and ends fully
 // opaque. With reduced motion, nothing animates and controls do not transition.
 let admin: ReturnType<typeof postgres> | undefined, connection: ReturnType<typeof connectDatabase> | undefined;

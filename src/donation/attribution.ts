@@ -1,4 +1,4 @@
-// IAC-379 step 2: policy GIFT_ATTRIBUTION_V1 (docs/plans/DONATION_LOOP_SCOPE.md section 5, owner decision 7).
+// IAC-379 step 2: policy GIFT_ATTRIBUTION_V1.
 // A pure, read-only computation of which recorded gifts were applied to which approved receipt lines.
 // It touches no database and no clock, moves no money and posts nothing. It is a narrative, not an accounting method and
 // not GAAP: a restricted fund is fungible, so the result says "applied to", never "bought this exact item".

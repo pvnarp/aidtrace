@@ -15,7 +15,7 @@ import type { PolicyFacts } from "./types";
 
 export type PolicyRefusal = "APPROVER_REQUIRED" | "NO_DECISION" | "STALE" | "NOT_AWAITING" | "INVALID_REQUEST" | "NOT_SWEEPABLE";
 // Who starts a run. The web route builds only the first kind: runPolicyChecks hard-codes it. The second is built only by src/policy/sweep.ts for the policy sweep
-// (docs/plans/FUND_MODES_SCOPE.md section 3) and carries no user. The database guard of migration 0019 backs both rules.
+// and carries no user. The database guard of migration 0019 backs both rules.
 export type RunStarter = { trigger: "APPROVER"; id: string } | { trigger: "SWEEP"; env?: FlagEnv };
 
 // The two columns every run insert sets from its starter. An APPROVER run names its approver. A SWEEP run has none, and the database check refuses a user there.

@@ -18,7 +18,7 @@ import * as copy from "../src/policy/copy";
 import { PolicyChecks } from "../src/app/claims/[claimId]/policy-checks";
 import { ORIGIN, RECEIPT_PAYEE, createPolicyDatabase, financialHash, postRequest, receiptClaim, sessionFor, tableHash, type PolicyDatabase, type ReceiptLineSpec } from "./support/policy-db";
 
-// IAC-405 step 1 piece G (docs/plans/POLICY_CHECK_SCOPE.md section 6), arm C on real Postgres with a stubbed client: PC-11, PC-13, PC-14 (the AI-off
+// IAC-405 step 1 piece G, arm C on real Postgres with a stubbed client: PC-11, PC-13, PC-14 (the AI-off
 // part), PC-15, the model part of PC-19 and the page part of PC-23, plus the routing, privacy, injection, hold-never-clears and call-setting cases.
 // Every model call here goes to a stub that this file defines. No network, no key, no real model.
 vi.setConfig({ testTimeout: 60_000, hookTimeout: 60_000 });
@@ -144,7 +144,7 @@ describe("PC-13 arm C routing: Haiku 5.5 low first, Sonnet 5.5 low unless Haiku 
   });
 
   // A Haiku call that does not return a valid answer with every line OK escalates: a timeout, a throw, an invalid answer and a refused reserve all count
-  // as a hold, as the Run 5b combination scored them (docs/plans/CREDIT_EVALS.md: "a call that is invalid, errored or missing holds"). Haiku's CALL row keeps
+  // as a hold, as the Run 5b combination scored them ("a call that is invalid, errored or missing holds"). Haiku's CALL row keeps
   // its own reason and the pair is judged by Sonnet.
   const FAILURES = ["TIMEOUT", "UNAVAILABLE", "INVALID"] as const;
   const fail = (reason: typeof FAILURES[number], call: Seen): unknown => {

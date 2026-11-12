@@ -7,7 +7,7 @@ import { AI_NOTE, FOOTER_PROMISE, PAYPAL_NOTE, PAYPAL_PAID_NOTE, STAGES, aiCard,
 import { AiStatusCard, PayPalStatusCard } from "../src/app/workspace";
 import { TraceStepper, traceSteps } from "../src/app/trace";
 
-// SHELL-01 to SHELL-10 (IAC-373 app shell adoption, docs/GATE_REPORT.md section 34). Pure functions and static file checks.
+// SHELL-01 to SHELL-10 (IAC-373 app shell adoption). Pure functions and static file checks.
 // No database, no network, no clock. The browser checks are e2e/shell.spec.ts (SHELL-11).
 const claude: AiConfig = { name: "Claude Haiku 5.5", shellName: "Claude Haiku" };
 const sonnet: AiConfig = { name: "Claude Sonnet 5.5", shellName: "Claude Sonnet 5.5" };
@@ -146,7 +146,7 @@ describe("SHELL-06 PayPal blue appears only in PayPal-scoped stylesheet rules", 
     const actions = rules.filter(rule => blue.test(rule.body) && rule.selector.split(",").some(part => /(^|[\s>])button\b|button-link|journey-action|story-primary|\.secondary/.test(part)));
     expect(actions.map(rule => rule.selector)).toEqual([]);
   });
-  // The old "defines the locked tokens" test became TV-01 (tests/trust-v2-tokens.test.ts), which compares :root with docs/DESIGN_LANGUAGE.md.
+  // The old "defines the locked tokens" test became TV-01 (tests/trust-v2-tokens.test.ts), which checks the :root tokens.
   it("states the 3fr and 2fr review grid and its single-column rule at 900 px and below", () => {
     const flat = css.replace(/\/\*[\s\S]*?\*\//g, "").replace(/\s*([:,{};])\s*/g, "$1").replace(/\s+/g, " ");
     const review = [...flat.matchAll(/\.hybrid-shell\.review\{([^{}]*)\}/g)].map(match => match[1]!);
@@ -282,7 +282,7 @@ describe("SHELL-09 every screen has the shell header and footer", () => {
 });
 
 describe("SHELL-10 computed contrast of the Trust v2 text colors is at least 4.5:1", () => {
-  // Literal pairs from docs/plans/TRUST_V2_PORT_SCOPE.md section 2.3. TV-03 (tests/trust-v2-tokens.test.ts) reads the same pairs from the stylesheet.
+  // Literal contrast pairs. TV-03 (tests/trust-v2-tokens.test.ts) reads the same pairs from the stylesheet.
   const channel = (value: number) => { const c = value / 255; return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4; };
   const luminance = (hex: string) => { const n = parseInt(hex.slice(1), 16); return 0.2126 * channel((n >> 16) & 255) + 0.7152 * channel((n >> 8) & 255) + 0.0722 * channel(n & 255); };
   const ratio = (a: string, b: string) => { const [hi, lo] = [luminance(a), luminance(b)].sort((x, y) => y - x); return (hi! + 0.05) / (lo! + 0.05); };

@@ -6,7 +6,7 @@ import { readGiftAttribution } from "./attribution-reader";
 import { maskTail } from "./display";
 import { cleanText, formatUsd, longDate, payoutNoteStatus, readGiftNotes, THANKS_FIRST_PAYOUT_WORDING, type PayoutNoteStatus } from "./note";
 
-// IAC-413 PR A (docs/plans/DONOR_TRAIL_SCOPE.md sections 3 and 5.2): the donor gift trail read model.
+// IAC-413 PR A: the donor gift trail read model.
 // buildGiftTrail and donorPageSentence are pure: no clock, no database, no randomness. loadGiftTrailFacts and loadGiftPage issue
 // SELECT statements only. Nothing here writes a row, posts a journal entry or calls PayPal, and no ledger writer or PayPal adapter
 // is imported (a static test enforces it). Money is bigint integer cents end to end, never converted to a floating point value.

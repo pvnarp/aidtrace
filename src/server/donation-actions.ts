@@ -8,7 +8,7 @@ import { isSameOrigin } from "./auth";
 import type { AppDatabase } from "./db";
 import type { DonationMode } from "./donation-mode";
 
-// IAC-379 step 3a: the donor-facing JSON handler (DONATION_LOOP_SCOPE.md sections 3 and 7 to 9). Anyone may give, so
+// IAC-379 step 3a: the donor-facing JSON handler. Anyone may give, so
 // there is no session. Every response uses fixed text: provider text, headers and error messages are never copied in.
 // The server decides the mode. A KEYLESS session refuses every action before the payments factory is even called.
 const MAX_BODY_BYTES = 2048;
@@ -72,7 +72,7 @@ async function present(db: AppDatabase, result: DonationOrderResult, action: "cr
       let captureId = result.captureId;
       if (!captureId && result.orderId) captureId = (await db.select({ captureId: s.donationReceipts.captureId }).from(s.donationReceipts).where(eq(s.donationReceipts.orderId, result.orderId)))[0]?.captureId ?? undefined;
       const captureTail = maskTail(captureId);
-      // IAC-413 (docs/plans/DONOR_TRAIL_SCOPE.md section 5.3): the private gift link is issued here, in the route layer, after the
+      // IAC-413: the private gift link is issued here, in the route layer, after the
       // capture is recorded. issueGiftLink never throws and never logs, so a refusal leaves the donation response unchanged.
       const link = captureId ? await issueGiftLink(db, captureId) : null;
       return view("COMPLETED", DONOR_MESSAGES.COMPLETED, {

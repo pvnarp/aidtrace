@@ -1,4 +1,4 @@
-// IAC-405 PR GT (docs/ASSUMPTIONS.md, the gift trail approval path): the approval path a recognized decision recorded, read from stored rows only. Read only.
+// IAC-405 PR GT (the gift trail approval path): the approval path a recognized decision recorded, read from stored rows only. Read only.
 // It never reads the fund-modes flag and never recomputes a check, so a recognized claim's recorded path does not change when a flag changes. The Autopilot rule is the one
 // reviewLineMode uses (autoRecognizedSent), so the claim page and the donor page cannot drift.
 //   AUTOPILOT   an AUTO_RECOGNIZED record, no approval row, and a disbursement exists.

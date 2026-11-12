@@ -182,7 +182,7 @@ test.describe("Synthetic response interface checks", () => {
     expect(await connection.db.select().from(s.disbursements)).toHaveLength(0); await noOverflow(page);
     await page.goto(receipt); await expect(page.getByRole("button", { name: "Prepare expense proposal", exact: true })).toHaveCount(0);
   });
-  // FT-02b (IAC-415 PR 5, docs/GATE_REPORT.md section 52): the proposal path renders the same AI recommendation header, so a READY suggestion states the one instruction there and nowhere else.
+  // FT-02b (IAC-415 PR 5): the proposal path renders the same AI recommendation header, so a READY suggestion states the one instruction there and nowhere else.
   test("FT-02b: on the proposal path a READY suggestion says 'Edit the receipt to request a new review.' once and never 'AI suggestions are saved for this receipt', before confirmation only", async ({ page }) => {
     const receipt = await create(page); const sentence = "Edit the receipt to request a new review."; const saved = "AI suggestions are saved for this receipt";
     const count = (text: string, part: string) => text.split(part).length - 1;

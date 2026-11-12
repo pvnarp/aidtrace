@@ -17,7 +17,7 @@ import { PolicyChecks } from "../src/app/claims/[claimId]/policy-checks";
 import * as copy from "../src/policy/copy";
 import { ORIGIN, createPolicyDatabase, financialHash, insertClaim, postRequest, sessionFor, tableHash, type PolicyDatabase } from "./support/policy-db";
 
-// IAC-405 step 1 (docs/plans/POLICY_CHECK_SCOPE.md section 6), seeded integration cases on real Postgres:
+// IAC-405 step 1, seeded integration cases on real Postgres:
 // PC-01 to PC-07 (one seeded case each), PC-10, PC-12, PC-14, PC-16, PC-18, PC-19, PC-20, PC-21, PC-22, PC-23.
 // No network, no model, no provider. Rules only: the model check is not built.
 let ctx: PolicyDatabase;
@@ -46,7 +46,7 @@ const dbError = async (promise: PromiseLike<unknown>) => promise.then(() => ({ c
   }
   return { code, message: messages.join(" | ") };
 });
-const noSettings = async () => { // A retained database after migration 0015: no settings row exists (docs/ASSUMPTIONS.md).
+const noSettings = async () => { // A retained database after migration 0015: no settings row exists.
   await ctx.client.unsafe("alter table fund_check_settings disable trigger user");
   await ctx.client.unsafe("delete from fund_check_settings");
   await ctx.client.unsafe("alter table fund_check_settings enable trigger user");

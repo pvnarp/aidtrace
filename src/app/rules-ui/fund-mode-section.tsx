@@ -1,4 +1,4 @@
-// IAC-405 step 2 PR F (docs/ASSUMPTIONS.md section 76) and step 3 PR P (section 78). "How claims are approved": the fund's stored mode, its pending proposals and the two-step change. Presentation only: the
+// IAC-405 step 2 PR F and step 3 PR P (section 78). "How claims are approved": the fund's stored mode, its pending proposals and the two-step change. Presentation only: the
 // page reads the stored view and shows this only when the fund modes flag is on. Autopilot is offered only when the second flag is on (the page passes autopilot). Nothing here approves a claim or pays.
 import type { FundMode } from "../../../db/schema";
 import type { FundModeView } from "../../fund-modes/change";

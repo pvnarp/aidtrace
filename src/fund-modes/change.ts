@@ -1,4 +1,4 @@
-// IAC-405 step 2 PR F (docs/plans/FUND_MODES_SCOPE.md section 3 items 1 and 5; docs/ASSUMPTIONS.md section 76). Changing a fund's mode takes two distinct approvers of the fund's
+// IAC-405 step 2 PR F. Changing a fund's mode takes two distinct approvers of the fund's
 // organization, the same two-step pattern as binding drafted rules: one proposes, a second approves. Both steps are append-only rows (migration 0019). It offers Manual
 // and Assisted, and AUTOPILOT only while FUND_AUTOPILOT_ENABLED is on (PR P): with that flag off a proposal or an approval of AUTOPILOT is refused here, whatever the database would store. A proposal records the mode version the fund held when it was made
 // (0 for none), and an approval must be the next version, so a proposal made before a later mode change is stale and cannot be approved. With the flag off every function refuses.
@@ -12,7 +12,7 @@ import type { AppDatabase } from "../server/db";
 import { fundAutopilotEnabled, fundModesEnabled, type FlagEnv } from "./flag";
 import { effectiveOf } from "./modes";
 
-// The modes a person may choose. MANUAL and ASSISTED always. AUTOPILOT only when the second flag is on (fundAutopilotEnabled, docs/ASSUMPTIONS.md section 78): with it off a proposal or an approval of AUTOPILOT is refused.
+// The modes a person may choose. MANUAL and ASSISTED always. AUTOPILOT only when the second flag is on (fundAutopilotEnabled): with it off a proposal or an approval of AUTOPILOT is refused.
 export const OFFERED_MODES = ["MANUAL", "ASSISTED"] as const satisfies readonly FundMode[];
 export type OfferedMode = FundMode;
 export const isOfferedMode = (value: unknown, env?: FlagEnv): value is OfferedMode => typeof value === "string" && ((OFFERED_MODES as readonly string[]).includes(value) || (value === "AUTOPILOT" && fundAutopilotEnabled(env)));

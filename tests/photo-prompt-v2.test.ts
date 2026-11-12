@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { PHOTO_PROMPT_VERSION, PHOTO_SCHEMA, PHOTO_SCHEMA_VERSION, photoRequest } from "../src/ai/claude-photo";
 
-// IAC-384 prompt v2, PH-74 and PH-75 (docs/GATE_REPORT.md section 75, docs/ASSUMPTIONS.md section 85). Pure checks: no network, no key, no model call.
+// IAC-384 prompt v2, PH-74 and PH-75. Pure checks: no network, no key, no model call.
 // The v1 sentences are pinned here verbatim, as receipt-photo-v1 sent them.
 const V1_SENTENCES = [
   "You transcribe a photo of a sample receipt for a nonprofit expense form.",

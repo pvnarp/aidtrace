@@ -19,7 +19,7 @@ import { stubClient } from "./support/claude-stub";
 import { RULE_ENV, drafted, draftMessage, unsure } from "./support/rules-draft";
 import { THRESHOLD_KEYS } from "../src/rules-draft/draft-validate";
 
-// IAC-405 (docs/GATE_REPORT.md section 82, docs/ASSUMPTIONS.md section 89), GA-01 onward: the November 4 dry run found that the USD 42.00 claim after the USD 500.00 demo claim is
+// IAC-405, GA-01 onward: the November 4 dry run found that the USD 42.00 claim after the USD 500.00 demo claim is
 // funded wholly by General, and that Autopilot holds it by design (NOTHING_CHECKED). The only in-app source of new restricted cash is a designated donor gift, so these tests prove the
 // whole chain on real Postgres: a gift to fund_a funds the USD 42.00 claim, the sweep recognizes it with all eight guardrails true and sends it with no approval row. Every provider is a
 // stub (the PayPal payout transport, the donation order payments and the Claude client). Nothing here reaches a network or a key. Each test builds its own database.
@@ -294,7 +294,7 @@ describe("GA-06 and GA-07 the recording setup: fund_a Autopilot, fund_b and fund
   });
 });
 
-// IAC-405 PR GT (docs/GATE_REPORT.md, "Gift trail names the approval path"), GTA-09 and GTA-10. GA-04 originally asserted the defect: it read an Autopilot claim with no approval row as
+// IAC-405 PR GT ("Gift trail names the approval path"), GTA-09 and GTA-10. GA-04 originally asserted the defect: it read an Autopilot claim with no approval row as
 // "MATCHED, waiting for approvals" while the same page said the line was paid. The ids GT-06 to GT-18 belong to tests/gift-trail.test.ts, so these use GTA.
 describe("GTA-09 and GTA-10 the donor page names the approval path that paid the claim", () => {
   it("GTA-09: after the Autopilot sweep pays the USD 42.00 claim from the USD 50.00 gift, loadGiftPage gives PAID, step 3 Approved under Autopilot guardrails done, and step 4 done", async () => {

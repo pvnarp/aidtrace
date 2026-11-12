@@ -3,7 +3,7 @@ import * as s from '../../db/schema';
 import type { AppDatabase } from '../server/db';
 import { AnalyticsAccessError } from './snapshot';
 
-// IAC-405 step 5 (docs/plans/FUNDER_REPORT_SCOPE.md section 1; docs/ASSUMPTIONS.md section 86). The read-only data of the funder report.
+// IAC-405 step 5. The read-only data of the funder report.
 // Same access rules as loadAnalyticsSnapshot: an approver, one organization that is the actor's, a read only transaction at repeatable read.
 // Select statements only. No payee email, provider batch or item id, claimant name or approver id leaves this module. Cents are decimal strings.
 export type PathKey = 'AUTOPILOT' | 'ONE_PERSON' | 'TWO_PEOPLE';

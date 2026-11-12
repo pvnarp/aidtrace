@@ -2,7 +2,7 @@ import { PayPalText } from "./brand";
 import { railLines, type AiCard, type PayPalCard, type Stage } from "./shell-copy";
 
 /**
- * The trace stepper (docs/plans/TRUST_V2_PORT_SCOPE.md section 3.2). Six steps derived from the five saved stages
+ * The trace stepper. Six steps derived from the five saved stages
  * plus the claim page's policy-block flag. It stores nothing and does not change claimStage.
  * Presentation only: the page supplies authorized saved state, never query-string progress.
  */

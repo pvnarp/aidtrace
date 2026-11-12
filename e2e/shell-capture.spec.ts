@@ -11,7 +11,7 @@ import { ensureFixtureOpening } from "../src/ledger/opening";
 import * as s from "../db/schema";
 
 // IAC-373 still capture. Not part of the default run: only playwright.shell-capture.config.ts matches it.
-// Run it by explicit command (see docs/GATE_REPORT.md section 34). Stills go to local/shell-stills/ (ignored by Git).
+// Run it by explicit command. Stills go to local/shell-stills/ (ignored by Git).
 // Claim statuses are set directly in the isolated database as presentation fixtures. No provider call, no payment attempt.
 const OUT = "local/shell-stills";
 let admin: ReturnType<typeof postgres>, connection: ReturnType<typeof connectDatabase>;

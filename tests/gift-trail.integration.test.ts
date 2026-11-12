@@ -17,7 +17,7 @@ import { GIFT_PAGE_LIMIT, GIFT_PAGE_LIMIT_KEY, takeGiftPageSlot } from "../src/s
 import { pause, recognizeClaim, recordGift } from "./support/attribution-db";
 import { financialHash, tableHash } from "./support/policy-db";
 
-// IAC-413 PR A (docs/plans/DONOR_TRAIL_SCOPE.md sections 3 and 5.2, tests GT-16, GT-17 and GT-24 to GT-26). Real Postgres, stubbed provider
+// IAC-413 PR A (tests GT-16, GT-17 and GT-24 to GT-26). Real Postgres, stubbed provider
 // observations and a stubbed payout transport, no network. Each test gets its own database so none depends on another's state.
 const ORG = "cedar-hollow"; const PAYEE = "trail-test@personal.example.com"; const BATCH = "BATCH_TRAIL_1";
 interface Fixture { db: AppDatabase; client: ReturnType<typeof connectDatabase>["client"]; name: string; close: () => Promise<void> }

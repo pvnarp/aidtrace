@@ -51,7 +51,7 @@ export async function insertClaim(db: AppDatabase, spec: ClaimSpec) {
   await db.insert(s.claimLines).values(spec.lines.map(line => ({ claimId: spec.id, claimVersion: version, description: "Policy test line", ...line })));
 }
 
-// The sixteen tables the financial hash of tests/analytics.integration.test.ts covers, plus decision_modes, automated_decisions, fund_modes and fund_mode_proposals (IAC-405 PR F, docs/ASSUMPTIONS.md section 76) and payee_email_history, automation_switch_events and disbursement_origins (IAC-405 PR P, section 78): a policy check never changes a mode record, a mode proposal or an audit record of a decision. The other policy tables are not among them.
+// The sixteen tables the financial hash of tests/analytics.integration.test.ts covers, plus decision_modes, automated_decisions, fund_modes and fund_mode_proposals (IAC-405 PR F) and payee_email_history, automation_switch_events and disbursement_origins (IAC-405 PR P, section 78): a policy check never changes a mode record, a mode proposal or an audit record of a decision. The other policy tables are not among them.
 export const FINANCIAL_TABLES = ["claims", "claim_lines", "allocation_decisions", "allocation_edges", "approvals", "fund_reservations", "reservation_budget_lines", "fund_credits", "fund_debits",
   "journal_entries", "journal_postings", "disbursements", "disbursement_attempts", "donation_receipts", "retry_authorizations", "provider_events", "decision_modes", "automated_decisions", "fund_modes", "fund_mode_proposals", "payee_email_history", "automation_switch_events", "disbursement_origins"];
 // tables defaults to all twenty-three. A mode change writes fund_modes and fund_mode_proposals by design, so the mode change test hashes the other twenty-one (FM-11).

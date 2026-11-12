@@ -2,9 +2,8 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { css, declarations, rootBlocks, rules, squash, tokens } from "./support/trust-v2-css";
 
-// TV-01 to TV-05 (IAC-415 Trust v2 port PR 1, docs/plans/TRUST_V2_PORT_SCOPE.md section 5.2, docs/GATE_REPORT.md section 44).
-// Static checks of src/app/style.css. No database, no network, no browser. The two TV-01 checks that read docs/DESIGN_LANGUAGE.md moved to the owner-only
-// tests/trust-v2-token-table.test.ts (IAC-442): that document is not in the judge export. The stylesheet model is in tests/support/trust-v2-css.ts.
+// TV-01 to TV-05 (IAC-415 Trust v2 port PR 1).
+// Static checks of src/app/style.css. No database, no network, no browser. The stylesheet model is in tests/support/trust-v2-css.ts.
 // The browser checks that need a running app (TV-09 to TV-17) arrive in PR 2 and PR 3.
 
 describe("TV-01 the :root properties are defined once", () => {

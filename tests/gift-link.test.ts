@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { GIFT_TOKEN_PATTERN, hashGiftToken, isGiftTokenShape, newGiftToken } from "../src/donation/gift-link";
 
-// IAC-413 PR A (docs/plans/DONOR_TRAIL_SCOPE.md section 2.1, test GT-01). Pure checks: no database, no network.
+// IAC-413 PR A (test GT-01). Pure checks: no database, no network.
 describe("GT-01 the gift link token", () => {
   it("is 43 characters of base64url that decode to 32 bytes, and 1,000 tokens are distinct", () => {
     const seen = new Set<string>();

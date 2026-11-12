@@ -10,7 +10,7 @@ import { ensureFixtureOpening } from "../src/ledger/opening";
 import { modelFullName } from "../src/policy/copy";
 import { CLAUSE_CAP, CLAUSE_PERIOD, drafted, flatAnswer, goodAnswer, unsureList } from "../tests/support/rules-draft";
 
-// IAC-440 Package B, the browser check (docs/GATE_REPORT.md section 60, DR-130 and onward). The real flow in a desktop browser: an approver finds the rules page from the
+// IAC-440 Package B, the browser check (DR-130 and onward). The real flow in a desktop browser: an approver finds the rules page from the
 // fund row, reads a PDF into the box with no model call, drafts rules from a pasted grant, fills the one field the grant does not settle, approves, a second approver
 // approves and the rules bind, and a new receipt then allocates under the new rules. Every model answer comes from a loopback stub that this file defines
 // (UI_TEST_CONTAINER sends Claude requests to 127.0.0.1:8080). It is NOT a real model result. Each test starts its own database and next server on 3100, like

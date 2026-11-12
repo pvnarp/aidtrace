@@ -1,7 +1,7 @@
 import type { LedgerRow } from '../../ledger/view';
 import { centsColumn, dateColumn, textColumn, type GridColumn } from '../grid/columns';
 
-/** Phone layout keeps these fields in the table; the rest move to the details list under it (docs/plans/GRID_SURFACES_SCOPE.md section 3.1). */
+/** Phone layout keeps these fields in the table; the rest move to the details list under it. */
 export const LEDGER_PHONE_COLUMNS = ['recordedAt', 'entryType', 'debitCents', 'creditCents'] as const;
 /** The pinned bottom row sums these two fields over the rows the filter leaves visible. */
 export const LEDGER_TOTAL_FIELDS = ['debitCents', 'creditCents'] as const;

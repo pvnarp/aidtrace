@@ -6,7 +6,7 @@ import { loadGiftPage } from "../../../donation/trail";
 import { getDatabase } from "../../../server/db";
 import { TrailView } from "./trail-view";
 
-// IAC-413 PR A (docs/plans/DONOR_TRAIL_SCOPE.md section 3): the public donor trail. No session, no cookies, no personal data.
+// IAC-413 PR A: the public donor trail. No session, no cookies, no personal data.
 // The proxy (src/proxy.ts) sets the nonce and the privacy headers and takes a limiter slot for a well-formed token before this runs.
 // The page never calls cookies() or reads a session, so every visitor gets the same page. State is recomputed on every load.
 export const dynamic = "force-dynamic";

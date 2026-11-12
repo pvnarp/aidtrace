@@ -5,7 +5,7 @@ import { serializable } from "../ledger/service";
 import { GIFT_ATTRIBUTION_POLICY } from "./attribution";
 import { buildNoteFacts, DEFAULT_SELECTION, factDigest, noteTextHash, NOTE_FACT_SET, renderTemplateNote, validateSelection, type NoteRefusal, type NoteSelection } from "./note";
 
-// IAC-379 step 3b (docs/plans/DONATION_LOOP_SCOPE.md section 6, owner decision 10): a person who is not the claimant approves
+// IAC-379 step 3b: a person who is not the claimant approves
 // the donor impact note. The approval stores the note, its facts digest and the gift applications as immutable rows (migration
 // 0014). It moves no money, posts nothing, changes no allocation or approval of the claim, and sends nothing to anyone.
 export interface ApproveNoteInput { captureId: string; claimId: string; claimVersion: number; factDigest: string; selection?: NoteSelection }

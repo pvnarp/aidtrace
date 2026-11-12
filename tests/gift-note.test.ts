@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 import { DEFAULT_SELECTION, factDigest, formatShares, formatUsd, longDate, noteTextHash, NOTE_TEMPLATE_IDS, payoutNoteStatus, PAYOUT_WORDING, renderTemplateNote, TEMPLATE_LABEL, THANKS_FIRST_PAYOUT_WORDING, validateSelection, type GiftNoteEntry, type NoteFacts, type StoredGiftNote } from "../src/donation/note";
 import { GiftNotes } from "../src/app/claims/[claimId]/gift-notes";
 
-// DON-11 unit (docs/plans/DONATION_LOOP_SCOPE.md section 6, IAC-379 step 3b). Pure functions only: no database, no clock, no network.
+// DON-11 unit (IAC-379 step 3b). Pure functions only: no database, no clock, no network.
 const base = (): NoteFacts => ({
   version: "donor-note-facts-v1",
   gift: { donorName: "A donor", amountCents: "2500", fundName: "Tallow Creek Robot Kit Initiative", capturedOn: "2026-10-22" },
@@ -135,7 +135,7 @@ describe("DON-11 digest, money and date formatting", () => {
   });
 });
 
-// DON-13 (IAC-379 Option A, docs/ASSUMPTIONS.md section 47). Pure: no database, no clock, no network. This file is exported to judge sessions, so it must not import scripts/ (docs/ASSUMPTIONS.md section 49); the run 3 parity test lives in tests/gift-note-eval-parity.test.ts.
+// DON-13 (IAC-379 Option A). Pure: no database, no clock, no network. This file is exported to judge sessions, so it must not import scripts/; the run 3 parity test lives in tests/gift-note-eval-parity.test.ts.
 const OLD_WORDING_PAYOUT_STATUSES = ["NO_PAYMENT", "PROCESSING", "UNKNOWN", "NEEDS_ATTENTION", "PAID"] as const;
 const thanksFirst = (facts: NoteFacts, optional: string[] = []) => renderTemplateNote(facts, { templateId: "thanks-first", optional });
 const FIXTURE_OPTION_A = (tail: string) => `Thank you, A donor. Your $25.00 gift was applied to Robot kit and parts from Brightbench Supply Co. Approved by Tara and Ben on October 30, 2026. ${tail}`;

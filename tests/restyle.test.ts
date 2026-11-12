@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
-// RS-01 (November 10 analytics restyle, docs/GATE_REPORT.md section 121). Static checks of source text. No database, no network, no browser. The RS-01 design language line and RS-02 (the hosted landing) are in the owner-only tests/restyle-owner.test.ts.
+// RS-01 (November 10 analytics restyle). Static checks of source text. No database, no network, no browser. The RS-01 design language line and RS-02 (the hosted landing) are in the owner-only tests/restyle-owner.test.ts.
 // RS-03 is the computed-style check in e2e/analytics.spec.ts.
 const source = (path: string) => readFileSync(path, "utf8");
 const css = source("src/app/style.css").replace(/\/\*[\s\S]*?\*\//g, "");
@@ -25,7 +25,7 @@ describe("RS-01 figures and the analytics page", () => {
   });
 });
 
-// CP-01 (November 11 calm pass, docs/GATE_REPORT.md sections 123 and 125): one unbroken bridge rule, tight date hyphens, a single line for a
+// CP-01 (November 11 calm pass): one unbroken bridge rule, tight date hyphens, a single line for a
 // funding comparison that matches, and the keyless give panel's unassigned PayPal IDs folded into its existing disclosure.
 describe("CP-01 the calm pass", () => {
   it("draws the bridge rule across the column gap and keeps date ranges in normal figures", () => {
@@ -62,7 +62,7 @@ describe("CP-01 the calm pass", () => {
   });
 });
 
-// EF-01 (November 11 eye-flow pass, docs/GATE_REPORT.md section 127): the viewer's one decision leads the Decision panel, the approver home
+// EF-01 (November 11 eye-flow pass): the viewer's one decision leads the Decision panel, the approver home
 // has one filled way in, a Hold reads as a Hold, and the tint and accent fill are kept for the next decision and the primary button.
 describe("EF-01 the eye-flow pass", () => {
   it("puts the lead forms first in the Decision panel and the payout first once approved", () => {

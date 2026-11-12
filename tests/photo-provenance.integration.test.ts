@@ -13,7 +13,7 @@ import { FAKE_ENV, claudeMessage, stubClient } from "./support/claude-stub";
 import { RECEIPT_PAYEE, createPolicyDatabase, sessionFor, type PolicyDatabase } from "./support/policy-db";
 import { goodWire, pngBytes } from "./support/photo";
 
-// IAC-384 review round, PH-51 to PH-56 (docs/GATE_REPORT.md section 72): the provenance flag, the database guard for the link, the concurrent create and the route sub-cap, on real Postgres
+// IAC-384 review round, PH-51 to PH-56: the provenance flag, the database guard for the link, the concurrent create and the route sub-cap, on real Postgres
 // with a stubbed model. No network, no key, no real model.
 vi.setConfig({ testTimeout: 60_000, hookTimeout: 60_000 });
 const ORIGIN = "http://127.0.0.1:3100";

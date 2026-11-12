@@ -4,7 +4,7 @@ import { FACT_IDS, QUESTIONS, isQuestion, questionFacts, type AnalyticsSnapshot,
 import { UNRECOGNIZED_VERSION, VERSION_PATTERN, versionText, whyFacts, type WhyRows } from '../src/analytics/why-facts';
 import { OUTCOME_WORDS, buildSpending, classifyPath, outcomeFor, switchRow, type DebitRow } from '../src/analytics/report';
 
-// IAC-405 step 5 (docs/plans/FUNDER_REPORT_SCOPE.md section 4), FR-01 onward. Unit tests over fixed rows: no database, no model, no network.
+// IAC-405 step 5, FR-01 onward. Unit tests over fixed rows: no database, no model, no network.
 const rows: WhyRows = {
   decisions: [
     { kinds: ['AUTO_RECOGNIZED', 'AUTO_SENT', 'AUTO_SEND_CONFIRMED'], recognized: { cents: 6_700n, ruleSetVersion: 'policy-rules-v1', model: 'claude-haiku-5-5>claude-sonnet-5-5', promptVersion: 'compliance-v1.1', recordedAtMs: 1_000 } },

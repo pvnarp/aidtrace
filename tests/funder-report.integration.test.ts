@@ -11,7 +11,7 @@ import { questionFacts } from '../src/analytics/model';
 import { RECEIPT_PAYEE, FINANCIAL_TABLES, createPolicyDatabase, financialHash, receiptClaim, type PolicyDatabase, type ReceiptLineSpec } from './support/policy-db';
 import { ALL_AUTOPILOT, ALL_ASSISTED, SWEEP_ENV, conflictAll, allOk, dbError, setModes, stub, type Handler } from './support/fund-modes';
 
-// IAC-405 step 5 (docs/plans/FUNDER_REPORT_SCOPE.md section 4), FR-12 onward. Real Postgres in the isolated check project. Every claim below reaches its state through the
+// IAC-405 step 5, FR-12 onward. Real Postgres in the isolated check project. Every claim below reaches its state through the
 // real paths: the policy sweep for Autopilot, Assisted, sampled, refused and held decisions, approveDecision and approveAutoRecognized for people, sendClaimPayout for a person's send.
 // The PayPal provider is a stub and every model call goes to a stub. Nothing reaches a network or a key.
 vi.setConfig({ testTimeout: 120_000, hookTimeout: 120_000 });

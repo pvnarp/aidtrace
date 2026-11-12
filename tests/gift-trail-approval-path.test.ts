@@ -4,7 +4,7 @@ import {
 } from "../src/donation/trail";
 import { autoRecognizedSent, classifyApprovalPath } from "../src/fund-modes/recorded-path";
 
-// IAC-405 PR GT (docs/GATE_REPORT.md, "Gift trail names the approval path"), tests GTA-01 onward. The ids GT-06 to GT-18 belong to tests/gift-trail.test.ts (IAC-413), so these use GTA.
+// IAC-405 PR GT ("Gift trail names the approval path"), tests GTA-01 onward. The ids GT-06 to GT-18 belong to tests/gift-trail.test.ts (IAC-413), so these use GTA.
 // Pure: no database, no clock, no network.
 const BATCH = "PAYOUTBATCH1234567890ABCDEF";
 const app = (over: Partial<TrailApplication> = {}): TrailApplication => ({ lineDescription: "Classroom supplies", vendor: "Maple Street Stationers", appliedCents: 2500n, lineCents: 5000n, approvalCount: 0, approvalPath: null, payout: "NO_PAYMENT", batchId: null, ...over });

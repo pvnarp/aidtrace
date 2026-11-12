@@ -15,7 +15,7 @@ import { runPolicyChecks } from "../src/policy/service";
 import { COMPLIANCE_ARM, sha256 } from "../src/policy/compliance";
 import { addLegacyPhotoColumn, createPolicyDatabase, financialHash, receiptClaim, tableHash, type PolicyDatabase } from "./support/policy-db";
 
-// IAC-405 step 1 piece G and N1, migration 0017 (docs/ASSUMPTIONS.md section 60): the same method as PC-24 for 0015 and GT-33 for 0016. Real Postgres in the
+// IAC-405 step 1 piece G and N1, migration 0017: the same method as PC-24 for 0015 and GT-33 for 0016. Real Postgres in the
 // isolated check project. No network, no key. Every model call here is a stub that throws if it is ever reached.
 vi.setConfig({ testTimeout: 60_000, hookTimeout: 60_000 });
 const open: PolicyDatabase[] = []; const folders: string[] = [];
@@ -66,7 +66,7 @@ describe("migration 0017 on a database that already holds retained data", () => 
     expect(await hashes()).toEqual(retained);
     expect((await tables()).filter(name => !existing.includes(name) && name !== "__drizzle_migrations")).toEqual(["fund_policy_clauses", "policy_model_results"]);
     expect(await financialHash(old.client)).toBe(financialBefore);
-    // The seed writes clauses on a fresh database only. An existing database has none until a person records them (ASSUMPTIONS section 60).
+    // The seed writes clauses on a fresh database only. An existing database has none until a person records them.
     expect((await old.client`select count(*)::int as n from fund_policy_clauses`)[0]!.n).toBe(0);
     expect((await old.client`select count(*)::int as n from policy_model_results`)[0]!.n).toBe(0);
 

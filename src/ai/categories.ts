@@ -1,4 +1,4 @@
-// The twenty receipt categories (IAC-382 step 7.2, docs/plans/CATEGORY_RELABEL.md).
+// The twenty receipt categories (IAC-382 step 7.2).
 // Dependency free on purpose: the model containers mount only ./src/ai, and the chooser is a
 // client component. No node imports, no JSON import, no import from outside src/ai.
 

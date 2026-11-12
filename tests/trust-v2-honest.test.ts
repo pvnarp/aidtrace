@@ -5,7 +5,7 @@ import { aiCard, paypalCard, type Stage } from "../src/app/shell-copy";
 import { TRACE_NAMES, traceSteps, type TraceState } from "../src/app/trace";
 import { fundMeter, type SnapshotFund } from "../src/app/fund-meter";
 
-// TV-06 to TV-08 (IAC-415 Trust v2 port PR 2, docs/plans/TRUST_V2_PORT_SCOPE.md sections 3.2, 4 and 5.2, docs/GATE_REPORT.md section 47).
+// TV-06 to TV-08 (IAC-415 Trust v2 port PR 2).
 // Pure functions and static file checks. No database, no network, no browser. The browser checks are e2e/trust-v2.spec.ts (TV-14, TV-15).
 const ai = aiCard({ applicable: true, suggestion: "READY", confirmed: false, aiAccepted: false, savedModel: "Claude Haiku 5.5", configured: { name: "Claude Haiku 5.5", shellName: "Claude Haiku" } });
 const paypal = paypalCard({ claimStatus: "DRAFT", approvals: 0, payout: null });
@@ -105,12 +105,12 @@ describe("TV-08 no unbacked mode or verdict wording under src/app", () => {
   const files = walk("src/app").filter(path => /\.(tsx?|css|md)$/.test(path));
   it("has no unbacked Autopilot, Assisted, Passed every check or Design preview string", () => {
     expect(files.length).toBeGreaterThan(20);
-    // IAC-405 PR F (docs/ASSUMPTIONS.md section 76): "Assisted" is allowed in exactly one file, the mode change section, which shows a mode only from the stored view the page reads
+    // IAC-405 PR F: "Assisted" is allowed in exactly one file, the mode change section, which shows a mode only from the stored view the page reads
     // with the flag on. "Passed every check" and "Design preview" stay banned everywhere, including that file.
     const MODE_SECTION = join("src", "app", "rules-ui", "fund-mode-section.tsx");
-    // IAC-405 PR A (docs/ASSUMPTIONS.md section 77): "Assisted" is also allowed in the Assisted queue files, in the two files that wire them and in the claim page, whose one line reads
+    // IAC-405 PR A: "Assisted" is also allowed in the Assisted queue files, in the two files that wire them and in the claim page, whose one line reads
     // "Human reviews: 1 of 1, Assisted, no holds found". Each shows a mode only from a server read made with the flag on.
-    // IAC-405 PR P (docs/ASSUMPTIONS.md section 78): "Autopilot" is allowed in exactly three files, the mode change section (it offers Autopilot only with the second flag), the kill switch section and
+    // IAC-405 PR P: "Autopilot" is allowed in exactly three files, the mode change section (it offers Autopilot only with the second flag), the kill switch section and
     // the claim page trail for a claim recognized by an AUTO_RECOGNIZED record. Each reads stored data only. "Passed every check" and "Design preview" stay banned everywhere.
     const ASSISTED_FILES = [MODE_SECTION, join("src", "app", "page.tsx"), join("src", "app", "approver-queue", "client.tsx"), join("src", "app", "claims", "[claimId]", "page.tsx"), ...files.filter(path => path.startsWith(join("src", "app", "assisted-queue") + "/"))];
     const AUTOPILOT_FILES = [MODE_SECTION, join("src", "app", "rules-ui", "automation-switch-section.tsx"), join("src", "app", "claims", "[claimId]", "automated-trail.tsx")];

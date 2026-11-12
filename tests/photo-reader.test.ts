@@ -8,7 +8,7 @@ import { createPhotoRateLimiter } from "../src/server/receipt-photo-rate-limit";
 import { FAKE_ENV, FAKE_KEY, claudeMessage, stubClient } from "./support/claude-stub";
 import { goodWire, pngBytes } from "./support/photo";
 
-// IAC-384, PH-01 to PH-10 (docs/GATE_REPORT.md section 72): the photo reader's pure parts and its model call, over a stub client. Nothing here reaches a network, a key or a real model.
+// IAC-384, PH-01 to PH-10: the photo reader's pure parts and its model call, over a stub client. Nothing here reaches a network, a key or a real model.
 const ENV = { ...FAKE_ENV, AI_RECEIPT_ENABLED: "true", AI_RECEIPT_PHOTO_ENABLED: "true" };
 const answering = (value: unknown = goodWire(), over: Record<string, unknown> = {}, model = "claude-haiku-5-5") => stubClient(() => claudeMessage(value, model, over));
 

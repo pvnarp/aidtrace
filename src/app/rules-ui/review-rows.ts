@@ -1,4 +1,4 @@
-// IAC-440 Package B (docs/plans/AI_DRAFTED_RULES_SCOPE.md section 5, docs/ASSUMPTIONS.md section 72). The rows of the review table, built from one stored draft and the
+// IAC-440 Package B. The rows of the review table, built from one stored draft and the
 // fund's current approved rules. Pure. A REFUSED draft has no rows, so no drafted value can be shown for one. The table says where each value came from: the clause
 // and quoted sentence for a value the AI drafted, "Changed by a person" for an edit, and "Not settled by the grant" for a field the text does not settle.
 import { BUDGET_LINES, THRESHOLD_KEYS, type DraftField, type ThresholdKey } from "../../rules-draft/draft-validate";

@@ -9,7 +9,7 @@ import { handlePolicyChecks } from "../src/server/policy-actions";
 import { ORIGIN, createPolicyDatabase, postRequest, receiptClaim, sessionFor, type PolicyDatabase, type ReceiptLineSpec } from "./support/policy-db";
 import { AI_ENV, ALL_ASSISTED, ALL_AUTOPILOT, FLAG_ON, SWEEP_ENV, allOk, dbError, otherOrganization, setMode, setModes, stub, type Handler } from "./support/fund-modes";
 
-// IAC-405 step 2 PR F (docs/plans/FUND_MODES_SCOPE.md section 3 item 4, docs/ASSUMPTIONS.md section 76), FM-13 to FM-20: the SWEEP run trigger, the web route, the flag, keyless
+// IAC-405 step 2 PR F, FM-13 to FM-20: the SWEEP run trigger, the web route, the flag, keyless
 // behavior, recognition by the sweep, Manual decisions left alone, no network and liveness. Real Postgres in the isolated check project. Every model call goes to a stub.
 vi.setConfig({ testTimeout: 60_000, hookTimeout: 60_000 });
 let ctx: PolicyDatabase;

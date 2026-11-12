@@ -12,7 +12,7 @@ import { leafColumns } from "../src/app/grid/columns";
 import { PhoneExtras } from "../src/app/grid/phone";
 import { frameRows } from "../src/app/approver-queue/client";
 
-// IAC-414 Q1 (docs/plans/GRID_SURFACES_SCOPE.md section 3.2 step A), tests AQ-11 to AQ-20. Pure unit tests and source text checks: no database, no browser.
+// IAC-414 Q1, tests AQ-11 to AQ-20. Pure unit tests and source text checks: no database, no browser.
 const sample = (over: Partial<ApproverQueueRow> = {}): ApproverQueueRow => ({
   id: "R-0a1b2c3d-0000-4000-8000-000000000001", claimant: "Maria Alvarez", vendor: "Cedar Science Shop", fund: "Tallow Creek Robot Kit Initiative, General Operating", amountCents: "30000",
   approvalCount: 1, approvals: "Approvals: 1 of 2", waitingSince: "2026-11-01T10:00:00.000Z", age: "2h", href: "/claims/R-0a1b2c3d-0000-4000-8000-000000000001", ...over,
@@ -190,7 +190,7 @@ describe("AQ-16 static: the queue never writes", () => {
   });
   it("is imported by the home page and the grid files only", () => {
     const importers = walk("src").filter(path => path !== LOADER && /\.(ts|tsx)$/.test(path) && /server\/approver-queue|\.\.\/approver-queue|\.\/approver-queue/.test(source(path))).sort();
-    // IAC-405 PR A adds the two files of the Assisted queue that reuse the queue columns and the row type (docs/ASSUMPTIONS.md section 77).
+    // IAC-405 PR A adds the two files of the Assisted queue that reuse the queue columns and the row type.
     expect(importers).toEqual([join(DIR, "cells.tsx"), join(DIR, "client.tsx"), join(DIR, "columns.ts"), join("src", "app", "page.tsx"), join("src", "app", "assisted-queue", "client.tsx"), join("src", "app", "assisted-queue", "columns.ts")].sort());
   });
 });
@@ -271,7 +271,7 @@ describe("AQ-20 static: the home page", () => {
   });
 });
 
-// Desktop polish (docs/ASSUMPTIONS.md section 74, docs/GATE_REPORT.md section 62), HP-08 and HP-09. The browser geometry is HP-01 to HP-03 and HP-10 in e2e/approver-queue.spec.ts.
+// Desktop polish, HP-08 and HP-09. The browser geometry is HP-01 to HP-03 and HP-10 in e2e/approver-queue.spec.ts.
 describe("HP-08 the queue frame follows the row count", () => {
   const rules = source(join(DIR, "approver-queue.css")).replace(/\/\*[\s\S]*?\*\//g, "");
   it("is one row for one claim, never fewer than one row and never more than twelve", () => {

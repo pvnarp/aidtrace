@@ -58,7 +58,7 @@ it.each(Object.keys(oldLabel))("IAC-382: an existing database holding the old %s
 });
 
 // CAT-13 (IAC-382 step 7.2): the category ids and the prohibited list are part of the fixture comparison, so a database seeded with the
-// old ids refuses the new seed instead of being rewritten (fresh databases only, ASSUMPTIONS 36).
+// old ids refuses the new seed instead of being rewritten (fresh databases only).
 const oldCategories: Record<string, () => Promise<unknown>> = {
   "claim line categories": async () => {
     await connection.db.update(s.claimLines).set({ category: "science_kits" }).where(and(eq(s.claimLines.claimId, "C-104"), eq(s.claimLines.id, "L1")));

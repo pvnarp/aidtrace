@@ -4,7 +4,7 @@ import { BUDGET_LINES, THRESHOLD_KEYS } from "../src/rules-draft/draft-validate"
 import { EDIT_CAP_FIELDS, EDIT_CATEGORY_PREFIX, EDIT_PROGRAM_PREFIX, EDIT_THRESHOLD_FIELDS, centsToInput, keepOrder, parseDate, parseDays, parseDollars, parseEditForm } from "../src/server/rules-input";
 import { createRefusalCode, createUnavailableCode, actionRefusalCode, noticeQuery, refusedDraftReason, rulesNotice } from "../src/server/rules-notices";
 
-// IAC-440 Package B, DR-89 to DR-91 (docs/GATE_REPORT.md section 60). Pure parsers and the fixed notice table. No database, no network, no model.
+// IAC-440 Package B, DR-89 to DR-91. Pure parsers and the fixed notice table. No database, no network, no model.
 
 describe("DR-89 dollar text becomes integer cents by string arithmetic, and planted bad input is refused", () => {
   it.each([

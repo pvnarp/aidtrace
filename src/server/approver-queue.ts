@@ -3,7 +3,7 @@ import * as s from "../../db/schema";
 import type { AppDatabase } from "./db";
 import { approvalsText } from "../ledger/view";
 
-// IAC-414 Q1 (docs/plans/GRID_SURFACES_SCOPE.md section 3.2 step A): the approver queue loader.
+// IAC-414 Q1: the approver queue loader.
 // One transaction that starts `set transaction read only` at repeatable read, and SELECT statements only. It imports neither the PayPal
 // adapter nor a ledger writer, and it never calls the approval code. Cents leave this module as decimal strings and the grid turns them
 // into bigint. No floating point value holds money here. Today's membership rule is kept as it was on the home page: a practice receipt

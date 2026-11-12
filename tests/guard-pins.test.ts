@@ -2,8 +2,8 @@ import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { basename, join } from "node:path";
 import { describe, expect, it } from "vitest";
 
-// GP-01 to GP-03: repository-wide pins for docs/SPEC.md section 13 rule 7 ("Only `src/paypal/adapter.ts` may call PayPal.
-// Only the ledger module may write journal entries.") and AGENTS.md section 3. Source text only. No database, no network.
+// GP-01 to GP-03: repository-wide pins for two rules: "Only `src/paypal/adapter.ts` may call PayPal.
+// Only the ledger module may write journal entries." Source text only. No database, no network.
 // AU-22 (tests/autopilot-static.test.ts) covers only the payouts path under src; these cover absolute PayPal host URLs, the
 // v1 to v3 REST families listed in PAYPAL_REST, scripts and release, and the journal tables. A relative path outside that
 // family list is not detected.

@@ -1,7 +1,7 @@
 import { NextRequest } from "next/server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-// IAC-413 PR A (docs/plans/DONOR_TRAIL_SCOPE.md sections 3.3 and 3.4, tests GT-22 and GT-24 at the proxy). The limiter and the database
+// IAC-413 PR A (tests GT-22 and GT-24 at the proxy). The limiter and the database
 // handle are replaced, so no database is touched: this checks which paths take a slot and what a refused request looks like.
 const mocks = vi.hoisted(() => ({ take: vi.fn<(db: unknown) => Promise<boolean>>(), handle: { sentinel: "db-handle" } }));
 vi.mock("../src/server/gift-rate-limit", () => ({ takeGiftPageSlot: mocks.take }));

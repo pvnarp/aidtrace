@@ -1,4 +1,4 @@
-// IAC-440 Package B (docs/plans/AI_DRAFTED_RULES_SCOPE.md sections 3 to 5 and 7, docs/ASSUMPTIONS.md section 72). The three approver-only routes of the rule
+// IAC-440 Package B. The three approver-only routes of the rule
 // drafting screens: create a draft from pasted text, act on a draft (approve, withdraw or edit), and read the text out of an uploaded PDF.
 // Each route runs its checks in one fixed order: method, origin, session, role, ids (and that the fund or draft is in the actor's organization), content type,
 // bounded body, exact fields. Another organization's fund or draft looks the same as no fund or draft. A handler never answers with an error, a stack, a library

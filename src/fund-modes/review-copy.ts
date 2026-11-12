@@ -1,4 +1,4 @@
-// IAC-405 PR A follow-up (docs/ASSUMPTIONS.md section 77 item 13): the fixed sentences that change when a claim's stored decision needs one human approval because it is
+// IAC-405 PR A follow-up: the fixed sentences that change when a claim's stored decision needs one human approval because it is
 // Assisted with no holds found. No imports, so browser and server share it. A caller picks the one-approval text only from the server's stored decision or audit fact
 // (reviewLineMode); every other claim, and every page with the flag off, keeps the text it always had, which stays where it was.
 export const APPROVALS_HEADING_ONE = "Human review";

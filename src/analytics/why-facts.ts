@@ -1,9 +1,9 @@
 import { usd, type Fact } from './model';
 
-// IAC-405 step 5 (docs/plans/FUNDER_REPORT_SCOPE.md section 2). The server-written facts for the two "why" questions, built from rows by a pure function.
+// IAC-405 step 5. The server-written facts for the two "why" questions, built from rows by a pure function.
 // No database, server or React import. Facts are counts, amounts and closed words only: no name, email, claim id, provider id or free text.
 // A version string reaches the model only when it matches VERSION_PATTERN. The stored model is a ">" joined chain such as "claude-haiku-5-5>claude-sonnet-5-5",
-// so each part is checked against the same pattern (docs/ASSUMPTIONS.md section 86).
+// so each part is checked against the same pattern.
 export const VERSION_PATTERN = /^[a-z0-9.-]{1,64}$/;
 export const UNRECOGNIZED_VERSION = 'an unrecognized version';
 export type WhyRecognized = { cents: bigint; ruleSetVersion: string | null; model: string | null; promptVersion: string | null; recordedAtMs: number };

@@ -1,4 +1,4 @@
-// IAC-405 step 3 PR P (docs/ASSUMPTIONS.md section 78). The approver-only routes for the automation kill switch (guardrail G8): propose on, confirm on, turn off (fund rules page), and
+// IAC-405 step 3 PR P. The approver-only routes for the automation kill switch (guardrail G8): propose on, confirm on, turn off (fund rules page), and
 // "Disagree" with an automated payment (claim page). Same fixed order of checks as src/server/fund-mode-actions.ts, with the second flag first: an instance without FUND_AUTOPILOT_ENABLED answers 404
 // as if the route did not exist. A handler never answers with an error, a database message or request text: every redirect carries a code from src/server/rules-notices.ts or none at all.
 // It imports no module of the money path, no provider module and no sweep module: the only writers it reaches are in src/fund-modes/switch.ts.

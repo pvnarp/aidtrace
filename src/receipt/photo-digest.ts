@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 
-// IAC-384 fix round (docs/ASSUMPTIONS.md section 83 item 16): one canonical serialization of the content a photo read pre-fills, so the server can tell whether a saved draft still
+// IAC-384 fix round: one canonical serialization of the content a photo read pre-fills, so the server can tell whether a saved draft still
 // holds what the AI read. Vendor, each line description and amount in order, the total and the receipt text count. The date and the program do not: the person chooses those.
 // Only the SHA-256 is ever stored, never the serialization or the transcript. Pure, so the read route (which builds the pre-fill) and the receipt service (which saves the submitted values)
 // share exactly one definition.

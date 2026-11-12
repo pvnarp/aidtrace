@@ -8,7 +8,7 @@ import { connectDatabase } from "../src/server/db";
 import { seedFixture } from "../db/fixture";
 import { ensureFixtureOpening } from "../src/ledger/opening";
 
-// IAC-384, the browser check of the receipt photo reader (docs/GATE_REPORT.md section 72, PH-40 and onward). The real flow in a desktop browser: a claimant chooses a photo of a
+// IAC-384, the browser check of the receipt photo reader (PH-40 and onward). The real flow in a desktop browser: a claimant chooses a photo of a
 // sample receipt, sees the draft form filled and the photo beside it, reads an arithmetic mismatch, a failed read, submits, and reaches the draft with the photo evidence line.
 // Every model answer comes from a loopback stub that this file defines (UI_TEST_CONTAINER sends Claude requests to 127.0.0.1:8080). It is NOT a real model result.
 // The fixture PNG is rendered by the browser itself from inline HTML. Each test starts its own database and next server on 3100, like rules-draft.spec.

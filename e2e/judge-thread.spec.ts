@@ -43,7 +43,7 @@ async function traceAt(page: Page, name: string) {
   await expect(page.locator(`nav[aria-label="Expense trace"] [aria-current=step]`)).toHaveCount(1);
   await expect(page.locator(`nav[aria-label="Expense trace"] [aria-current=step] .t`)).toHaveText(name);
 }
-// TH-07 to TH-11 (November 10 judge thread, docs/GATE_REPORT.md section 118): the real flow with separate sign-ins, in an isolated database, AI off.
+// TH-07 to TH-11 (November 10 judge thread): the real flow with separate sign-ins, in an isolated database, AI off.
 const FILLED = "rgb(10, 102, 255)";
 /** Names of the visible controls in main that carry the primary fill. A scroll-only action must never be one. */
 async function filledPrimaries(page: Page) {

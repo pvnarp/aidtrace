@@ -2,7 +2,7 @@ import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
-// IAC-440 Package B, DR-119 (docs/GATE_REPORT.md section 60): what the review screen, its three routes and its helpers may import and do. Source text only.
+// IAC-440 Package B, DR-119: what the review screen, its three routes and its helpers may import and do. Source text only.
 // Package A's DR-37 pins the importers of src/rules-draft. This file pins the Package B edge: no PayPal, ledger write, payout, claim approval or webhook module,
 // no markup injection, no logging, no cross-origin header, no environment read in the new server files.
 const walk = (dir: string): string[] => readdirSync(dir).flatMap(name => { const path = join(dir, name); return statSync(path).isDirectory() ? walk(path) : [path]; });
@@ -11,7 +11,7 @@ const code = (path: string) => source(path).split("\n").map(line => line.replace
 const imports = (text: string) => [...text.matchAll(/^\s*(?:import|export)\s+(?!type\b)[^;]*?from\s+["']([^"']+)["']/gm)].map(match => match[1]!)
   .concat([...text.matchAll(/\bimport\(\s*["']([^"']+)["']\s*\)/g)].map(match => match[1]!));
 const BANNED = /(^|\/)(ledger\/(service|payout|retry|journal|donation|opening|reconcile|snapshot|webhooks)|paypal|server\/claim-actions|server\/payments|server\/webhook-[a-z]+)(\/|$)/;
-// Two pinned ledger edges, each the one serializable helper: Package A's drafts.ts and the fund mode change service (IAC-405 PR F, ASSUMPTIONS 76). The second is held to exactly { serializable } below.
+// Two pinned ledger edges, each the one serializable helper: Package A's drafts.ts and the fund mode change service (IAC-405 PR F). The second is held to exactly { serializable } below.
 const PINNED_EDGES = [{ file: "src/rules-draft/drafts.ts", target: "../ledger/service" }, { file: "src/fund-modes/change.ts", target: "../ledger/service" }, { file: "src/fund-modes/bulk-approve.ts", target: "../ledger/service" }];
 const isPinned = (file: string, target: string) => PINNED_EDGES.some(edge => edge.file === file && edge.target === target);
 

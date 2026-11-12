@@ -5,7 +5,7 @@ import {
 } from 'ag-grid-community';
 
 /**
- * Named Community modules only, never the all-modules bundle (docs/plans/GRID_SURFACES_SCOPE.md section 2.2).
+ * Named Community modules only, never the all-modules bundle.
  *
  * Deviation, verified against the installed 36.2.0 package: ColumnGroup and KeyboardNavigation are not public named exports there
  * (only underscore-prefixed internals exist). The grid core module lists both, with ClientSideRowModel, ColumnMove and others, in
@@ -52,7 +52,7 @@ export function gridModules(extra: readonly Module[] = []): Module[] {
 }
 
 /**
- * IAC-405 PR A (docs/ASSUMPTIONS.md section 77): the one Community module a grid adds to select rows, named on the allowed list above as RowSelection. It is not in BASE_MODULES, so a
+ * IAC-405 PR A: the one Community module a grid adds to select rows, named on the allowed list above as RowSelection. It is not in BASE_MODULES, so a
  * grid that does not pass it as an extra module has no row selection. Only the assisted approver queue passes it.
  */
 export const SELECTION_MODULES: readonly Module[] = [RowSelectionModule];

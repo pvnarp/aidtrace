@@ -9,7 +9,7 @@ import { seedFixture } from "../db/fixture";
 import { ensureFixtureOpening } from "../src/ledger/opening";
 import * as s from "../db/schema";
 
-// TV-14 and TV-15 (IAC-415 Trust v2 port PR 2, docs/plans/TRUST_V2_PORT_SCOPE.md section 5.2, docs/GATE_REPORT.md section 47).
+// TV-14 and TV-15 (IAC-415 Trust v2 port PR 2).
 // Each test starts its own isolated database and next server on 3100, like journey.spec. AI is off so categories are chosen by a person.
 let admin: ReturnType<typeof postgres>, connection: ReturnType<typeof connectDatabase>;
 let server: ChildProcess | undefined, name: string;

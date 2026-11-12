@@ -7,7 +7,7 @@ import { ChecksCell } from './cells';
 export type AssistedQueueRow = ApproverQueueRow & { claimVersion?: number; checks?: string; selectable?: boolean };
 
 /**
- * The approver queue columns with one more, Checks, directly after Status (IAC-405 PR A, docs/ASSUMPTIONS.md section 77). The seven columns of the queue are the same objects the queue
+ * The approver queue columns with one more, Checks, directly after Status (IAC-405 PR A). The seven columns of the queue are the same objects the queue
  * uses on its own, so nothing else about them changes. The Checks column filters and exports as plain text: "No holds found", "N holds" or "Not checked yet".
  */
 export function assistedColumns(): GridColumn<AssistedQueueRow>[] {

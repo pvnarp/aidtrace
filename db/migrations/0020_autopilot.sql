@@ -42,7 +42,7 @@ ALTER TABLE "disbursement_origins" ADD CONSTRAINT "disbursement_origins_signed_b
 ALTER TABLE "disbursement_origins" ADD CONSTRAINT "disbursement_origins_automated_decision_id_automated_decisions_id_fk" FOREIGN KEY ("automated_decision_id") REFERENCES "public"."automated_decisions"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "payee_email_history" ADD CONSTRAINT "payee_email_history_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE no action ON UPDATE no action;
 --> statement-breakpoint
--- IAC-405 step 3 PR P (docs/plans/FUND_MODES_SCOPE.md section 5; docs/ASSUMPTIONS.md section 78). Hand-written guards, appended after the generated DDL as migrations 0014 to 0019 did.
+-- IAC-405 step 3 PR P. Hand-written guards, appended after the generated DDL as migrations 0014 to 0019 did.
 -- The three new tables are immutable: no update, no delete, no truncate. Nothing here posts to the ledger, and no automated record is ever an approval.
 CREATE FUNCTION aidtrace_claim_payee_history() RETURNS trigger LANGUAGE plpgsql AS $$
 BEGIN

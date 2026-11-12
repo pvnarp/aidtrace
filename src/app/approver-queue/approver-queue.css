@@ -20,7 +20,7 @@
 .aq-mini i[data-state=done]:not(:last-child)::after { background: var(--navy); }
 .aq-mini i[data-state=current]:not(:last-child)::after { left: calc(100% + 3px); }
 .aq-review { display: inline-flex; align-items: center; min-width: 44px; min-height: 44px; font-weight: 600; color: var(--accent-ink); }
-/* Desktop polish (docs/ASSUMPTIONS.md section 74). With queued claims the home is one column of full-width rows: the head text, then the fund meters, then the queue and the links.
+/* Desktop polish. With queued claims the home is one column of full-width rows: the head text, then the fund meters, then the queue and the links.
    The meters used to be a right rail taller than the head text, which left an empty band under the lede. Each fund is a panel in one auto-fit row, with the panel look of
    the Trust v2 tokens and no new color. The phone and tablet order (900 px and below) is set in style.css and is unchanged. */
 @media (min-width: 901px) {

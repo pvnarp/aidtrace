@@ -2,8 +2,8 @@ import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
-// IAC-232 and IAC-440, DR-136 to DR-140 (docs/GATE_REPORT.md section 93): source text only.
-// November 5 owner decision (docs/decisions.md, "Rule drafts and the photo reader on in judge sessions"):
+// IAC-232 and IAC-440, DR-136 to DR-140: source text only.
+// November 5 owner decision ("Rule drafts and the photo reader on in judge sessions"):
 // exactly one compose file, by full path, may turn AI_RULE_DRAFTS_ENABLED on. Every other compose file, script and tracked environment example must not.
 // An export flattens release/judge into the root and has no release/judge folder. In the repository a missing judge compose must fail, so the mode comes from the folder, not from the file.
 import { EXPORT_MODE } from "./support/export-mode";

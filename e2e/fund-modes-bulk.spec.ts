@@ -13,7 +13,7 @@ import { runPolicyChecks } from "../src/policy/service";
 import { receiptClaim, type ReceiptLineSpec } from "../tests/support/policy-db";
 import { AI_ENV, ALL_ASSISTED, allOk, setModes, stub } from "../tests/support/fund-modes";
 
-// IAC-405 step 2 PR A, the browser check of the Assisted approver queue (docs/ASSUMPTIONS.md section 77, AS-40 and AS-41). With the fund modes flag on and an Assisted fund, an approver sees the
+// IAC-405 step 2 PR A, the browser check of the Assisted approver queue (AS-40 and AS-41). With the fund modes flag on and an Assisted fund, an approver sees the
 // Checks column, selects the two clean claims, approves them in one click, and the claim with a hold stays waiting. With the flag off the same stored claims show the queue as it always was, and the
 // route does not exist. No model call is made: the stored runs come from a stub in this test process, and the app server has no AI key. Each test starts its own database and next server on 3100.
 test.use({ viewport: { width: 1440, height: 900 }, isMobile: false, hasTouch: false });

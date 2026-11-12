@@ -1,8 +1,8 @@
 # Use the pure allocation functions
 
-IAC-134 implements allocate.ts and naive.ts from SPEC Section 4. model.ts defines the
+IAC-134 implements allocate.ts and naive.ts. model.ts defines the
 approved policy and capacity snapshot contract, policy eligibility, and candidate validation.
-Money and costs are bigint cents. Input snapshots are not mutated. See docs/IAC134_VERIFICATION.md.
+Money and costs are bigint cents. Input snapshots are not mutated.
 
 allocate first minimizes unrestricted cents, then minimizes original v1 priority cost while
 holding that minimum. Shared budget-line nodes enforce caps across several categories.

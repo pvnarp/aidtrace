@@ -1,6 +1,6 @@
 # Use the transactional ledger
 
-IAC-135 implements SPEC Sections 5 to 8. Only this module writes application journals.
+IAC-135 implements the ledger. Only this module writes application journals.
 The accounting-inspired recognition/release model remains pending nonprofit accountant review.
 
 - journal.ts validates exact cents and source replay, then writes a complete balanced batch.
@@ -15,10 +15,10 @@ The accounting-inspired recognition/release model remains pending nonprofit acco
 PostgreSQL migrations enforce deferred balancing, immutable journal/approval/frozen records,
 same-transaction posting/edge insertion and recognized claim immutability. Admins are trusted.
 tests/ledger.integration.test.ts creates and removes only its uniquely named test database.
-Its simulated settlement is test data, not a provider call. See docs/IAC135_VERIFICATION.md.
+Its simulated settlement is test data, not a provider call.
 
 IAC-136 adds payout.ts: persist sender identity and UNKNOWN before a provider POST, bind
 independent status responses to the approved item, and post settlement/actual fees once.
 Network calls happen outside database transactions. Only this module posts application
 settlement journals. Refund/reversal and fee conflicts need manual review; unknown or failed
-attempts cannot obtain a new sender ID here. See docs/IAC136_VERIFICATION.md.
+attempts cannot obtain a new sender ID here.

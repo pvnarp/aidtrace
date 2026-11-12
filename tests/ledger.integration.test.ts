@@ -175,7 +175,7 @@ describe("IAC-135 real PostgreSQL ledger and approval boundaries", () => {
     expect((await db.select().from(s.fundReservations).where(eq(s.fundReservations.decisionId, frozen.decisionId)))[0]!.status).toBe("RELEASED");
     expect((await db.select().from(s.claims).where(eq(s.claims.id, "infeasible-edit")))[0]!.status).toBe("DRAFT");
   });
-  // FRZ-01 (IAC-415 PR 4, docs/GATE_REPORT.md section 51). Read-only evidence for the claimant's "Receipt or fund policy changed? Re-check the frozen terms"
+  // FRZ-01 (IAC-415 PR 4). Read-only evidence for the claimant's "Receipt or fund policy changed? Re-check the frozen terms"
   // copy on an awaiting claim: unchanged terms keep the decision and approvals, changed terms funded again replace both, changed terms not funded return
   // the claim to draft (the test above). It asserts current freezeDecision behavior and changes none.
   it("FRZ-01: re-freezing an awaiting claim keeps the decision and approvals when nothing changed and replaces them when the terms changed", async () => {

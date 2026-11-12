@@ -4,16 +4,16 @@ import type { AppDatabase } from "../server/db";
 import type { LedgerTransaction } from "../ledger/journal";
 import { attributeGifts, type AttributionResult } from "./attribution";
 
-// IAC-379 step 2: the read-only loader for GIFT_ATTRIBUTION_V1 (docs/plans/DONATION_LOOP_SCOPE.md section 5).
+// IAC-379 step 2: the read-only loader for GIFT_ATTRIBUTION_V1.
 // It issues SELECT statements only. It writes no row, posts no journal entry and changes no allocation, reservation,
 // freeze, confirmation or approval. No exact PayPal capture time is stored (effective_on is only a date), so the timing basis
-// for a gift is the time AidTrace recorded the completed capture (docs/ASSUMPTIONS.md sections 39 and 94): the recorded_at of
+// for a gift is the time AidTrace recorded the completed capture: the recorded_at of
 // the gift's paypal_capture fund credit, which src/ledger/donation.ts inserts only in the transaction that completes the receipt.
 // donation_receipts.recorded_at is not enough on its own: a receipt first stored as PENDING keeps its PENDING insert time when
 // it later completes (the migration 0006 guard refuses a change), so it could date a gift before the money reached the fund.
 // The later of the two times is used. attributeGifts uses the oldest open layer first, so a later time for one gift can move
 // gifts in the same fund between claims: the gift first stored PENDING, and other gifts whose layers it used to precede. An
-// approved note for any gift in that fund may then disagree with a later read (ASSUMPTIONS section 94). A completed receipt with no
+// approved note for any gift in that fund may then disagree with a later read. A completed receipt with no
 // credit row (only rows inserted outside recordDesignatedDonation, as some tests do) falls back to the receipt time.
 // The basis for a claim is allocation_decisions.recognized_at.
 export async function readGiftAttribution(db: AppDatabase | LedgerTransaction, organizationId: string): Promise<AttributionResult> {

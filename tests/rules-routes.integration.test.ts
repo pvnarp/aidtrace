@@ -17,7 +17,7 @@ import { buildPdf, FIXTURE_LINES, FIXTURE_TEXT } from "./support/pdf-fixtures";
 import { AGREEMENT, RULE_ENV, draftMessage, goodAnswer, unsureList } from "./support/rules-draft";
 import { randomBytes } from "node:crypto";
 
-// IAC-440 Package B, DR-92 to DR-105 (docs/GATE_REPORT.md section 60): the three approver-only routes, on real Postgres with a stubbed model. Every request here is built
+// IAC-440 Package B, DR-92 to DR-105: the three approver-only routes, on real Postgres with a stubbed model. Every request here is built
 // by hand and handed to the handler the route files call. No network, no key, no real model. The model stub counts the calls it receives, so "nothing was sent" is a count.
 vi.setConfig({ testTimeout: 60_000, hookTimeout: 60_000 });
 const ORIGIN = "http://127.0.0.1:3100";

@@ -3,7 +3,7 @@ import * as s from "../../db/schema";
 import type { AppDatabase } from "../server/db";
 import type { PhotoCallFacts, PhotoOutcome } from "../ai/claude-photo";
 
-// Provenance of receipt photo reads (IAC-384, docs/ASSUMPTIONS.md section 83). One append-only row per model call, written here and nowhere else.
+// Provenance of receipt photo reads (IAC-384). One append-only row per model call, written here and nowhere else.
 // A row holds the SHA-256 of the photo and the call facts. It never holds the photo, its base64, the transcript or an error message.
 type Reader = Pick<AppDatabase, "select">;
 

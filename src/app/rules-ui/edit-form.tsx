@@ -1,4 +1,4 @@
-// IAC-440 Package B (docs/plans/AI_DRAFTED_RULES_SCOPE.md section 5, docs/ASSUMPTIONS.md section 72). The edit form of an open draft. Presentation only: the route parses it
+// IAC-440 Package B. The edit form of an open draft. Presentation only: the route parses it
 // (src/server/rules-input.ts) and the validator decides. Dollar fields show and take dollars, and the server turns them into integer cents with string arithmetic.
 // An empty field means "the grant does not say" and is stored as not settled. A change saves as a new draft that needs its own two approvals.
 // November 10 calm rules pages: the same form has two modes. "all" shows every field. "needed" shows only the fields the draft still needs and carries every other

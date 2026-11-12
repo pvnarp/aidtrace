@@ -1,4 +1,4 @@
-// IAC-440 Package B (docs/ASSUMPTIONS.md section 72). Display words and formats for the rule drafting screens. Pure: no database, no clock, no environment.
+// IAC-440 Package B. Display words and formats for the rule drafting screens. Pure: no database, no clock, no environment.
 // Money arrives as integer cents (a number or a decimal string) and is formatted by BigInt arithmetic through the application usd(). Nothing is converted to a float.
 import { BUDGET_NAMES, CATEGORY_NAMES } from "../../ai/categories";
 import { usd } from "../../analytics/model";

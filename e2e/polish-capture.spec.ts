@@ -10,7 +10,7 @@ import { seedFixture } from "../db/fixture";
 import { ensureFixtureOpening } from "../src/ledger/opening";
 import * as s from "../db/schema";
 
-// IAC-415 polish still capture (docs/GATE_REPORT.md sections 50 and 51). Explicit run only: playwright.polish-capture.config.ts, never scripts/run-ui-check.mjs.
+// IAC-415 polish still capture. Explicit run only: playwright.polish-capture.config.ts, never scripts/run-ui-check.mjs.
 // Test one walks the real flow with AI off: the claimant freezes the allocation and two separate approver sign-ins approve it, in an isolated database.
 // IAC-415 PR 4: the still names are unchanged so the heights compare with section 50. The stubbed claim-model-rows still keeps the all-OK stub (every line OK, one sentence per fund), the same stub as the 3,215 px baseline.
 // Test two uses a loopback Claude stub (UI_TEST_CONTAINER sends Claude requests to 127.0.0.1:8080) for the AI states. Those stills carry a -stubbed suffix and

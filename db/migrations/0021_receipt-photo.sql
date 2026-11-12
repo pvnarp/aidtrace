@@ -31,7 +31,7 @@ ALTER TABLE "receipt_reviews" ADD CONSTRAINT "receipt_reviews_photo_read_id_rece
 CREATE UNIQUE INDEX "receipt_review_photo_read_first" ON "receipt_reviews" USING btree ("photo_read_id") WHERE "receipt_reviews"."revision" = 1;--> statement-breakpoint
 ALTER TABLE "receipt_reviews" ADD CONSTRAINT "receipt_photo_unchanged_needs_link" CHECK (not "receipt_reviews"."photo_unchanged" or "receipt_reviews"."photo_read_id" is not null);
 --> statement-breakpoint
--- IAC-384 (docs/ASSUMPTIONS.md section 83). Hand-written guards, appended after the generated DDL as migrations 0014 to 0020 did.
+-- IAC-384. Hand-written guards, appended after the generated DDL as migrations 0014 to 0020 did.
 -- receipt_photo_reads is append-only: no update, no delete, no truncate. A read row names a user of its own organization. Nothing here posts to the ledger, approves or pays.
 CREATE FUNCTION aidtrace_photo_read_insert_guard() RETURNS trigger LANGUAGE plpgsql AS $$
 BEGIN

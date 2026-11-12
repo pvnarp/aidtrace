@@ -253,7 +253,7 @@ test('LG-05: the fund filter, the type filter and the quick filter change the vi
   await expect(status(page)).toHaveText(`Showing ${all} of ${all}`); await expect(page.getByLabel('Search this table')).toHaveValue('');
 });
 
-// Orchestrator probe for the open LG-05 observation (GATE_REPORT section 45): a column filter cleared and a quick search typed
+// Orchestrator probe for the open LG-05 observation: a column filter cleared and a quick search typed
 // at once, with no wait between them, must leave the column filter cleared. Read only.
 test('LG-05b: a cleared column filter stays cleared when the quick search changes at once', async ({ page }) => {
   await login(page, 'tara'); await openLedger(page, 1280);
@@ -502,7 +502,7 @@ test('LG-08 and GS-17: the financial hash over the 16 tables is identical after 
   expect(await financialHash()).toBe(baseline);
 });
 
-// CL-E03 (November 10 calm cuts, docs/GATE_REPORT.md section 119). The grid chunk is held back so the skeleton is on screen, then released. The skeleton is replaced by the grid,
+// CL-E03 (November 10 calm cuts). The grid chunk is held back so the skeleton is on screen, then released. The skeleton is replaced by the grid,
 // keeps its loading words as hidden status text, and its outer box matches the grid's, so nothing below it shifts when the grid mounts. Positions are measured against the totals
 // section above (not the page top): the header above it can change height at hydration for a reason that has nothing to do with the grid.
 test('CL-E03 the ledger skeleton is replaced by the grid without a layout shift', async ({ page }) => {

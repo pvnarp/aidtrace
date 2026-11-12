@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { RAIL_RECEIPT_PHOTO, RAIL_RECEIPT_PHOTO_OR_TYPED, aiCard, paypalCard, railLines, type Stage } from "../src/app/shell-copy";
 import { traceSteps } from "../src/app/trace";
 
-// RS-01 to RS-03 (IAC-384 follow-up, docs/GATE_REPORT.md section 84). Wording only: the new receipt page says "Photo or typed text" when the photo reader is on.
+// RS-01 to RS-03 (IAC-384 follow-up). Wording only: the new receipt page says "Photo or typed text" when the photo reader is on.
 const ai = aiCard({ applicable: true, suggestion: "NONE", confirmed: false, aiAccepted: false, savedModel: null, configured: { name: "Claude Haiku 5.5", shellName: "Claude Haiku" } });
 const paypal = paypalCard({ claimStatus: null, approvals: 0, payout: null });
 const base = { typedReceipt: true, ai, approvals: 0, paypal } as const;

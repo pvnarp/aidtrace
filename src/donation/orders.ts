@@ -6,8 +6,8 @@ import type { AppDatabase } from "../server/db";
 import { DONATION_MAX_CENTS, type DonationObservation, type DonationOrderCreateResult, type DonationOrderWriter, type DonationReader } from "../paypal/adapter";
 import { recordDesignatedDonation } from "../ledger/donation";
 
-// IAC-379 step 1, hardened by IAC-391: server-authoritative donation order lifecycle (docs/plans/DONATION_LOOP_SCOPE.md
-// sections 3 and 8, docs/plans/DONATION_HARDENING.md). This module never writes journal entries. Every posting goes
+// IAC-379 step 1, hardened by IAC-391: server-authoritative donation order lifecycle.
+// This module never writes journal entries. Every posting goes
 // through recordDesignatedDonation, which is unchanged.
 //
 // Owner decision 8: gifts are recorded under seeded Tara's approver identity as a system attribution, exactly as

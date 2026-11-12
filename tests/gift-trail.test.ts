@@ -7,7 +7,7 @@ import {
   type TrailApplication, type TrailInput,
 } from "../src/donation/trail";
 
-// IAC-413 PR A (docs/plans/DONOR_TRAIL_SCOPE.md section 3, tests GT-06 to GT-15 and GT-18). Pure: no database, no clock, no network.
+// IAC-413 PR A (tests GT-06 to GT-15 and GT-18). Pure: no database, no clock, no network.
 const BATCH = "PAYOUTBATCH1234567890ABCDEF";
 const app = (over: Partial<TrailApplication> = {}): TrailApplication => ({ lineDescription: "Robot kit parts", vendor: "Maker Supply", appliedCents: 2500n, lineCents: 5000n, approvalCount: 2, payout: "NO_PAYMENT", batchId: null, ...over });
 const input = (over: Partial<TrailInput> = {}): TrailInput => ({ grossCents: 2500n, unspentCents: 0n, fundName: "Tallow Creek Robot Kit Initiative", effectiveOn: "2026-10-22", applications: [app()], ...over });

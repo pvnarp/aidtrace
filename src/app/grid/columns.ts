@@ -5,7 +5,7 @@ import { centsColumn, fieldOf } from './money';
 import { statusInfo } from './status';
 import { COLUMN_FILTER_DEBOUNCE_MS } from './timing';
 
-/** Column builders for the shared grid foundation (docs/plans/GRID_SURFACES_SCOPE.md section 2.1). centsColumn is re-exported from money.ts. */
+/** Column builders for the shared grid foundation. centsColumn is re-exported from money.ts. */
 export { centsColumn };
 
 export type ColumnKind = 'text' | 'cents' | 'date' | 'status';

@@ -14,7 +14,7 @@ ALTER TABLE "donation_orders" ADD CONSTRAINT "donation_order_id_required" CHECK 
 ALTER TABLE "donation_orders" ADD CONSTRAINT "donation_order_attempts_by_status" CHECK ("donation_orders"."capture_attempts" > 0 or "donation_orders"."status" in ('CREATED','APPROVED','FAILED','MISMATCH','EXPIRED'));--> statement-breakpoint
 ALTER TABLE "donation_orders" ADD CONSTRAINT "donation_order_final_has_no_lease" CHECK ("donation_orders"."status" not in ('COMPLETED','FAILED','MISMATCH','EXPIRED') or "donation_orders"."lease_token" is null);
 --> statement-breakpoint
--- IAC-391 (docs/plans/DONATION_HARDENING.md section 5): the guard keeps every rule from migration 0009 and adds the
+-- IAC-391: the guard keeps every rule from migration 0009 and adds the
 -- DECLINED and EXPIRED states, the capture round rotation, the decline history and the create attempt counter.
 CREATE OR REPLACE FUNCTION aidtrace_donation_order_guard() RETURNS trigger LANGUAGE plpgsql AS $$
 DECLARE

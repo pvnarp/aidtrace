@@ -1,7 +1,7 @@
 import { themeQuartz, type Theme } from 'ag-grid-community';
 
 /**
- * Grid theme from the application tokens (docs/plans/GRID_SURFACES_SCOPE.md section 2.3).
+ * Grid theme from the application tokens.
  * Pure given a resolver. The wrapper resolves each alias once at mount from computed styles, so the theme holds concrete colors
  * and nothing depends on whether the theming API accepts var() references.
  */

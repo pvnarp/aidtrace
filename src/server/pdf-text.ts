@@ -1,10 +1,10 @@
-// IAC-440 Package B (docs/plans/AI_DRAFTED_RULES_SCOPE.md section 7, docs/decisions.md "Take the grant as pasted text or a PDF: November 1 IAC-440 D2",
-// docs/ASSUMPTIONS.md section 72). Text out of an uploaded PDF, for the approver to read and edit before anything is sent to the model.
+// IAC-440 Package B: take the grant as pasted text or a PDF.
+// Text out of an uploaded PDF, for the approver to read and edit before anything is sent to the model.
 // The bytes arrive from an approver-only route that has already enforced the size cap while streaming. This module does the rest: the %PDF- magic check,
 // the encryption check, the page cap (read before any page is parsed), the character cap (reading stops the moment the text passes the cap),
 // a wall-clock budget between pages and a one-at-a-time gate. It stores nothing, sends nothing, and returns a code, never a library message.
 //
-// The parser is unpdf 1.9.1, which bundles pdf.js (see docs/ASSUMPTIONS.md section 72 for the license, script and native-binary evidence). pdf.js is told
+// The parser is unpdf 1.9.1, which bundles pdf.js. pdf.js is told
 // not to use eval, not to build font faces, not to use system fonts, not to read XFA, not to stream or range-fetch, and is given no font, cmap or wasm
 // URL, so it has nothing to fetch. Scripting is a viewer feature: the API never runs a PDF action.
 // Residual risk, named: pdf.js has no CPU cap. A hostile file inside the byte and page caps can still occupy this process for one page's worth of work.

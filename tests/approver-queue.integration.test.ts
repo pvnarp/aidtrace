@@ -7,7 +7,7 @@ import { advanceSolverPriority, approveDecision, freezeDecision, rejectClaim } f
 import { createReceiptDraft } from "../src/receipt/service";
 import { createPolicyDatabase, financialHash, insertClaim, receiptClaim, RECEIPT_PAYEE, tableHash, type PolicyDatabase } from "./support/policy-db";
 
-// IAC-414 Q1 (docs/plans/GRID_SURFACES_SCOPE.md section 3.2 step A), tests AQ-01 to AQ-10 and AQ-26. Real Postgres in the isolated check project. No network, no model,
+// IAC-414 Q1, tests AQ-01 to AQ-10 and AQ-26. Real Postgres in the isolated check project. No network, no model,
 // no provider. One database holds every planted case of AQ-01 to AQ-10, because the loader only reads: each test reads the same planted state.
 // AQ-26 changes state (an invalidation and a re-freeze), so it plants its own database at the end of the file.
 vi.setConfig({ testTimeout: 90_000, hookTimeout: 90_000 });

@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { payoutWords, type PayoutAttemptFacts, type PayoutWordsInput } from "../src/app/payout-copy";
 
-// PE-01 (IAC-415 PR 8, "payout end states say what is true", docs/GATE_REPORT.md section 56). Pure function and static source checks: no database, no network, no clock.
+// PE-01 (IAC-415 PR 8, "payout end states say what is true"). Pure function and static source checks: no database, no network, no clock.
 // The browser checks are e2e/payout-end.spec.ts (PE-02 to PE-04). Every expected sentence is a literal here, so a change to the module cannot move the expectation with it.
 const usd = (cents: bigint) => `$${cents / 100n}.${(cents % 100n).toString().padStart(2, "0")}`;
 const attempt = (state: string, providerBalanceCents: bigint | null = null): PayoutAttemptFacts => ({ state, providerBalanceCents });

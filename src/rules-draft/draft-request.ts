@@ -1,4 +1,4 @@
-// IAC-440 Package A (docs/plans/AI_DRAFTED_RULES_SCOPE.md sections 3 and 4). The hosted AI request that drafts a fund rule set from pasted grant text.
+// IAC-440 Package A. The hosted AI request that drafts a fund rule set from pasted grant text.
 // One request, no tools, a strict JSON output schema, the model and effort as parameters (the eval compares Sonnet 5.5 at medium with Haiku 5.5).
 // The request carries only the grant text, the category catalog, the program catalog and the prohibited list: no claim, claimant, payee, donor,
 // balance, ledger id, hash, approval or secret has a field here, so none can reach a request. The model drafts text and values only. This module
@@ -28,7 +28,7 @@ export type DraftModel = (typeof DRAFT_MODELS)[number];
 export const DRAFT_EFFORTS = ["low", "medium", "high"] as const;
 export type DraftEffort = (typeof DRAFT_EFFORTS)[number];
 export type DraftArm = { model: DraftModel; effort: DraftEffort };
-// Decision D5 (docs/plans/AI_DRAFTED_RULES_SCOPE.md section 10): Sonnet 5.5 at medium effort.
+// Decision D5: Sonnet 5.5 at medium effort.
 export const DRAFT_DEFAULT_ARM: DraftArm = { model: "claude-sonnet-5-5", effort: "medium" };
 
 const BUDGET_LINE_TEXT = Object.entries(BUDGET_LINE).filter(([, line]) => line !== "prohibited").map(([category, line]) => `${category} = ${line}`).join("; ");

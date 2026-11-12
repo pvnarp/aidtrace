@@ -1,4 +1,4 @@
-// IAC-405 step 2 PR F (docs/plans/FUND_MODES_SCOPE.md section 3 item 4; docs/ASSUMPTIONS.md section 76). One pass of the policy sweep. For each claim awaiting approval whose decision
+// IAC-405 step 2 PR F. One pass of the policy sweep. For each claim awaiting approval whose decision
 // recorded an Assisted or Autopilot effective mode, it runs the rules check, then the model check (one attempt per decision hash, as today), records a HELD audit row when the
 // stored runs show a hold, and, only when they show no hold, asks the ledger to recognize a decision that already holds its one human approval. It records no approval, sends no
 // payment and never touches a Manual decision. With the flag off it does nothing at all: it selects nothing and spends no model call. Logs carry counts and the first eight

@@ -15,7 +15,7 @@ import { reviewTime } from "../src/server/display";
 import { EDIT_CAP_FIELDS, EDIT_CATEGORY_PREFIX, EDIT_PROGRAM_PREFIX, EDIT_THRESHOLD_FIELDS, parseEditForm } from "../src/server/rules-input";
 import { noticeQuery, rulesNotice } from "../src/server/rules-notices";
 
-// IAC-440 Package B, DR-105 to DR-117 (docs/GATE_REPORT.md section 60): what the review screen, the form, the edit form and the lists show. Reviews are built by hand
+// IAC-440 Package B, DR-105 to DR-117: what the review screen, the form, the edit form and the lists show. Reviews are built by hand
 // from the real types, so a type change fails the typecheck. Static markup only: no database, no browser. The browser path is e2e/rules-draft.spec.ts (DR-130).
 const field = <T>(value: T | null, clauseId: string | null = null, quote: string | null = null, status: FieldStatus = value === null ? "UNSURE" : "DRAFTED"): DraftField<T> => ({ status, value, clauseId, quote });
 const unsure = <T>(): DraftField<T> => field<T>(null);
@@ -454,7 +454,7 @@ describe("DR-120 the home fund row links only restricted funds to the rules page
   });
 });
 
-// Desktop polish (docs/ASSUMPTIONS.md section 74, docs/GATE_REPORT.md section 62). After the first approval the page says "a second, different approver" once.
+// Desktop polish. After the first approval the page says "a second, different approver" once.
 const SECOND_APPROVER = "A second, different approver must approve";
 const occurrences = (html: string, text: string) => html.split(text).length - 1;
 describe("HP-05 the second-approver sentence appears once on the review page after the first approval", () => {
@@ -488,7 +488,7 @@ describe("HP-06 the first approval redirect carries no notice, and an old notice
   });
 });
 
-// November 10 calm rules pages (docs/GATE_REPORT.md section 115). The short "needs you" form shows only the missing fields and carries every other value as a hidden
+// November 10 calm rules pages. The short "needs you" form shows only the missing fields and carries every other value as a hidden
 // input. These read the form the way a browser would post it, untouched, and run it through the route's own parser.
 const posted = (html: string, testId: string): URLSearchParams => {
   const form = new RegExp(`<form [^>]*data-testid="${testId}"[^>]*>([\\s\\S]*?)</form>`).exec(html)?.[1] ?? "";

@@ -5,7 +5,7 @@ import { maskTail } from "./display";
 import { cleanText, DEFAULT_DONOR_NAME, noteTextHash, type PayoutNoteStatus } from "./note";
 import { buildGiftTrail, loadGiftTrailFacts, type PayoutRollup, type Trail, type TrailState } from "./trail";
 
-// IAC-413 PR B (docs/plans/DONOR_TRAIL_SCOPE.md section 4): the approver donations grid loader.
+// IAC-413 PR B: the approver donations grid loader.
 // One transaction that starts `set transaction read only` at repeatable read, and SELECT statements only. It imports neither the
 // PayPal adapter nor a ledger writer. It never reads the gift link table: an approver cannot see or regenerate a donor link (GT-29).
 // Every cent value leaves this module as a decimal string, and the grid turns it into a bigint. No floating point value appears.

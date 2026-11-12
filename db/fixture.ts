@@ -34,12 +34,12 @@ const budgetRows = [
   { fundId: "fund_a", policyVersion: 1, budgetLine: "supplies", capCents: 30000n },
   { fundId: "fund_b", policyVersion: 1, budgetLine: "supplies", capCents: 20000n },
 ];
-// IAC-405 step 1 (docs/plans/POLICY_CHECK_SCOPE.md section 3): version 1 check thresholds for the fixture funds, written on a fresh database only.
-// An existing database is not asserted against these rows and gets no additive seed (docs/ASSUMPTIONS.md).
+// IAC-405 step 1: version 1 check thresholds for the fixture funds, written on a fresh database only.
+// An existing database is not asserted against these rows and gets no additive seed.
 const checkSettings = ["fund_a", "fund_b", "fund_g"].map(fundId => ({ fundId, version: 1, approvedBy: "tara", suppliesLimitCents: 25000n, equipmentLimitCents: 50000n, claimLimitCents: 100000n, staleReceiptDays: 60, duplicateWindowDays: 90, splitWindowDays: 3 }));
-// IAC-405 step 1 piece G and N1 (docs/plans/POLICY_CHECK_SCOPE.md sections 2.2 and 3.3; docs/ASSUMPTIONS.md section 60): the clause text the model
+// IAC-405 step 1 piece G and N1: the clause text the model
 // reads, at the fixture policy version 1, written on a fresh database only and only when migration 0017 has created the table. The wording was
-// finalized on October 31 (docs/decisions.md decision 12) and is seeded word for word. fund_g
+// finalized on October 31 and is seeded word for word. fund_g
 // (General Operating) has no clauses on purpose: the model check skips it. An existing database gets no additive seed, as with the check settings.
 const clauseTexts: Record<string, readonly string[]> = {
   fund_a: [
@@ -80,7 +80,7 @@ function assertRows(actual: Record<string, unknown>[], expected: Record<string, 
   if (comparable(project(actual)) !== comparable(project(expected))) throw new Error("Existing fixture differs; seed refuses to overwrite data. Use a separate workspace or reviewed migration.");
 }
 
-// IAC-405 step 3 PR P (docs/ASSUMPTIONS.md section 78). Design decision 5, November 2: seed it, marked as demo. The seed alone writes one payee_email_history row of source FIXTURE for Maria's
+// IAC-405 step 3 PR P. Design decision 5, November 2: seed it, marked as demo. The seed alone writes one payee_email_history row of source FIXTURE for Maria's
 // payout email, first seen 45 days before the seed runs, so guardrail G6 can pass for her in a fresh database. No claim-creation write can produce that source: the claims trigger of migration 0020
 // writes CLAIM only. The claim page shows a FIXTURE row as demo history. A database taken only through migration 0019 or earlier has no such table, so it is skipped there. Written once.
 const DEMO_HISTORY_DAYS = 45;

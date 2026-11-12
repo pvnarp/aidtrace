@@ -9,7 +9,7 @@ import { traceSteps } from "../src/app/trace";
 import * as review from "../src/fund-modes/review-copy";
 import { POLICY_FOOTER } from "../src/policy/copy";
 
-// IAC-405 PR A follow-up (docs/ASSUMPTIONS.md section 77 item 13), AS-35 to AS-39 and AS-42. A claim whose stored decision needs one approval (Assisted, no holds found) stops saying two.
+// IAC-405 PR A follow-up, AS-35 to AS-39 and AS-42. A claim whose stored decision needs one approval (Assisted, no holds found) stops saying two.
 // Every other claim, and every page with the flag off, keeps its old words byte for byte. The choice is made on the server from the stored decision (reviewMode), never from the client.
 // Pure functions, one static render and source checks. No database, no network, no browser. The pages themselves are checked in e2e/fund-modes-bulk.spec.ts (AS-40, AS-41).
 const ai = aiCard({ applicable: true, suggestion: "READY", confirmed: true, aiAccepted: false, savedModel: "Claude Haiku 5.5", configured: { name: "Claude Haiku 5.5", shellName: "Claude Haiku" } });

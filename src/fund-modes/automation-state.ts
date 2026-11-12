@@ -1,4 +1,4 @@
-// IAC-405 step 3 PR P (docs/ASSUMPTIONS.md section 78). The read of the kill switch state (guardrail G8), kept apart from the writers in switch.ts so the ledger module can read it without
+// IAC-405 step 3 PR P. The read of the kill switch state (guardrail G8), kept apart from the writers in switch.ts so the ledger module can read it without
 // importing the writers. Read-only. ON only when the latest ON or OFF event of the organization is ON, no automated attempt of the organization is still unresolved, and no automated send is
 // left unconfirmed without a later OFF event, and no historical PayPal event review of an automated payment is open.
 import { and, desc, eq, inArray, isNull, sql } from "drizzle-orm";

@@ -1,4 +1,4 @@
-/* Shared data grid styles. Every class and custom property here starts with gx-. docs/plans/GRID_SURFACES_SCOPE.md section 2.3. */
+/* Shared data grid styles. Every class and custom property here starts with gx-. */
 .gx-root {
   --gx-ink: var(--navy, var(--ink, #0b1f3a));        --gx-muted: var(--muted, #5b6b80);
   --gx-paper: var(--paper, #ffffff);                 --gx-soft: var(--bg, var(--soft, #f4f6fa));

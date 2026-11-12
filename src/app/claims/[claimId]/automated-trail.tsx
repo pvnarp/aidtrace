@@ -6,7 +6,7 @@ import { ActionForm } from "./action-form";
 import { lineOf, money, type Result } from "./automated-trail-copy";
 import { paymentLine } from "./payment-line";
 
-// IAC-405 step 3 PR P (docs/ASSUMPTIONS.md section 78). Shown only for a claim whose current decision was recognized by an AUTO_RECOGNIZED record, that is, with no human approval.
+// IAC-405 step 3 PR P. Shown only for a claim whose current decision was recognized by an AUTO_RECOGNIZED record, that is, with no human approval.
 // It reads that stored record and prints the inputs each guardrail read. It checks nothing itself and never says a claim is cleared, approved or passed by a check. A FIXTURE row of
 // payee_email_history reads "demo history". "Disagree" shows for an approver who is not the claimant once the payment was sent, with the second flag on; it turns automation off and reverses nothing.
 // Server component. All values are stored decimal strings, closed codes or ids, rendered as escaped text.

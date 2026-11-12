@@ -1,4 +1,4 @@
-// IAC-440 Package B (docs/ASSUMPTIONS.md section 72). The fund's drafts, newest first, with state and approvals. Presentation only.
+// IAC-440 Package B. The fund's drafts, newest first, with state and approvals. Presentation only.
 import type { DraftListItem } from "../../rules-draft/drafts";
 import { reviewTime } from "../../server/display";
 import { refusedDraftReason } from "../../server/rules-notices";

@@ -1,5 +1,5 @@
 /**
- * Primary navigation. Real routes only (docs/plans/TRUST_V2_PORT_SCOPE.md section 3.1, decision 6).
+ * Primary navigation. Real routes only.
  * To add a link, append one object to the role's list below. Nothing else changes.
  * No label may equal or contain a link name that an e2e spec queries by exact name:
  * "View funding and cash", "Explore how it works", "Give to a restricted fund", "Open this expense", "Review this expense".

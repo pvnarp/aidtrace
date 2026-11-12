@@ -16,7 +16,7 @@ import { handleFundMode } from "../src/server/fund-mode-actions";
 import { FINANCIAL_TABLES, STANDARD_RECEIPT_LINES, addLegacyPhotoColumn, createPolicyDatabase, financialHash, receiptClaim, tableHash, type PolicyDatabase, type ReceiptLineSpec } from "./support/policy-db";
 import { AI_ENV, ALL_ASSISTED, ALL_AUTOPILOT, FLAG_ON, HAIKU, SONNET, allOk, conflictAll, dbError, isAshmere, notJson, otherOrganization, setMode, setModes, stub, unsureAll, type Handler } from "./support/fund-modes";
 
-// IAC-405 step 2 PR F (docs/plans/FUND_MODES_SCOPE.md sections 2 and 3, docs/ASSUMPTIONS.md section 76), FM-01 to FM-12 and FM-21 to FM-24 on real Postgres in the isolated check
+// IAC-405 step 2 PR F, FM-01 to FM-12 and FM-21 to FM-24 on real Postgres in the isolated check
 // project. Mode-aware freeze and recognition, the two-step mode change, the database guards, the append-only refusals and migration 0019 on retained data. The sweep is FM-13 to
 // FM-20 (tests/fund-modes-sweep.integration.test.ts) and the static boundaries are FM-25 (tests/fund-modes-static.test.ts). Every model call goes to a stub this file defines.
 vi.setConfig({ testTimeout: 60_000, hookTimeout: 60_000 });

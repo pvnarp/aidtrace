@@ -1,5 +1,5 @@
 /**
- * One map from payout and policy status to words, a dot class and tooltip text (docs/plans/GRID_SURFACES_SCOPE.md section 2.1).
+ * One map from payout and policy status to words, a dot class and tooltip text.
  * Color is never the only signal: every status carries its words, and UNKNOWN and NEEDS_ATTENTION are never softened.
  */
 export interface StatusInfo { label: string; dot: 'gx-dot-ok' | 'gx-dot-hold' | 'gx-dot-stop' | 'gx-dot-idle'; tip: string }

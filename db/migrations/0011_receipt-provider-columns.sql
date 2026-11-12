@@ -1,6 +1,6 @@
 ALTER TABLE "receipt_suggestions" ADD COLUMN "provider" text;--> statement-breakpoint
 ALTER TABLE "receipt_suggestions" ADD COLUMN "model" text;--> statement-breakpoint
--- IAC-392 (docs/plans/PROVIDER_COLUMNS.md section 2): the one sanctioned rewrite of frozen rows. READY rows are frozen by
+-- IAC-392: the one sanctioned rewrite of frozen rows. READY rows are frozen by
 -- receipt_suggestion_transition, so the trigger is disabled only for this backfill, inside the migration transaction. The
 -- columns are derived from each row's own stored audit. The audit jsonb, the proposals and every hash are unchanged.
 ALTER TABLE "receipt_suggestions" DISABLE TRIGGER receipt_suggestion_transition;--> statement-breakpoint

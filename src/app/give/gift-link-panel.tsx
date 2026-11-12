@@ -2,7 +2,7 @@
 import { useState } from "react";
 import "./gift-link-panel.css";
 
-// IAC-413 PR A (docs/plans/DONOR_TRAIL_SCOPE.md section 3.7): the one-time private link panel on the thank-you screen.
+// IAC-413 PR A: the one-time private link panel on the thank-you screen.
 // The token arrives in the capture response, lives only in the React state of the parent and is never written to localStorage,
 // sessionStorage, a cookie or the page URL, and is never logged. "Give again" clears it. The link is built from the page origin.
 export type GiftLinkView = { state: "ISSUED"; token: string } | { state: "SHOWN_BEFORE" };

@@ -6,7 +6,7 @@ import { elapsedLabel } from "../src/app/ai-wait-time";
 import { fundMeter, type SnapshotFund } from "../src/app/fund-meter";
 import { GridSkeleton } from "../src/app/grid-skeleton";
 
-// CL-01 to CL-06 (November 10 AI moments and books, docs/GATE_REPORT.md section 119). Pure functions, static markup and static source checks. No database, no network, no browser.
+// CL-01 to CL-06 (November 10 AI moments and books). Pure functions, static markup and static source checks. No database, no network, no browser.
 const source = (path: string) => readFileSync(path, "utf8");
 
 describe("CL-01 elapsedLabel", () => {

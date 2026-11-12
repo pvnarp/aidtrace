@@ -2,7 +2,7 @@ import { ActionForm } from "./action-form";
 import { formatShares, formatUsd, longDate, TEMPLATE_LABEL, type GiftNoteEntry, type PayoutNoteStatus } from "../../../donation/note";
 import { reviewTime } from "../../../server/display";
 
-// IAC-379 step 3b and Option A (docs/ASSUMPTIONS.md section 47). Shows the deterministic template draft and the approved, immutable donor
+// IAC-379 step 3b and Option A. Shows the deterministic template draft and the approved, immutable donor
 // impact notes for each gift applied to this recognized claim. Text from the database is rendered as React text only, never as markup.
 // Nothing is emailed. The meta line comes from the current facts, so a stale note shows the audit line and no meta line.
 const payoutLabels: Record<PayoutNoteStatus, string> = {

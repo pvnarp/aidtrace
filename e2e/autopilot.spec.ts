@@ -12,7 +12,7 @@ import { RECEIPT_PAYEE, receiptClaim } from "../tests/support/policy-db";
 import { ALL_AUTOPILOT, SWEEP_ENV, allOk, setModes, stub } from "../tests/support/fund-modes";
 import type { PayoutTransport } from "../src/paypal/adapter";
 
-// IAC-405 step 3 PR P, the browser checks of the Autopilot kill switch and the claim page line (docs/ASSUMPTIONS.md section 78, AU-30 to AU-32). With both flags on, one approver proposes turning
+// IAC-405 step 3 PR P, the browser checks of the Autopilot kill switch and the claim page line (AU-30 to AU-32). With both flags on, one approver proposes turning
 // automation on, cannot confirm it, a second approver confirms it and either can turn it off. With the second flag off the section, the mode option and both routes do not exist. A planted automated
 // record shows the claim page line and the Disagree control. No send happens: the provider is never configured and nothing here sets an AI key. Each test starts its own database and next server on 3100.
 test.use({ viewport: { width: 1440, height: 900 }, isMobile: false, hasTouch: false });

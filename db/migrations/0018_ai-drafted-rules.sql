@@ -54,7 +54,7 @@ CREATE UNIQUE INDEX "draft_event_one_approval_per_person" ON "policy_draft_event
 CREATE UNIQUE INDEX "draft_event_one_bound" ON "policy_draft_events" USING btree ("draft_id") WHERE "policy_draft_events"."kind" = 'BOUND';--> statement-breakpoint
 CREATE UNIQUE INDEX "draft_event_one_withdrawn" ON "policy_draft_events" USING btree ("draft_id") WHERE "policy_draft_events"."kind" = 'WITHDRAWN';
 --> statement-breakpoint
--- IAC-440 Package A (docs/plans/AI_DRAFTED_RULES_SCOPE.md section 5; docs/ASSUMPTIONS.md section 70). Hand-written guards, appended after the
+-- IAC-440 Package A. Hand-written guards, appended after the
 -- generated DDL as migrations 0014 to 0017 did. Both new tables are immutable: no update, no delete, no truncate. Status is derived from the event
 -- rows. Nothing here touches an existing table, and no guard reads or writes an approval, a reservation, a claim or a journal entry. No guard
 -- of an existing table is changed: binding a draft writes fund_policy_versions, fund_budget_lines, fund_check_settings and fund_policy_clauses

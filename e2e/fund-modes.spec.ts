@@ -7,7 +7,7 @@ import { connectDatabase } from "../src/server/db";
 import { seedFixture } from "../db/fixture";
 import { ensureFixtureOpening } from "../src/ledger/opening";
 
-// IAC-405 step 2 PR F, the browser check of the mode change screen (docs/ASSUMPTIONS.md section 76, FM-30 and FM-31). With the fund modes flag on, one approver proposes Assisted
+// IAC-405 step 2 PR F, the browser check of the mode change screen (FM-30 and FM-31). With the fund modes flag on, one approver proposes Assisted
 // on the fund's rules page, cannot approve their own proposal, and a second approver approves it. With the flag off the section and the route do not exist. No model call is
 // made: nothing here sets an AI key. Each test starts its own database and next server on 3100, like rules-draft.spec.
 test.use({ viewport: { width: 1440, height: 900 }, isMobile: false, hasTouch: false });

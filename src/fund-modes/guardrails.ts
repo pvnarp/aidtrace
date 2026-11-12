@@ -1,4 +1,4 @@
-// IAC-405 step 3 PR P (docs/plans/FUND_MODES_SCOPE.md section 5 guardrails G1 to G9; docs/ASSUMPTIONS.md section 78). The Autopilot guardrails, evaluated inside the caller's transaction,
+// IAC-405 step 3 PR P, guardrails G1 to G9. The Autopilot guardrails, evaluated inside the caller's transaction,
 // under the organization lock, on stored facts only. Every amount is integer cents (bigint) and is stored as a decimal string. A result is { pass, ...inputs }: the inputs are what the
 // rule read, so the claim page can show them. Nothing here writes, approves, posts or calls a provider, and no result is called "cleared", "approved" or "passed" in the app.
 //   G1 rules and Claude agree on every line: "no holds" (src/fund-modes/no-holds.ts)

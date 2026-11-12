@@ -1,4 +1,4 @@
-// IAC-405 step 2 PR A (docs/plans/FUND_MODES_SCOPE.md section 4, docs/ASSUMPTIONS.md section 77): which "Human reviews" line a claim page shows. Read only.
+// IAC-405 step 2 PR A: which "Human reviews" line a claim page shows. Read only.
 //   MANUAL            the line as it always was, "n of 2". Also every claim with the flag off, no frozen decision, an Autopilot or Manual fund in the split, or a viewer who is not an approver of a
 //                     claim still waiting.
 //   ASSISTED_NO_HOLDS an Assisted decision with no holds: "n of 1, Assisted, no holds found". A waiting decision is recomputed now with the same function the recognition uses. A recognized

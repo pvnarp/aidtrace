@@ -4,7 +4,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { PDF_MAX_BYTES, PDF_MAX_PAGES, extractPdfText, hasPdfMagic } from "../src/server/pdf-text";
 import { buildPdf, FIXTURE_LINES, FIXTURE_TEXT } from "./support/pdf-fixtures";
 
-// IAC-440 Package B, DR-80 to DR-88 (docs/GATE_REPORT.md section 60). The PDF text extractor on built fixtures and one committed file. The parser is unpdf 1.9.1 (pdf.js
+// IAC-440 Package B, DR-80 to DR-88. The PDF text extractor on built fixtures and one committed file. The parser is unpdf 1.9.1 (pdf.js
 // inside). It runs for real here, with one wrapper that counts page reads and can make the open step fail, so the tests can show that nothing is parsed past a refusal.
 // No network, no model, no database. Every fixture is synthetic.
 const hooks = vi.hoisted(() => ({ pageCalls: 0, openCalls: 0, failWith: null as unknown }));

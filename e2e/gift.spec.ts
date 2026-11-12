@@ -14,7 +14,7 @@ import { issueGiftLink } from '../src/donation/gift-link';
 import { createPayPalAdapter, type DonationObservation, type PayoutTransport, type PersistedPayout } from '../src/paypal/adapter';
 import { financialHash } from '../tests/support/policy-db';
 
-// IAC-413 PR A: the public gift trail page (docs/plans/DONOR_TRAIL_SCOPE.md section 6, GT-19 to GT-23 and the page part of GT-32).
+// IAC-413 PR A: the public gift trail page (GT-19 to GT-23 and the page part of GT-32).
 // The real server and the real database run here. The gifts are stubbed provider observations recorded through the existing ledger
 // path before the server starts, and the payout is a stubbed transport: no PayPal URL is reached. Every identifying value below is a
 // distinct SENTINEL, so a leak anywhere in a response body shows up as a plain string match.

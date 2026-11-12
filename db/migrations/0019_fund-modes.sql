@@ -61,7 +61,7 @@ ALTER TABLE "fund_modes" ADD CONSTRAINT "fund_modes_approved_by_users_id_fk" FOR
 ALTER TABLE "policy_check_runs" ADD CONSTRAINT "policy_run_trigger" CHECK ("policy_check_runs"."trigger" in ('APPROVER','SWEEP'));--> statement-breakpoint
 ALTER TABLE "policy_check_runs" ADD CONSTRAINT "policy_run_trigger_user" CHECK (("policy_check_runs"."trigger" = 'APPROVER' and "policy_check_runs"."started_by" is not null) or ("policy_check_runs"."trigger" = 'SWEEP' and "policy_check_runs"."started_by" is null));
 --> statement-breakpoint
--- IAC-405 step 2 PR F (docs/plans/FUND_MODES_SCOPE.md section 3; docs/ASSUMPTIONS.md section 76). Hand-written guards, appended after the
+-- IAC-405 step 2 PR F. Hand-written guards, appended after the
 -- generated DDL as migrations 0014 to 0018 did. All four new tables are immutable: no update, no delete, no truncate. Migrations 0015 and
 -- 0017 are not edited: their run guard is replaced here with CREATE OR REPLACE. An APPROVER run keeps today's rule exactly (an approver of the
 -- claim organization who is not the claimant, same message). A SWEEP run carries no user and belongs only to a decision whose recorded

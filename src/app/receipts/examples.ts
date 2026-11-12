@@ -1,4 +1,4 @@
-/** Fictional example receipts for the new-receipt form (IAC-415 PR 7, docs/ASSUMPTIONS.md section 67). Data only: a category is never stored here, the person or Claude chooses each one. */
+/** Fictional example receipts for the new-receipt form (IAC-415 PR 7). Data only: a category is never stored here, the person or Claude chooses each one. */
 export type DraftExample = { vendor: string; program: string; incurredOn: string; total: string; source: string; lines: { description: string; amount: string }[] };
 
 /** The one USD 500.00 receipt that tells the whole flow: robot kit parts, engineering notebooks and a meal line that needs a person. Amounts are two-decimal strings, as the form takes them. */

@@ -13,7 +13,7 @@ import { BULK_SKIP_TEXT } from "../src/fund-modes/bulk-reasons";
 import { createPolicyDatabase, financialHash, receiptClaim, sessionFor, type PolicyDatabase, type ReceiptLineSpec } from "./support/policy-db";
 import { AI_ENV, ALL_ASSISTED, FLAG_ON, allOk, setMode, setModes, stub, type Handler } from "./support/fund-modes";
 
-// IAC-405 step 2 PR A (docs/plans/FUND_MODES_SCOPE.md section 4, docs/ASSUMPTIONS.md section 77), AS-01 to AS-19 on real Postgres in the isolated check project: the bulk approval route, the
+// IAC-405 step 2 PR A, AS-01 to AS-19 on real Postgres in the isolated check project: the bulk approval route, the
 // Checks column read and the claim page line. Every request is built by hand and handed to the handler the route file calls. Every model call goes to a stub. No network, no key, no provider.
 vi.setConfig({ testTimeout: 120_000, hookTimeout: 60_000 });
 const ORIGIN = "http://127.0.0.1:3100";

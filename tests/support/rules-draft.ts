@@ -2,7 +2,7 @@ import { SELECTABLE } from "../../src/ai/categories";
 import type { GrantInput } from "../../src/rules-draft/draft-validate";
 import { claudeMessage } from "./claude-stub";
 
-// IAC-440 Package A test helpers (docs/GATE_REPORT.md section 58). A synthetic grant agreement for the robotics fund as the fixture describes it,
+// IAC-440 Package A test helpers. A synthetic grant agreement for the robotics fund as the fixture describes it,
 // the catalogs the service builds for the fixture organization, and a builder for a raw model answer. Nothing here calls a model or reads a key.
 // Nothing imports vitest, so the eval harness test may use it too.
 export const AGREEMENT = [

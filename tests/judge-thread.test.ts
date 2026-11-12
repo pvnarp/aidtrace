@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { checksStatus, firstName, handoffTarget, remainingApprovers, threadFor, validAs, type Person, type ThreadInput } from "../src/app/thread";
 
-// TH-01 to TH-06 (November 10 judge thread, docs/GATE_REPORT.md section 118). Pure logic and static source checks. The browser checks are e2e/judge-thread.spec.ts.
+// TH-01 to TH-06 (November 10 judge thread). Pure logic and static source checks. The browser checks are e2e/judge-thread.spec.ts.
 const tara: Person = { id: "tara", username: "tara", displayName: "Tara" };
 const ben: Person = { id: "ben", username: "ben", displayName: "Ben Lee" };
 const base: ThreadInput = { status: "AWAITING_APPROVAL", claimant: false, approver: true, approvedByMe: false, feasible: true, policyBlocked: false, viewerName: "Tara", remaining: [tara, ben] };

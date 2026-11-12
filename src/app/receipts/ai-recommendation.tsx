@@ -8,7 +8,7 @@ type Line = { id: string; description: string; amount: string; proposal: { categ
  * The one model line of a saved suggestion. It names the model from the stored audit (readReceiptAudit), never from the environment, and for a
  * hosted-model record it says the receipt text went to Anthropic. The receipt page shows it once: in the READY header before confirmation and in the
  * "Human confirmation recorded" section after it (IAC-415 PR 4). IAC-416 PR 2: this line and the idle strip below are the provider disclosure for
- * receipt text; every other receipt-page label says "AI" (docs/ASSUMPTIONS.md section 69).
+ * receipt text; every other receipt-page label says "AI".
  */
 export function aiModelLine(audit: ReceiptAudit | null): string {
   if (audit?.provider === "local") return `Model: ${RETIRED_MODEL_LABEL.model}. This suggestion was saved before AidTrace changed AI models.`;

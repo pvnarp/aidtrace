@@ -1,4 +1,4 @@
-// IAC-405 step 2 PR F (docs/plans/FUND_MODES_SCOPE.md section 2.1; docs/ASSUMPTIONS.md section 76). Fund modes and the strictest-mode rule. Read helpers and the one
+// IAC-405 step 2 PR F. Fund modes and the strictest-mode rule. Read helpers and the one
 // decision_modes write that freezeDecision calls. Nothing here approves, posts to the ledger or calls a provider. Manual is the strictest mode, then Assisted, then
 // Autopilot. A fund with no approved fund_modes row is Manual. With the flag off every function answers Manual, and no query touches a table that a database below
 // migration 0019 lacks.

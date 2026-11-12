@@ -113,7 +113,7 @@ export const PAYOUT_LABELS: Record<PayoutNoteStatus, string> = {
 };
 export const PAYPAL_NOTE = "Approved does not mean paid.";
 export const PAYPAL_PAID_NOTE = "Paid appears only after PayPal's own item reports success.";
-// IAC-405 takeover wording (ASSUMPTIONS section 82): shown while an auto-recognized claim whose automatic send did not go out has fewer than two takeover approvals.
+// IAC-405 takeover wording: shown while an auto-recognized claim whose automatic send did not go out has fewer than two takeover approvals.
 export const PAYPAL_TAKEOVER_WAITING = "Not ready: two approvers must take over";
 export type PayPalInput = {
   /** Null on the new-receipt page, where no claim exists yet. */
@@ -166,7 +166,7 @@ export const RAIL_RECEIPT_PHOTO = "Read from a photo";
 export const RAIL_RECEIPT_PHOTO_OR_TYPED = "Photo or typed text";
 export type RailLine = { name: (typeof STAGES)[number]; tag?: "AI" | "PayPal"; state: string };
 export function railLines(input: { stage: Stage; typedReceipt: boolean; photoReceipt?: boolean; photoIntake?: boolean; ai: AiCard; approvals: number | null; paypal: PayPalCard; required?: 1 | "auto" }): RailLine[] {
-  // IAC-405 PR A (docs/ASSUMPTIONS.md section 77 item 13): required is 1 only for a decision that needs one approval (no holds found), read by the server from the stored decision. Absent, every line is as it always was.
+  // IAC-405 PR A: required is 1 only for a decision that needs one approval (no holds found), read by the server from the stored decision. Absent, every line is as it always was.
   const one = input.required === 1;
   const lines: RailLine[] = [
     { name: "Receipt", state: input.photoReceipt ? RAIL_RECEIPT_PHOTO : input.photoIntake ? RAIL_RECEIPT_PHOTO_OR_TYPED : input.typedReceipt ? "Typed text and amounts" : "Preclassified example" },

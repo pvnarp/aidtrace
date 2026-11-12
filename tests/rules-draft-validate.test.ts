@@ -5,7 +5,7 @@ import {
 } from "../src/rules-draft/draft-validate";
 import { AGREEMENT, CLAUSE_SCOPE, GRANT, drafted, goodAnswer, storedUnsure, unsure, unsureList, unsureText } from "./support/rules-draft";
 
-// IAC-440 Package A, DR-01 to DR-14 (docs/GATE_REPORT.md section 58): the pure validator. Every rule has a planted failing case beside a passing case.
+// IAC-440 Package A, DR-01 to DR-14: the pure validator. Every rule has a planted failing case beside a passing case.
 // No database, no model, no network. A refusal names a reason code and the path of the field that broke the rule.
 const run = (raw: unknown, input: GrantInput = GRANT) => validateDraft(raw, input, "MODEL");
 const refusal = (raw: unknown, input: GrantInput = GRANT) => { const result = run(raw, input); return result.ok ? null : `${result.reason} ${result.path}`; };
@@ -314,7 +314,7 @@ describe("DR-14 the pasted text is bounded, and an edit is revalidated whole", (
   });
 });
 
-// IAC-440 Package A, November 1 fixes (docs/GATE_REPORT.md section 58, DR-46 to DR-50): the mechanical support check of quoted values and the
+// IAC-440 Package A, November 1 fixes (DR-46 to DR-50): the mechanical support check of quoted values and the
 // well-formed text rule. A value the quote does not state is downgraded to UNSURE, never refused and never repaired.
 const outcome = (path: string, quote: string, value: unknown, clauseText = `Section 7. The text reads: ${quote}.`) => {
   const { answer, input } = withClause(clauseText, draft => {
@@ -513,7 +513,7 @@ describe("DR-50 a downgrade is recorded in quoteUnsupported, and an edit keeps o
   });
 });
 
-// IAC-440 Package A schema fix (docs/GATE_REPORT.md section 58, DR-63 to DR-65): the model output schema has no null, so an UNSURE part of a model
+// IAC-440 Package A schema fix (DR-63 to DR-65): the model output schema has no null, so an UNSURE part of a model
 // answer is the empty value ("" for text, [] for a list, 0 for an integer, "" for clauseId and quote, 0 for breadth beside UNSURE categories). The
 // validator maps those back to null in MODEL mode only, so the draft, the database rows and every reader keep today's meaning.
 const FIELD_PATHS = ["programs", "allowedCategories", "periodStart", "periodEnd", "caps.supplies", "caps.other", "caps.travel", "caps.equipment", "caps.contractual",

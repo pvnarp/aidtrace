@@ -10,7 +10,7 @@ import { seedFixture } from "../db/fixture";
 import { ensureFixtureOpening } from "../src/ledger/opening";
 import * as s from "../db/schema";
 
-// CO-01 to CO-03 (IAC-415 PR 6, "checks read once", docs/GATE_REPORT.md section 53): the Checks panel reads once, a finished preparation does not offer a second run as
+// CO-01 to CO-03 (IAC-415 PR 6, "checks read once"): the Checks panel reads once, a finished preparation does not offer a second run as
 // the primary action, and a DRAFT claim page says "0 of 2" once. Every test is self-contained: it starts its own isolated database and next server on 3100, so a failure names
 // one fact and a single test can run alone with -g. All at 1440 px. The loopback Claude stub (UI_TEST_CONTAINER sends Claude requests to 127.0.0.1:8080) gives synthetic
 // answers: a receipt suggestion request has top-level lines, a compliance request has a fund. They are NOT a real model result, and no Claude or PayPal request leaves the container.

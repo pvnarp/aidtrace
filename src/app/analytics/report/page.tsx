@@ -9,7 +9,7 @@ import { reviewTime } from '../../../server/display';
 import { AppHeader } from '../../app-header';
 import { shortClaimRef } from '../../claim-ref';
 
-// IAC-405 step 5 (docs/plans/FUNDER_REPORT_SCOPE.md section 1). A read-only page for approvers. It has no form, no server action and no mutation route: it reads the
+// IAC-405 step 5. A read-only page for approvers. It has no form, no server action and no mutation route: it reads the
 // report data and prints it. A funder gets a printout from the browser's print command (print styles in style.css). No PDF, no email, no export.
 export const dynamic = 'force-dynamic';
 export const BOUNDARY_LINES = [

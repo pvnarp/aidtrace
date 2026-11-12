@@ -22,7 +22,7 @@ const failedItems = new Set(["FAILED", "RETURNED", "BLOCKED"]);
 const manualItems = new Set(["REFUNDED", "REVERSED"]);
 
 // The organization lock and the latest claim row lock, in the order every ledger transaction takes them. No actor is checked here: context() adds the human check, and the automated
-// send (IAC-405 PR P, docs/ASSUMPTIONS.md section 78) takes this alone because it has no signer and records an automated decision instead.
+// send (IAC-405 PR P) takes this alone because it has no signer and records an automated decision instead.
 async function lockedClaim(tx: LedgerTransaction, claimId: string) {
   const [claim] = await tx.select().from(s.claims).where(eq(s.claims.id, claimId)).orderBy(desc(s.claims.version)).limit(1);
   if (!claim) throw new Error("Claim not found");
@@ -89,11 +89,11 @@ export async function sendClaimPayout(db: AppDatabase, claimId: string, actorId:
   return transmitPrepared(db, claimId, actorId, prepared, provider);
 }
 
-// IAC-405 step 3 PR P (docs/plans/FUND_MODES_SCOPE.md section 5 items 2 and 3; docs/ASSUMPTIONS.md section 78). The automated send. Called only by the policy sweep. Same order as the human send:
+// IAC-405 step 3 PR P. The automated send. Called only by the policy sweep. Same order as the human send:
 // validate, read the balance, then persist the disbursement and the UNKNOWN attempt before the POST. Inside the persisting transaction, under the organization advisory lock, it checks again
 // that the second flag is on, that the effective mode is still Autopilot (a fund moved to Manual or Assisted after recognition blocks the send), that the kill switch is ON with no unresolved
 // automated attempt, and the G3 and G4 caps with this claim's amounts. A blocked send writes nothing and the claim waits (for the next pass, or for a person). MAX_DEMO_PAYOUT_CENTS caps the
-// send through provider.validatePayout. An UNKNOWN result stays UNKNOWN, trips the switch, and is never retried here: only a person's retry authorization retries (docs/SPEC.md section 9).
+// send through provider.validatePayout. An UNKNOWN result stays UNKNOWN, trips the switch, and is never retried here: only a person's retry authorization retries.
 export type AutomatedSendDeps = { env?: FlagEnv; now?: Date };
 export type AutomatedSendBlock = "FLAG_OFF" | "NOT_APPROVED" | "NO_DECISION" | "NOT_AUTOMATED" | "MODE_CHANGED" | "SWITCH_OFF" | "UNKNOWN_OUTSTANDING" | "G3_FUND_DAY_CAP" | "G4_CLAIMANT_WEEK_CAP" | "PAYOUT_REFUSED" | "BALANCE_UNAVAILABLE" | "BALANCE_SHORT" | "HUMAN_TAKEOVER";
 export type AutomatedSendResult = { status: "SENT"; state: "SUBMITTED" | "FUNDING_REJECTED" | "UNKNOWN"; switchTripped: boolean } | { status: "BLOCKED"; reason: AutomatedSendBlock } | { status: "ALREADY_SENT" };

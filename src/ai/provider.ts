@@ -3,7 +3,7 @@ import { CLAUDE_NAMES, CLAUDE_SHELL_NAMES, type AnyReceiptCategorizer } from "./
 import { ReceiptAiConfigError, createClaudeReceiptCategorizer, resolveClaudeModel, type ClaudeMessagesClient, type ClaudeModel, type ClaudeReceiptCategorizer } from "./claude-receipt";
 import { CLAUDE_LIMIT_MESSAGE, processClaudeBudget, type ClaudeBudget } from "./budget";
 
-// Claude only (docs/plans/CLAUDE_ONLY_SCOPE.md). The one provider is the hosted Claude API. AIDTRACE_RECEIPT_AI_PROVIDER stays,
+// Claude only. The one provider is the hosted Claude API. AIDTRACE_RECEIPT_AI_PROVIDER stays,
 // but it accepts only "claude" (or unset). It stays so a stale value such as the retired "local" stops AI with a refusal instead
 // of being ignored: an ignored value would send receipt text to Anthropic when the operator asked for something else.
 export const RECEIPT_AI_PROVIDERS = ["claude"] as const;
@@ -55,8 +55,8 @@ export const AI_OFF_MESSAGES: Record<AiOffReason, string> = {
 };
 export type AiStatus = { on: true; model: ClaudeModel; name: string; shellName: string } | { on: false; reason: AiOffReason };
 // AI_COMPLIANCE_ENABLED (IAC-405 piece G) gates the approver's model compliance check. Off by default like the others.
-// AI_RULE_DRAFTS_ENABLED (IAC-440 Package A) gates the approver's AI-drafted fund rules request. Off by default and in every compose file except release/judge/compose.session.yaml, which turns it on (November 5, docs/decisions.md).
-// AI_RECEIPT_PHOTO_ENABLED (IAC-384) gates the claimant receipt photo reader: on only when exactly "true" and only when AI_RECEIPT_ENABLED is also on. Off by default and in every compose file except release/judge/compose.session.yaml, which turns it on (November 5, docs/decisions.md).
+// AI_RULE_DRAFTS_ENABLED (IAC-440 Package A) gates the approver's AI-drafted fund rules request. Off by default and in every compose file except release/judge/compose.session.yaml, which turns it on (November 5).
+// AI_RECEIPT_PHOTO_ENABLED (IAC-384) gates the claimant receipt photo reader: on only when exactly "true" and only when AI_RECEIPT_ENABLED is also on. Off by default and in every compose file except release/judge/compose.session.yaml, which turns it on (November 5).
 export type AiFlag = "AI_RECEIPT_ENABLED" | "AI_ANALYTICS_ENABLED" | "AI_EXPENSE_PROPOSALS_ENABLED" | "AI_COMPLIANCE_ENABLED" | "AI_RULE_DRAFTS_ENABLED" | "AI_RECEIPT_PHOTO_ENABLED";
 
 // Display and gating: is Claude usable for this surface right now? On only with the surface's flag, a valid configuration, a
@@ -79,7 +79,7 @@ export function configuredReceiptAiName(env: Env = process.env): { name: string;
   return status.on ? { name: status.name, shellName: status.shellName } : null;
 }
 
-// The one place the photo flag is read (IAC-384, docs/ASSUMPTIONS.md section 83). Exactly "true" for both flags: the photo reader never runs when receipt AI is off.
+// The one place the photo flag is read (IAC-384). Exactly "true" for both flags: the photo reader never runs when receipt AI is off.
 export const receiptPhotoEnabled = (env: Env = process.env): boolean => env.AI_RECEIPT_PHOTO_ENABLED === "true" && env.AI_RECEIPT_ENABLED === "true";
 // Key, valid configuration and request budget for one photo read. The same process-wide Claude budget as every other surface.
 export const receiptPhotoStatus = (env: Env = process.env, budget: ClaudeBudget = processClaudeBudget): AiStatus =>

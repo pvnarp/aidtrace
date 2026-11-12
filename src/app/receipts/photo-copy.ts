@@ -1,4 +1,4 @@
-// Fixed words for the receipt photo reader (IAC-384, docs/decisions.md decision D7). The server and the browser component both read them from here.
+// Fixed words for the receipt photo reader (IAC-384). The server and the browser component both read them from here.
 // No "verified", "approved" or "accurate": the person compares the form with the photo.
 export const PHOTO_CONTROL_LABEL = "Read a photo of a sample receipt";
 export const PHOTO_HINT = "JPEG, PNG or WebP, up to 3.75 MB. The photo is sent to the AI once to read it and is not kept. Use a photo of a sample receipt only.";
@@ -12,7 +12,7 @@ export const photoMismatch = (linesPlusTaxCents: number, totalCents: number): st
 // Lines plus tax match the total but a printed subtotal does not match the lines. Same shape, one more fixed sentence.
 export const photoSubtotalMismatch = (linesCents: number, subtotalCents: number): string =>
   `The amounts do not add up: the lines are ${centsToUsd(linesCents)}, the subtotal reads ${centsToUsd(subtotalCents)}. Fix the numbers or retake the photo.`;
-// IAC-384 (docs/ASSUMPTIONS.md section 87). The subtotal covers the first lines and the rest sit after it, inside the total (a tip added by hand). A neutral note, not a warning:
+// IAC-384. The subtotal covers the first lines and the rest sit after it, inside the total (a tip added by hand). A neutral note, not a warning:
 // it still sends the person to the photo. No "verified", "approved" or "accurate" (D7).
 export const photoAfterSubtotal = (subtotalCents: number, printedCount: number, afterCents: number, totalCents: number): string =>
   `The subtotal ${centsToUsd(subtotalCents)} covers the first ${printedCount} ${printedCount === 1 ? "line" : "lines"}. The ${centsToUsd(afterCents)} after it, such as a tip added by hand, is in the total of ${centsToUsd(totalCents)}. Check that line against the photo.`;

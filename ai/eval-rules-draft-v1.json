@@ -1,6 +1,6 @@
 {
   "id": "eval-rules-draft-v1",
-  "purpose": "IAC-440 Package A owner-run comparison of the AI rule drafter (docs/GATE_REPORT.md section 58). Four invented grant agreements with answer keys. Nothing here is real grant text, a real organization or a real person.",
+  "purpose": "IAC-440 Package A owner-run comparison of the AI rule drafter. Four invented grant agreements with answer keys. Nothing here is real grant text, a real organization or a real person.",
   "scoring": "Every scored field is compared with its key by exact match. A key of UNSURE means the agreement does not clearly state the field, so UNSURE is the right answer and any value is fabricated. breadth is derived: the number of key categories, or UNSURE when the categories are UNSURE.",
   "cases": [
     {

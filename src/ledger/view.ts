@@ -4,7 +4,7 @@ import type { AppDatabase } from '../server/db';
 import { payoutNoteStatus } from '../donation/note';
 
 /**
- * The approver ledger view loader (docs/plans/LEDGER_GRID_SCOPE.md sections 1 to 3, as amended by docs/plans/GRID_SURFACES_SCOPE.md 3.1).
+ * The approver ledger view loader.
  * It reads one transaction that starts `set transaction read only`, and it issues SELECT statements only. It imports neither the PayPal adapter
  * nor any ledger writer, and it changes no row. Every cent value leaves this module as a decimal string.
  */
@@ -14,7 +14,7 @@ export class LedgerAccessError extends Error {
 
 /** The grid shows at most this many postings, newest first. The cap is sized for the demo fixture; `total` always counts every posting. */
 export const LEDGER_ROW_CAP = 2000;
-/** Manual funds need two distinct human approvals (docs/SPEC.md section 6). The Approvals column reads "n of 2". */
+/** Manual funds need two distinct human approvals. The Approvals column reads "n of 2". */
 export const REQUIRED_APPROVALS = 2;
 
 export const ACCOUNT_NAMES: Readonly<Record<string, string>> = {
@@ -42,7 +42,7 @@ export interface LedgerRow {
   /** True when the PayPal payout outcome is UNKNOWN. The grid marks the row with gx-row-verify. */
   verify: boolean;
 }
-/** The audit events dataset is cut line 1 (LEDGER_GRID_SCOPE section 9). It is not built, so `events` is always empty. */
+/** The audit events dataset was cut. It is not built, so `events` is always empty. */
 export interface LedgerEvent { id: string; at: string; kind: string; detail: string }
 export interface LedgerView {
   organization: string;

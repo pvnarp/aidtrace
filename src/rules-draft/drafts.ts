@@ -1,4 +1,4 @@
-// IAC-440 Package A (docs/plans/AI_DRAFTED_RULES_SCOPE.md sections 3 to 5; docs/ASSUMPTIONS.md section 70). The AI-drafted fund rules service.
+// IAC-440 Package A. The AI-drafted fund rules service.
 // The model drafts text and values; people approve; only the second distinct approval binds. Nothing here lets a model write a binding row:
 // createDraft stores a validated draft (or a refusal) and nothing else, and every path that writes fund_policy_versions, fund_budget_lines,
 // fund_check_settings, fund_policy_clauses or funds goes through bind(), which runs inside approveDraft's single transaction after a human
@@ -364,7 +364,7 @@ export async function readDraft(db: AppDatabase, actor: DraftActor, draftId: str
   }, { isolationLevel: "repeatable read", accessMode: "read only" });
 }
 
-// ---- IAC-440 Package B (docs/ASSUMPTIONS.md section 72): read-only loaders for the review screen and the fund rules page. ----
+// ---- IAC-440 Package B: read-only loaders for the review screen and the fund rules page. ----
 // Nothing below writes a row, takes a lock or calls a model. Each one starts at gate(), so a claimant, a signed-out user and an approver of another
 // organization are refused before anything is read, and another organization's fund or draft reads as not found, exactly as readDraft does.
 export type CurrentRules = {

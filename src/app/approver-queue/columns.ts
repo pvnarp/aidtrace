@@ -3,14 +3,14 @@ import { centsColumn, dateColumn, textColumn, type ColumnMeta, type GridColumn }
 import { ProgressCell, ReviewCell, VendorCell } from './cells';
 import { progressText, queueSteps } from './progress';
 
-/** Phone layout keeps these fields in the table; the rest move to the details list under it (docs/plans/GRID_SURFACES_SCOPE.md section 2.8).
+/** Phone layout keeps these fields in the table; the rest move to the details list under it.
  * The Review link stays in the table on a phone so a row can always be opened. */
 export const QUEUE_PHONE_COLUMNS = ['vendor', 'amountCents', 'href'] as const;
 
 const noText: ColumnMeta<ApproverQueueRow> = { kind: 'text', text: () => '' };
 
 /**
- * The columns of IAC-414 Q1 (docs/plans/GRID_SURFACES_SCOPE.md section 3.2 step A): Claimant, Vendor with its fund beneath, the approval
+ * The columns of IAC-414 Q1: Claimant, Vendor with its fund beneath, the approval
  * count, Amount, a six-step Progress trace, Age and a Review link. Every column is read only. Amount is the shared string-cents BigInt
  * column. Progress and Review are display only: no sort, no filter. Age sorts on the frozen-at timestamp and shows the elapsed time.
  */

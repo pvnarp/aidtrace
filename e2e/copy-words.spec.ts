@@ -7,7 +7,7 @@ import { connectDatabase } from "../src/server/db";
 import { seedFixture } from "../db/fixture";
 import { ensureFixtureOpening } from "../src/ledger/opening";
 
-// CW-03 (IAC-416, docs/GATE_REPORT.md section 49): the visible words at 1440 px. Screen copy avoids "sandbox" and the "AI off" wording in headings;
+// CW-03 (IAC-416): the visible words at 1440 px. Screen copy avoids "sandbox" and the "AI off" wording in headings;
 // the sandbox status is stated once on /give and in the README. Each test starts its own isolated database and next server on 3100, like shell.spec. No model request is
 // made: the stub key only makes the app read as configured, and no AI button is pressed. Payments stay sandbox-only in code.
 // The visible text is document.body.innerText with every <details> opened, so hidden review text is covered as well.

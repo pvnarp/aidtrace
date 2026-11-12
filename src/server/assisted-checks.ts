@@ -7,7 +7,7 @@ import { readModelChecks } from "../policy/model-read";
 import type { PolicyReader } from "../policy/facts";
 import type { AppDatabase } from "./db";
 
-// IAC-405 step 2 PR A (docs/plans/FUND_MODES_SCOPE.md section 4, docs/ASSUMPTIONS.md section 77): the Checks column of the approver queue. One read only transaction at repeatable read
+// IAC-405 step 2 PR A: the Checks column of the approver queue. One read only transaction at repeatable read
 // with SELECT statements only. For each claim of the queue whose frozen decision is Assisted it recomputes "no holds" from the stored runs of that exact hash, the same function the
 // recognition uses, so the column and the approval cannot disagree about the rules. With the flag off it reads nothing and answers an empty map. It states no clearance: the three words
 // are "No holds found", "N holds" and "Not checked yet". A claim of a Manual decision is absent from the answer, so the page treats it exactly as before.

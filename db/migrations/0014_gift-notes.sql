@@ -49,7 +49,7 @@ ALTER TABLE "gift_notes" ADD CONSTRAINT "gift_notes_decision_hash_allocation_dec
 ALTER TABLE "gift_notes" ADD CONSTRAINT "gift_notes_approver_id_users_id_fk" FOREIGN KEY ("approver_id") REFERENCES "public"."users"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "gift_notes" ADD CONSTRAINT "gift_notes_claim_id_claim_version_claims_id_version_fk" FOREIGN KEY ("claim_id","claim_version") REFERENCES "public"."claims"("id","version") ON DELETE no action ON UPDATE no action;
 --> statement-breakpoint
--- IAC-379 step 3b (docs/plans/DONATION_LOOP_SCOPE.md section 10). Hand-written guards, appended after the generated DDL as
+-- IAC-379 step 3b. Hand-written guards, appended after the generated DDL as
 -- migrations 0006, 0009 and 0010 did. Both tables are immutable: no update, no delete, no truncate. Staleness is computed when
 -- a note is read, so no row ever needs to change. The insert guards restate the approval rule in the database: the approver
 -- is an APPROVER of the claim's organization and not its claimant, the gift is a COMPLETED capture of the same organization,

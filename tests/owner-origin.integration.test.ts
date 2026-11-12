@@ -4,7 +4,7 @@ import { seedFixture } from "../db/fixture";
 import { closeDatabase } from "../src/server/db";
 import { createPolicyDatabase, type PolicyDatabase } from "./support/policy-db";
 
-// OO-04 (IAC-418, owner loopback origin, docs/GATE_REPORT.md section 54). Route level, real Postgres in the isolated check project, no network, no model, no provider.
+// OO-04 (IAC-418, owner loopback origin). Route level, real Postgres in the isolated check project, no network, no model, no provider.
 // The recording instance runs owner mode (no judge session) on loopback port 3120. With APP_ORIGIN=http://127.0.0.1:3120 the sign-in POST from the page at that
 // origin must work and the same POST from another origin must not. The unit cases are OO-01 to OO-03 in tests/owner-origin.test.ts.
 const RECORDING = "http://127.0.0.1:3120";

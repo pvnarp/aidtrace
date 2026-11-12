@@ -1,4 +1,4 @@
-// IAC-440 Package B (docs/plans/AI_DRAFTED_RULES_SCOPE.md section 5, docs/ASSUMPTIONS.md section 72). Pure parsers for the edit form of an AI-drafted rule set.
+// IAC-440 Package B. Pure parsers for the edit form of an AI-drafted rule set.
 // A person types dollars, days and dates. This module turns each into the exact value the Package A validator reads (integer cents, whole days, an ISO date,
 // or null), and refuses anything else. No floating point is used anywhere: cents come from string arithmetic and BigInt, and a value is converted to a
 // JavaScript number only after it is checked to be a safe integer. Empty input means "the grant does not say" (null, which the validator stores as UNSURE).

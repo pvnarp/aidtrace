@@ -12,4 +12,4 @@ No setup, seed, page load, build or test performs real provider requests. Tests 
 Product status parsing retains only typed fields needed for binding and settlement. It never
 logs tokens, full headers or recipient addresses. Unknown statuses remain conservative.
 Provider balance is separate from book cash. The lab-readability flag defaults to false;
-reporting may lag and unavailable reporting is never zero. See docs/FEASIBILITY.md.
+reporting may lag and unavailable reporting is never zero.

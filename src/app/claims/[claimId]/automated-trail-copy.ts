@@ -1,6 +1,6 @@
 import { usd } from "../../../analytics/model";
 
-// IAC-405 trail plurals (docs/ASSUMPTIONS.md section 78 wording, GATE_REPORT section 76). Pure wording for the guardrail trail: no database, server or React import.
+// IAC-405 trail plurals. Pure wording for the guardrail trail: no database, server or React import.
 // It formats stored values and checks nothing. Only the counts in the first three sentences change with their number; every other sentence is fixed text.
 export type Result = { pass?: boolean } & Record<string, unknown>;
 export const str = (value: unknown): string => (typeof value === "string" ? value : typeof value === "number" || typeof value === "boolean" ? String(value) : "none");

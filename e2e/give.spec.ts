@@ -285,7 +285,7 @@ test('DON-10 keyed (stubbed SDK, canned API): a create answer without the server
   expect(await orderRows()).toBe(0); expect(await violations(page)).toEqual([]); expect(watched.errors).toEqual([]); expect(watched.external).toEqual([]);
 });
 
-// IAC-413 PR A, thank-you part of GT-32 (docs/plans/DONOR_TRAIL_SCOPE.md section 3.7). The capture answer is CANNED here and carries the
+// IAC-413 PR A, thank-you part of GT-32. The capture answer is CANNED here and carries the
 // one-time token the real route issues (tests/donation-routes.integration.test.ts proves the real route does). This is stubbed wiring
 // evidence for the panel, not a PayPal result.
 test('IAC-413: the one-time private link shows once, copies, sits in no storage, cookie or URL, and Give again clears it', async ({ page, context }) => {
@@ -335,7 +335,7 @@ test('IAC-413: the one-time private link shows once, copies, sits in no storage,
   expect(await orderRows()).toBe(0); expect(await violations(page)).toEqual([]); expect(watched.errors).toEqual([]); expect(watched.external).toEqual([]);
 });
 
-// CL-E04 (November 10 calm cuts, docs/GATE_REPORT.md section 119). The keyless request shape is collapsed until opened, and the way back appears only for a visitor with a live session.
+// CL-E04 (November 10 calm cuts). The keyless request shape is collapsed until opened, and the way back appears only for a visitor with a live session.
 test('CL-E04 keyless give: the request shape starts collapsed, and Back to your workspace shows only for a signed-in visitor', async ({ page }) => {
   await startServer(KEYLESS_ENV);
   const panel = () => page.getByTestId('give-keyless-panel');

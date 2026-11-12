@@ -1,6 +1,6 @@
 import { GIVE_PRESET_CENTS, formatUsd, requestShape } from "./display";
 
-// IAC-379 step 3a, DONATION_LOOP_SCOPE.md section 7: the read-only panel a keyless session shows instead of Checkout.
+// IAC-379 step 3a: the read-only panel a keyless session shows instead of Checkout.
 // The model carries no order, no capture and no paid state, and no field that could hold one.
 export interface GiveFund { id: string; name: string }
 export const KEYLESS_HEADLINE = "No order created, nothing captured";

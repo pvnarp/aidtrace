@@ -1,4 +1,4 @@
-// IAC-384 (docs/ASSUMPTIONS.md section 83): at most 10 photo reads per user in a rolling hour, counted in memory.
+// IAC-384: at most 10 photo reads per user in a rolling hour, counted in memory.
 // Cost, named: the count is per server process and a restart forgets it, so it is a brake on a loop or a script, not an account quota. The process-wide Claude
 // request cap in src/ai/budget.ts stays the hard limit. Every request that passes the role check takes a slot, including one later refused for size or type.
 export const PHOTO_READS_PER_HOUR = 10;

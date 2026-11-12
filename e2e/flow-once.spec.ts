@@ -12,7 +12,7 @@ import { ensureFixtureOpening } from "../src/ledger/opening";
 import { CLAUDE_NAMES } from "../src/ai/audit";
 import * as s from "../db/schema";
 
-// FO-00a to FO-05 (IAC-415 PR 4, "flow says it once", docs/GATE_REPORT.md section 51): each flow fact appears once on the desktop pages at 1440 px.
+// FO-00a to FO-05 (IAC-415 PR 4, "flow says it once"): each flow fact appears once on the desktop pages at 1440 px.
 // Three walkers drive the real flow in an isolated database and next server on 3100 and record what each page shows into local/flow-once-results (a file, not a
 // module variable, because Playwright starts a new worker after a failed test). FO-01 to FO-05 then assert on those files, so each failure names one fact.
 //   FO-00a: AI off. Maria freezes, Tara approves, Maria re-checks the frozen terms, Ben approves.
@@ -216,8 +216,8 @@ test("FO-02: each Claude suggestion quote shows once outside the receipt evidenc
 
 // The brief asked for at most 2,800 px on the stubbed model-rows page. FO-00c measures 3,191 px and the polish stills measure 3,170 px (3,215 px before this package, same capture).
 // The model rows are about 265 px of a page whose left column is three panels (expense terms 883, checks and policy 841, funding 614), so 2,800 is not reachable by
-// presentation-only changes in this package. The bound below is the measured safe height plus 9 px, so the page may not grow. See GATE_REPORT section 51.
-// IAC-416 PR 2 added the one provider disclosure line to the model check section (+37 px, measured 3,228 against 3,191), so the bound moved from 3,200 to 3,237 by that amount (measured plus 9 px, as before). The page still may not grow beyond it. docs/GATE_REPORT.md section 57.
+// presentation-only changes in this package. The bound below is the measured safe height plus 9 px, so the page may not grow.
+// IAC-416 PR 2 added the one provider disclosure line to the model check section (+37 px, measured 3,228 against 3,191), so the bound moved from 3,200 to 3,237 by that amount (measured plus 9 px, as before). The page still may not grow beyond it.
 test("FO-03: the stubbed claim page with model rows is at most 3,237 px at 1440 (measured 3,228), and the AI-off approved page is at most 2,574 px", () => {
   const rows = find(load<Snap[]>("walk-c", "FO-00c"), "claim model rows"), out = walkA();
   console.log(`FO-03 heights ${JSON.stringify({ "stubbed claim with model rows (CONFLICT and OK funds)": rows.height, "AI-off approved": find(out, "approved").height, "AI-off approved reopened": find(out, "approved reopened").height })}`);
@@ -255,7 +255,7 @@ test("FO-05: the claimant's awaiting claim holds the re-freeze behind a closed d
   expect(find(out, "maria after re-check").text).toMatch(/\b1 of 2\b/);
 });
 
-// FT-02 and FT-03 (IAC-415 PR 5, "flow tidy", docs/GATE_REPORT.md section 52). Each test is self-contained: it starts its own isolated database and server, so a failure
+// FT-02 and FT-03 (IAC-415 PR 5, "flow tidy"). Each test is self-contained: it starts its own isolated database and server, so a failure
 // names one fact and a single test can run alone with -g. FT-02 uses the same loopback Claude stub as FO-00b (synthetic answers, not model output). FT-03 runs with AI off.
 const SAVED_SENTENCE = "AI suggestions are saved for this receipt";
 const REVIEW_SENTENCE = "Edit the receipt to request a new review.";

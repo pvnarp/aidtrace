@@ -15,7 +15,7 @@ import { buildGridTheme, FONT_FAMILY_KEY } from './theme';
 import { SEARCH_DELAY_MS } from './timing';
 
 /**
- * The shared read-only data grid (docs/plans/GRID_SURFACES_SCOPE.md section 2.7). Loaded with next/dynamic and ssr false by each page.
+ * The shared read-only data grid. Loaded with next/dynamic and ssr false by each page.
  * It offers no editing prop, sets editable false for every column and has no write path. Rows carry string cents.
  */
 export interface DataGridProps<Row> {

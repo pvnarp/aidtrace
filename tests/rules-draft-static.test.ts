@@ -3,7 +3,7 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { EXPORT_MODE } from "./support/export-mode";
 
-// IAC-440 Package A static checks (docs/GATE_REPORT.md section 58, DR-37): who may write the policy tables, what the model path can reach, and that
+// IAC-440 Package A static checks (DR-37): who may write the policy tables, what the model path can reach, and that
 // no money, claim-approval, payout or PayPal path reaches the draft module. Source text only. The folder is src/rules-draft because
 // tests/policy-static.test.ts pins the exact file list of src/policy and is a guard test that stays as it is.
 const walk = (dir: string): string[] => readdirSync(dir).flatMap(name => { const path = join(dir, name); return statSync(path).isDirectory() ? walk(path) : [path]; });
@@ -94,7 +94,7 @@ describe("DR-37 nothing outside the draft package reaches the draft module in Pa
     const owners = [...walk("src"), ...walk("db").filter(path => path.endsWith(".ts")), ...walk("scripts").filter(path => /\.(ts|mjs)$/.test(path))]
       .filter(path => !path.startsWith("src/rules-draft/") && /\.(ts|tsx|mjs)$/.test(path));
     const importers = owners.filter(path => /rules-draft/.test(code(path))).sort();
-    // Package B (IAC-440, docs/ASSUMPTIONS.md section 72) adds the review screen. Its files are named here one by one, so a new importer fails this test until a person adds it.
+    // Package B (IAC-440) adds the review screen. Its files are named here one by one, so a new importer fails this test until a person adds it.
     const reviewScreen = [
       "src/app/api/funds/[fundId]/rules/drafts/[draftId]/route.ts", "src/app/api/funds/[fundId]/rules/drafts/route.ts", "src/app/api/funds/[fundId]/rules/pdf-text/route.ts",
       "src/app/funds/[fundId]/rules/drafts/[draftId]/page.tsx", "src/app/funds/[fundId]/rules/page.tsx",

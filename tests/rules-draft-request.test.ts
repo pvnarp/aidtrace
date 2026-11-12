@@ -10,7 +10,7 @@ import { BUDGET_LINES, THRESHOLD_KEYS, validateDraft, type GrantInput } from "..
 import { FAKE_KEY, claudeMessage, stubClient } from "./support/claude-stub";
 import { AGREEMENT, CLAUSE_SCOPE, GRANT, RULE_ENV, answerWithAllThresholds, draftMessage, drafted, flatAnswer, goodAnswer, unsure, unsureList, unsureText } from "./support/rules-draft";
 
-// IAC-440 Package A, DR-15 to DR-24 (docs/GATE_REPORT.md section 58): the draft request and the prompt-injection path, over a stub client. Nothing
+// IAC-440 Package A, DR-15 to DR-24: the draft request and the prompt-injection path, over a stub client. Nothing
 // here reaches a network, a key or a real model. A request is a stub call that this file defines.
 const SONNET: DraftArm = { model: "claude-sonnet-5-5", effort: "medium" };
 const HAIKU: DraftArm = { model: "claude-haiku-5-5", effort: "low" };
@@ -228,7 +228,7 @@ describe("DR-21 a grant that tells the model to break the rules is refused or le
   });
 });
 
-// IAC-440 Package A schema fix (docs/GATE_REPORT.md section 58, DR-66): the model is told to write empty values for an UNSURE part, because the output
+// IAC-440 Package A schema fix (DR-66): the model is told to write empty values for an UNSURE part, because the output
 // schema has no null (the API refuses more than 16 union-typed parameters; DR-61 and DR-62 count them). Stub clients only.
 describe("DR-66 the prompt asks for empty values, and an empty-value answer travels the request path to a draft with null parts", () => {
   it("names the empty value of each type, the breadth zero, and never asks the model for null", () => {
@@ -265,7 +265,7 @@ describe("DR-66 the prompt asks for empty values, and an empty-value answer trav
   });
 });
 
-// IAC-440 Package A second evaluation blocker (docs/GATE_REPORT.md section 58, DR-70 to DR-75 and DR-79). The nested v2 schema, with zero unions, was still
+// IAC-440 Package A second evaluation blocker (DR-70 to DR-75 and DR-79). The nested v2 schema, with zero unions, was still
 // refused by the API on both models with HTTP 400 "The compiled grammar is too large". The wire answer is now flat (every part of every drafted field is a
 // top-level key), and unflattenDraft is the one strict step back to the nested object the validator reads. tests/support/rules-draft.ts flatAnswer() writes
 // the flat shape independently of the code under test, so the round trip below is not circular. Stub clients only.

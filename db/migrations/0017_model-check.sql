@@ -49,7 +49,7 @@ ALTER TABLE "policy_model_results" ADD CONSTRAINT "policy_model_results_run_id_p
 ALTER TABLE "policy_model_results" ADD CONSTRAINT "policy_model_results_fund_id_policy_version_fund_policy_versions_fund_id_version_fk" FOREIGN KEY ("fund_id","policy_version") REFERENCES "public"."fund_policy_versions"("fund_id","version") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "policy_model_results" ADD CONSTRAINT "policy_model_results_fund_id_policy_version_clause_id_fund_policy_clauses_fund_id_policy_version_clause_id_fk" FOREIGN KEY ("fund_id","policy_version","clause_id") REFERENCES "public"."fund_policy_clauses"("fund_id","policy_version","clause_id") ON DELETE no action ON UPDATE no action;
 --> statement-breakpoint
--- IAC-405 step 1 piece G and N1 (docs/plans/POLICY_CHECK_SCOPE.md sections 3 and 4; docs/ASSUMPTIONS.md section 60). Hand-written guards,
+-- IAC-405 step 1 piece G and N1. Hand-written guards,
 -- appended after the generated DDL as migrations 0014, 0015 and 0016 did. Both new tables are immutable: no update, no delete, no
 -- truncate. Migration 0015 is not edited: its run guard is replaced here with CREATE OR REPLACE so a MODEL run is accepted under the
 -- same unique (decision_hash, kind) rule, and its result guard stays rules only because model rows live in policy_model_results.

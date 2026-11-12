@@ -9,7 +9,7 @@ import { assistedColumns, type AssistedQueueRow } from "../src/app/assisted-queu
 import { BULK_LIMIT, BULK_SAVED_TEXT, BULK_SKIP_REASONS, BULK_SKIP_TEXT } from "../src/fund-modes/bulk-reasons";
 import { holdsLabel } from "../src/server/assisted-checks";
 
-// IAC-405 step 2 PR A (docs/ASSUMPTIONS.md section 77), AS-30 to AS-34: pure unit tests of the Assisted queue columns, the Checks cell and the closed reason list. No database, no browser.
+// IAC-405 step 2 PR A, AS-30 to AS-34: pure unit tests of the Assisted queue columns, the Checks cell and the closed reason list. No database, no browser.
 const sample = (over: Partial<AssistedQueueRow> = {}): AssistedQueueRow => ({
   id: "R-0a1b2c3d-0000-4000-8000-000000000001", claimant: "Maria Alvarez", vendor: "Cedar Science Shop", fund: "Tallow Creek Robot Kit Initiative", amountCents: "30000", approvalCount: 0,
   approvals: "Approvals: 0 of 1", waitingSince: "2026-11-01T10:00:00.000Z", age: "2h", href: "/claims/R-0a1b2c3d-0000-4000-8000-000000000001", claimVersion: 1, checks: "No holds found", selectable: true, ...over,

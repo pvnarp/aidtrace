@@ -5,7 +5,7 @@ import { stubClient } from "./support/claude-stub";
 import { createPolicyDatabase, tableHash, type PolicyDatabase } from "./support/policy-db";
 import { AGREEMENT, RULE_ENV, draftMessage, goodAnswer, unsureList } from "./support/rules-draft";
 
-// IAC-440 Package B, DR-118 (docs/GATE_REPORT.md section 60): the two read-only loaders behind the review screen and the fund rules page. Real Postgres, a stubbed model.
+// IAC-440 Package B, DR-118: the two read-only loaders behind the review screen and the fund rules page. Real Postgres, a stubbed model.
 // Both run in a read-only transaction, refuse a claimant and a signed-out caller, and read another organization's fund or draft as not found.
 vi.setConfig({ testTimeout: 120_000, hookTimeout: 60_000 });
 let ctx: PolicyDatabase;

@@ -7,7 +7,7 @@ import { approveDecision, freezeDecision, rejectClaim } from "../src/ledger/serv
 import type { DonationObservation, DonationReader } from "../src/paypal/adapter";
 import { createTestDatabase, extraClaim, pause, recognizeClaim, recordGift, type TestDatabase } from "./support/attribution-db";
 
-// DON-05 integration (docs/plans/DONATION_LOOP_SCOPE.md sections 5 and 10, IAC-379 step 2). Real Postgres, stubbed
+// DON-05 integration (IAC-379 step 2). Real Postgres, stubbed
 // provider observation, no network. One database, tests run in order and share its state.
 let t: TestDatabase; let db: TestDatabase["db"];
 beforeAll(async () => { t = await createTestDatabase("aidtrace_iac379a_attr"); db = t.db; }, 60_000);
@@ -111,7 +111,7 @@ it("excludes a recognized decision whose claim version also has a rejection row 
   expect(await rowCounts()).toEqual(before);
 });
 
-// DON-05b (docs/ASSUMPTIONS.md section 94, IAC-379 step 2 follow-up). The gift stored PENDING in the first test completes only now, after
+// DON-05b (IAC-379 step 2 follow-up). The gift stored PENDING in the first test completes only now, after
 // C-104 was recognized. Its donation_receipts.recorded_at keeps the PENDING insert time, which is before the recognition, so ordering by that
 // column alone would apply it to C-104's fund_b line. Its paypal_capture fund credit is recorded now, after the recognition, so it stays unspent.
 // Runs last because it completes the shared PENDING gift.

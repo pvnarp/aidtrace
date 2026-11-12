@@ -2,7 +2,7 @@ import type { CsvExportParams, ProcessCellForExportParams } from 'ag-grid-commun
 import { decimalCents, type CentsInput } from './money';
 
 /**
- * CSV export for the shared grid foundation (docs/plans/GRID_SURFACES_SCOPE.md section 2.5).
+ * CSV export for the shared grid foundation.
  * The export never reads the clipboard and never makes a network request. It only builds parameters for the grid's own file export.
  */
 

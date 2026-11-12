@@ -1,7 +1,7 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
-// MO-01 to MO-05 (November 10 motion pass, docs/DESIGN_LANGUAGE.md section 3 rule 8, docs/GATE_REPORT.md section 116). Static checks of src/app/style.css and
+// MO-01 to MO-05 (November 10 motion pass). Static checks of src/app/style.css and
 // src/app/template.tsx. No database, no network, no browser. MO-06 is the browser check in e2e/motion.spec.ts.
 const css = readFileSync("src/app/style.css", "utf8").replace(/\/\*[\s\S]*?\*\//g, "");
 const NO_PREFERENCE = "@media (prefers-reduced-motion: no-preference) {";

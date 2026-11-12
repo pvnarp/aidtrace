@@ -2,7 +2,7 @@ import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
-// IAC-384, PH-21 to PH-30 (docs/GATE_REPORT.md section 72): static checks of the photo reader. Source text only.
+// IAC-384, PH-21 to PH-30: static checks of the photo reader. Source text only.
 const walk = (dir: string): string[] => readdirSync(dir).flatMap(name => { const path = join(dir, name); return statSync(path).isDirectory() ? walk(path) : [path]; });
 const source = (path: string) => readFileSync(path, "utf8");
 const code = (path: string) => source(path).split("\n").map(line => line.replace(/^\s*\/\/.*$/, "").replace(/^\s*\/\*.*\*\/\s*$/, "")).join("\n");
@@ -46,7 +46,7 @@ describe("PH-23 no file under src writes image bytes anywhere", () => {
   });
 });
 
-// November 5 owner decision (docs/decisions.md, "Rule drafts and the photo reader on in judge sessions"): exactly one file, by full path, may turn the flag on.
+// November 5 owner decision ("Rule drafts and the photo reader on in judge sessions"): exactly one file, by full path, may turn the flag on.
 // An export flattens release/judge into the root and has no release/judge folder. In the repository a missing judge compose must fail, so the mode comes from the folder, not from the file.
 import { EXPORT_MODE } from "./support/export-mode";
 const JUDGE_SESSION = EXPORT_MODE ? "compose.session.yaml" : "release/judge/compose.session.yaml";

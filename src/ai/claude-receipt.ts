@@ -5,7 +5,7 @@ import { createClaudeBudget, processClaudeBudget, type ClaudeBudget } from "./bu
 import { CATEGORY_DEFINITIONS } from "./categories";
 import { CATEGORIES, ReceiptAiError, validateProposals, validateReceiptInput, type AiErrorCode, type GroundedProposal, type ReceiptInput } from "./receipt";
 
-// Hosted Claude receipt reader (IAC-383, docs/plans/CLAUDE_AI_SCOPE.md sections 1, 2 and 5).
+// Hosted Claude receipt reader (IAC-383).
 // It proposes a category and an exact quote per line and nothing else: no tools, no
 // tool_choice, no amounts, no payee, no fund. Every result passes validateProposals, so a
 // quote that is not an exact, unique substring of the receipt is refused, never repaired.
@@ -19,7 +19,7 @@ export const CLAUDE_SCHEMA_VERSION = "receipt-proposals-v2";
 export { CLAUDE_BASE_URL, type ClaudeMessagesClient, type ClaudeRequest, type ClaudeRequestOptions };
 // Thinking counts toward max_tokens. 12 lines at about 100 tokens each fit with wide margin.
 export const CLAUDE_MAX_TOKENS = 4096;
-// Classification route: docs/shared/model-migration.md recommends low effort and adaptive
+// Classification route: low effort and adaptive
 // thinking (thinking is omitted) for both models. Tune only against the A1 eval.
 export const CLAUDE_EFFORT = "low" as const;
 const MAX_RESPONSE_BYTES = 65536;

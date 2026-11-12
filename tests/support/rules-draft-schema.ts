@@ -5,7 +5,7 @@ import { GRANT } from "./rules-draft";
 
 // The schema model and the per-grant checks shared by tests/rules-draft-schema.test.ts (exported, runs them over planted grants) and the owner-only
 // tests/rules-draft-schema-harness.test.ts (runs the same checks over every grant of the paid evaluation dataset, which needs the owner-only harness).
-// Moved unchanged from tests/rules-draft-schema.test.ts (IAC-442); the docs/GATE_REPORT.md section 58 notes on that file still apply.
+// Moved unchanged from tests/rules-draft-schema.test.ts (IAC-442).
 export const UNION_LIMIT = 16;
 
 // Schema nodes by structure: the node, each property, each array item and each anyOf branch. A property that happens to be named like a keyword is a key

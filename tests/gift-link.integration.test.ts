@@ -5,7 +5,7 @@ import * as s from "../db/schema";
 import { findGiftLinkCapture, hashGiftToken, issueGiftLink } from "../src/donation/gift-link";
 import { createTestDatabase, recordGift, type TestDatabase } from "./support/attribution-db";
 
-// IAC-413 PR A (docs/plans/DONOR_TRAIL_SCOPE.md sections 2.4 and 5.3, tests GT-02 to GT-05). Real Postgres, stubbed provider
+// IAC-413 PR A (tests GT-02 to GT-05). Real Postgres, stubbed provider
 // observations, no network. The gift is recorded through the existing recordDesignatedDonation path, as the other gift tests do.
 vi.setConfig({ testTimeout: 30_000, hookTimeout: 60_000 });
 let t: TestDatabase;

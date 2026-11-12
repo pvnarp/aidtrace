@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 import { fundModesEnabled } from "../src/fund-modes/flag";
 import { ALLOWED_MODULE_NAMES, BASE_MODULES, SELECTION_MODULES } from "../src/app/grid/modules";
 
-// IAC-405 step 2 PR F (docs/plans/FUND_MODES_SCOPE.md section 3, docs/ASSUMPTIONS.md section 76), FM-25: static boundaries of the flag, the sweep and the deployment file.
+// IAC-405 step 2 PR F, FM-25: static boundaries of the flag, the sweep and the deployment file.
 const walk = (dir: string): string[] => readdirSync(dir).flatMap(name => { const path = join(dir, name); return statSync(path).isDirectory() ? walk(path) : [path]; });
 const sourceFiles = (dir: string) => walk(dir).filter(path => /\.(ts|tsx)$/.test(path));
 const importsOf = (path: string) => [...readFileSync(path, "utf8").matchAll(/(?:from|import)\s*\(?\s*["']([^"']+)["']/g)].map(match => match[1]!);
@@ -81,7 +81,7 @@ describe("FM-25 the fund mode route", () => {
   });
 });
 
-// IAC-405 step 2 PR A (docs/ASSUMPTIONS.md section 77), AS-20 to AS-24: static boundaries of the bulk approval route and the Assisted queue screens. Source text only.
+// IAC-405 step 2 PR A, AS-20 to AS-24: static boundaries of the bulk approval route and the Assisted queue screens. Source text only.
 const code = (path: string) => readFileSync(path, "utf8").split("\n").map(line => line.replace(/^\s*\/\/.*$/, "")).join("\n");
 const importsInCode = (path: string) => [...code(path).matchAll(/^\s*(?:import|export)\s+(?!type\b)[^;]*?from\s*["']([^"']+)["']/gm)].map(match => match[1]!).concat([...code(path).matchAll(/\bimport\(\s*["']([^"']+)["']\s*\)/g)].map(match => match[1]!));
 function closureOf(entry: string): Set<string> {

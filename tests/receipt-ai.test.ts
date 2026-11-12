@@ -39,6 +39,6 @@ it("validates bounded inputs before any model request, including forbidden input
     { ...input, lines: [] }]) await expect(categorize(bad as ReceiptInput)).rejects.toMatchObject({ code: "INPUT" });
   expect(calls).toHaveLength(0);
 });
-// Removed with the local categorizer (Claude only, docs/plans/CLAUDE_ONLY_SCOPE.md): the tests of the private chat endpoint, its
+// Removed with the local categorizer (Claude only): the tests of the private chat endpoint, its
 // envelope and byte bounds, its single-flight guard, its timeout and its server error mapping. The Claude categorizer has the same
 // guarantees under CAI-01, CAI-02, CAI-09, CAI-10, CAI-16, CAI-17 and CAI-18 in tests/claude-receipt.test.ts.

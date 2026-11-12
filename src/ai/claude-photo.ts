@@ -4,7 +4,7 @@ import { claudeClientFor, type ClaudeMessagesClient, type ClaudeRequest } from "
 import { createClaudeBudget, processClaudeBudget, type ClaudeBudget } from "./budget";
 import { resolveClaudeModel, servedBy, type ClaudeModel } from "./claude-receipt";
 
-// Receipt photo reader, pass 1 (IAC-384, docs/plans/CLAUDE_AI_SCOPE.md feature A2, docs/ASSUMPTIONS.md section 83). One photo goes to Claude vision once and comes back as a
+// Receipt photo reader, pass 1 (IAC-384). One photo goes to Claude vision once and comes back as a
 // structured transcript: the vendor, the date as printed, each line's text and amount, the subtotal, tax and total. It transcribes and nothing else: no tools, no category,
 // no fund, no approval. Code checks the arithmetic to the cent and shows a mismatch, never repairs it. This is the only file that builds the photo request. The photo bytes
 // live in memory for the length of one call: nothing here writes them anywhere, logs them or returns them.
@@ -96,7 +96,7 @@ export function checkArithmetic(transcript: Transcript): Arithmetic {
   return { ok: linesPlusTaxMatchesTotal && subtotalMatchesLines, linesCents, taxCents, totalCents: transcript.totalCents, subtotalCents: transcript.subtotalCents, linesPlusTaxMatchesTotal, subtotalMatchesLines };
 }
 
-// IAC-384 (docs/ASSUMPTIONS.md section 87, decision P1). A hand-added amount (a tip) can sit after the printed subtotal and inside the total. When the receipt fails
+// IAC-384. A hand-added amount (a tip) can sit after the printed subtotal and inside the total. When the receipt fails
 // only the subtotal check, lines plus tax match the total, and the subtotal equals the sum of the first k lines, the amounts after those k lines are named so the page can say so.
 // Pure and display-only: checkArithmetic and the stored arithmetic_ok are unchanged. The largest k below lines.length wins; k is never lines.length (that is the ok case).
 export function afterSubtotal(transcript: Transcript, arithmetic: Arithmetic): { printedCount: number; afterCents: number } | null {

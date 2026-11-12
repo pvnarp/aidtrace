@@ -12,7 +12,7 @@ import { refreshClaimPayout, sendClaimPayout } from "../src/ledger/payout";
 import * as s from "../db/schema";
 import type { PayoutTransport, PersistedPayout } from "../src/paypal/adapter";
 
-// PE-02 to PE-04 (IAC-415 PR 8, "payout end states say what is true", docs/GATE_REPORT.md section 56). The October 31 keyed rehearsal ended one send UNKNOWN (the adapter failed before PayPal
+// PE-02 to PE-04 (IAC-415 PR 8, "payout end states say what is true"). The October 31 keyed rehearsal ended one send UNKNOWN (the adapter failed before PayPal
 // answered) and one PAID after a single Refresh status; three passages on those pages read wrong. Each test starts its own isolated database and its own `next start` on 3100, then
 // drives the REAL ledger functions (freezeDecision, approveDecision, sendClaimPayout, refreshClaimPayout) with an in-test fake PayoutTransport. The attempt rows come from those
 // functions, never from an insert. The fake is a test double, NOT a PayPal result. The server runs KEYED with synthetic credentials so an approver's page has payment configured

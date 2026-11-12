@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 import { CLAIMANT_LEDE, CLAIMANT_LEDE_FUND_MODES, approverHeading, approverLede, approverReviewLine, claimActionLabel, claimantHeading, frozenSplit, nextStep, statusLabel } from "../src/app/home-copy";
 import { architectureStages } from "../src/app/architecture/stages";
 
-// HOME-01 to HOME-07 (IAC-403 locked mock screens, docs/GATE_REPORT.md section 40). Pure functions and static file checks.
+// HOME-01 to HOME-07 (IAC-403 locked mock screens). Pure functions and static file checks.
 // No database, no network, no clock. The browser checks are e2e/mock-screens.spec.ts (HOME-08).
 const walk = (dir: string): string[] => readdirSync(dir).flatMap(name => { const path = join(dir, name); return statSync(path).isDirectory() ? walk(path) : [path]; });
 const sources = walk("src/app").filter(path => /\.(tsx?|css)$/.test(path));

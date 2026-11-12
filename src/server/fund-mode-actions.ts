@@ -1,4 +1,4 @@
-// IAC-405 step 2 PR F (docs/plans/FUND_MODES_SCOPE.md section 3 items 1 and 5, docs/ASSUMPTIONS.md section 76). The approver-only route that proposes and approves a fund's
+// IAC-405 step 2 PR F. The approver-only route that proposes and approves a fund's
 // approval mode. Fixed order of checks: the flag first (a flag-off instance answers 404 as if the route did not exist, before anything else is read), method, origin, session, role, ids and the fund in the actor's
 // organization, content type, bounded body, exact fields. A handler never answers with an error, a database message or request text: every redirect carries a code from
 // src/server/rules-notices.ts. It imports no ledger, payout, PayPal or claim approval module: the only writer it reaches is src/fund-modes/change.ts.

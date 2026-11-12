@@ -11,7 +11,7 @@ import { recordDesignatedDonation } from "../src/ledger/donation";
 import { issueGiftLink } from "../src/donation/gift-link";
 import type { DonationObservation } from "../src/paypal/adapter";
 
-// AW-02 (IAC-416 PR 2, docs/GATE_REPORT.md section 57): the rendered words at 1440 px. Screen copy says "AI" and avoids the words sandbox,
+// AW-02 (IAC-416 PR 2): the rendered words at 1440 px. Screen copy says "AI" and avoids the words sandbox,
 // fictional and "claude" in running text. Every screen the recording can reach is read as document.body.innerText with every <details> opened.
 // A screen may name the model and Anthropic only inside one of three disclosure sentences, which are removed before the word check and counted. So the
 // check cannot pass by deleting the disclosure: the pages where text leaves the app must carry exactly one. AW-01 (tests/says-ai.test.ts) scans the

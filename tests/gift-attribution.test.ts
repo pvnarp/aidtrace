@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { attributeGifts, GIFT_ATTRIBUTION_POLICY, type AttributionClaim, type AttributionEdge, type AttributionGift, type AttributionInput } from "../src/donation/attribution";
 import { DONATION_MAX_CENTS } from "../src/paypal/adapter";
 
-// DON-05 (docs/plans/DONATION_LOOP_SCOPE.md sections 5 and 10). Pure function, no database.
+// DON-05. Pure function, no database.
 // The edge amounts for the USD 500 claim are the real fixture edges, read from tests/fixture-allocation.integration.test.ts
 // and db/fixture.ts: fund_a L1 8000 and L2 15000, fund_b L1 20000, fund_g L3 7000. Other claims use synthetic edges of the same shape.
 const T0 = Date.UTC(2026, 9, 30, 12, 0, 0, 0);
@@ -122,7 +122,7 @@ describe("DON-05 GIFT_ATTRIBUTION_V1: cases", () => {
   });
 });
 
-// DON-05c (docs/ASSUMPTIONS.md section 94 item 5). readGiftAttribution dates a gift first stored PENDING by its later fund credit.
+// DON-05c. readGiftAttribution dates a gift first stored PENDING by its later fund credit.
 // Oldest open layer first means that later time can give an earlier claim a gift that was never PENDING, and the moved gift a later claim.
 describe("DON-05c GIFT_ATTRIBUTION_V1: a later time for one gift moves gifts in the same fund between claims", () => {
   it("DON-05c: gift A dated after claim X gives X gift B and Y gift A", () => {

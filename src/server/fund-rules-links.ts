@@ -1,4 +1,4 @@
-// IAC-440 Package B (docs/ASSUMPTIONS.md section 72). Which restricted funds of the signed-in approver's organization the home page may link to the rules screen.
+// IAC-440 Package B. Which restricted funds of the signed-in approver's organization the home page may link to the rules screen.
 // The home fund row knows only a fund's name (the pinned meter has no id), so the link is found by name. A name that two restricted funds share gets no link,
 // which fails closed. Nothing is returned for a claimant or a signed-out visitor. The result is cached for one request.
 import { and, eq } from "drizzle-orm";

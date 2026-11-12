@@ -17,7 +17,7 @@ import type { DraftInput } from "../src/receipt/terms";
 import { createClaudeReceiptCategorizer, type ClaudeMessagesClient } from "../src/ai/claude-receipt";
 import { readReceiptAudit } from "../src/ai/audit";
 
-// PRV-03 to PRV-10: IAC-392 provider and model columns (docs/plans/PROVIDER_COLUMNS.md) in isolated databases.
+// PRV-03 to PRV-10: IAC-392 provider and model columns in isolated databases.
 // Stubbed categorizers only. No test calls Anthropic, the local model server or PayPal.
 const adminUrl = new URL(process.env.DATABASE_URL!); adminUrl.pathname = "/postgres";
 const admin = postgres(adminUrl.toString(), { max: 1 });

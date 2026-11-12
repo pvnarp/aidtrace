@@ -4,7 +4,7 @@ import { CLAUDE_PROMPT_VERSION, CLAUDE_SCHEMA_VERSION, createClaudeReceiptCatego
 import { createClaudeBudget, type ClaudeBudget } from "../../src/ai/budget";
 import { validateProposals, type ReceiptInput } from "../../src/ai/receipt";
 
-// Shared test seams for the Claude only AI (docs/plans/CLAUDE_ONLY_SCOPE.md). Nothing here imports vitest, so a child process
+// Shared test seams for the Claude only AI. Nothing here imports vitest, so a child process
 // worker may use it too. No helper calls the Anthropic API: every categorizer is built from a stub client or returns a canned
 // result. The key is a fake string that only proves it never reaches a result, an error or a log.
 export const FAKE_KEY = "sk-ant-api03-FAKE-TEST-KEY-NOT-REAL-0000";

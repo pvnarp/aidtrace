@@ -182,7 +182,7 @@ export const loginWindows = pgTable("login_windows", {
   username: text().primaryKey(), attempts: integer().notNull(), resetsAt: timestamp("resets_at", { withTimezone: true }).notNull(),
 }, t => [check("login_attempts_positive", sql`${t.attempts} > 0`)]);
 
-// IAC-384 (docs/ASSUMPTIONS.md section 83): one append-only row per receipt photo read call. It holds the SHA-256 of the photo and the call facts,
+// IAC-384: one append-only row per receipt photo read call. It holds the SHA-256 of the photo and the call facts,
 // never the photo, its base64, the transcript or an error message. Migration 0021 refuses UPDATE, DELETE and TRUNCATE.
 export const photoReadOutcomes = ["READ", "UNREADABLE", "REFUSED", "FAILED"] as const;
 export type PhotoReadOutcome = (typeof photoReadOutcomes)[number];
@@ -218,7 +218,7 @@ export const receiptSuggestions = pgTable("receipt_suggestions", {
   audit: jsonb().$type<Record<string, string | number>>(), provider: text().$type<"local" | "claude">(), model: text(), errorCode: text("error_code"), requestedAt: recordedAt(),
 }, t => [unique().on(t.reviewId, t.attempt), check("receipt_attempt_positive", sql`${t.attempt} > 0`), check("receipt_suggestion_status", sql`${t.status} in ('RUNNING','READY','FAILED')`),
   check("receipt_ready_evidence", sql`${t.status} <> 'READY' or (${t.proposals} is not null and ${t.audit} is not null)`),
-  // IAC-392 (docs/plans/PROVIDER_COLUMNS.md section 1): the columns must agree with the stored audit and are set only on READY.
+  // IAC-392: the columns must agree with the stored audit and are set only on READY.
   check("receipt_suggestion_provider", sql`(${t.status} = 'READY') = (${t.provider} is not null) and (${t.provider} is null) = (${t.model} is null) and (${t.provider} is null or ${t.provider} in ('local','claude')) and (${t.provider} is distinct from 'local' or (not (${t.audit} ? 'provider') and ${t.model} = ${t.audit}->>'modelRevision' and ${t.model} ~ '^[a-f0-9]{40}$') is true) and (${t.provider} is distinct from 'claude' or (${t.audit}->>'provider' = 'claude' and ${t.model} = ${t.audit}->>'model' and ${t.model} in ('claude-haiku-5-5','claude-sonnet-5-5')) is true)`)]);
 export const receiptConfirmations = pgTable("receipt_confirmations", {
   id: uuid().primaryKey().defaultRandom(), reviewId: uuid("review_id").notNull().unique().references(() => receiptReviews.id),
@@ -246,8 +246,8 @@ export const expenseProposals = pgTable("expense_proposals", {
   check("expense_proposal_completion", sql`(${t.state} = 'RUNNING' and ${t.completedAt} is null and ${t.result} is null) or (${t.state} <> 'RUNNING' and ${t.completedAt} is not null)`),
 ]);
 
-// IAC-379 step 1, hardened by IAC-391 (docs/plans/DONATION_HARDENING.md). Server-authoritative donation order lifecycle
-// (docs/plans/DONATION_LOOP_SCOPE.md sections 3 and 8). Stores no payer email, payer ID, address or card data.
+// IAC-379 step 1, hardened by IAC-391. Server-authoritative donation order lifecycle
+//. Stores no payer email, payer ID, address or card data.
 // Posting stays in donation_receipts and the ledger.
 export const donationOrderStatuses = ["CREATED", "APPROVED", "CAPTURING", "CAPTURE_UNKNOWN", "PENDING", "DECLINED", "COMPLETED", "FAILED", "MISMATCH", "EXPIRED"] as const;
 export type DonationOrderStatus = (typeof donationOrderStatuses)[number];
@@ -279,7 +279,7 @@ export const donationOrders = pgTable("donation_orders", {
   check("donation_order_final_has_no_lease", sql`${t.status} not in ('COMPLETED','FAILED','MISMATCH','EXPIRED') or ${t.leaseToken} is null`),
 ]);
 
-// IAC-379 step 3b (docs/plans/DONATION_LOOP_SCOPE.md sections 6, 8 and 10). A donor impact note approved by a person who is
+// IAC-379 step 3b. A donor impact note approved by a person who is
 // not the claimant, and the per-line gift applications written with it. Both tables are immutable (migration 0014 guards).
 // Staleness is computed when the page is read, never by updating a row. No money moves and nothing posts to the ledger here.
 export const giftNoteModes = ["TEMPLATE", "AI"] as const;
@@ -315,7 +315,7 @@ export const giftApplications = pgTable("gift_applications", {
   check("gift_application_positive", sql`${t.appliedCents} > 0`),
   check("gift_application_policy", sql`${t.policyVersion} = 'GIFT_ATTRIBUTION_V1'`)]);
 
-// IAC-405 step 1 (docs/plans/POLICY_CHECK_SCOPE.md sections 2, 4 and 5). Deterministic policy rule flags for approvers.
+// IAC-405 step 1. Deterministic policy rule flags for approvers.
 // All three tables are append-only (migration 0015 guards): a run row is written once, every flag and the run end are later
 // result rows, and nothing is ever updated. None of them is part of the financial hash set, and nothing here moves money,
 // changes an approval or posts to the ledger. RULES runs are written by the rules. The MODEL kind and its columns (migration 0017)
@@ -343,7 +343,7 @@ export const policyCheckRuns = pgTable("policy_check_runs", {
   id: uuid().primaryKey().defaultRandom(), decisionHash: text("decision_hash").notNull().references(() => allocationDecisions.decisionHash),
   claimId: text("claim_id").notNull(), claimVersion: integer("claim_version").notNull(), organizationId: text("organization_id").notNull().references(() => organizations.id),
   kind: text().$type<PolicyCheckKind>().notNull(),
-  // Migration 0019 (docs/plans/FUND_MODES_SCOPE.md section 3). APPROVER runs keep today's rule: started_by is an approver who is not the
+  // Migration 0019. APPROVER runs keep today's rule: started_by is an approver who is not the
   // claimant. SWEEP runs come from the policy sweep and carry no user. The web route can only create APPROVER runs.
   trigger: text().$type<PolicyRunTrigger>().notNull().default("APPROVER"), startedBy: text("started_by").references(() => users.id),
   startedAt: timestamp("started_at", { withTimezone: true }).notNull().defaultNow(),
@@ -377,7 +377,7 @@ export const policyCheckResults = pgTable("policy_check_results", {
     or (${t.entry} = 'NOT_CHECKED' and ${t.ruleId} in ('P1','P2','P3','P5','P6') and ${t.severity} is null and ${t.reasonCode} = 'NO_THRESHOLDS' and ${t.flagText} is not null and ${t.fundId} is null and ${t.lineId} is null)
     or (${t.entry} = 'RUN_END' and ${t.ruleId} is null and ${t.severity} is null and ${t.reasonCode} is null and ${t.flagText} is null and ${t.lineId} is null and ${t.fundId} is null)`)]);
 
-// IAC-413 PR A (docs/plans/DONOR_TRAIL_SCOPE.md sections 2 and 5). The private gift link. Only the SHA-256 of the bearer token is
+// IAC-413 PR A. The private gift link. Only the SHA-256 of the bearer token is
 // stored, so nobody can recover or regenerate a link. The table is append-only (migration 0016 guards): one row per completed gift,
 // never updated or deleted. It holds no contact method and is outside the financial hash set.
 export const giftLinkPolicy = "GIFT_LINK_V1" as const;
@@ -386,7 +386,7 @@ export const giftLinks = pgTable("gift_links", {
   policyVersion: text("policy_version").notNull(), recordedAt: recordedAt(),
 }, t => [check("gift_link_hash", sql`${t.tokenHash} ~ '^[a-f0-9]{64}$'`), check("gift_link_policy", sql`${t.policyVersion} = 'GIFT_LINK_V1'`)]);
 
-// IAC-405 step 1 piece G and N1 (docs/plans/POLICY_CHECK_SCOPE.md sections 2.2, 3 and 4; docs/ASSUMPTIONS.md section 60). Migration 0017.
+// IAC-405 step 1 piece G and N1. Migration 0017.
 // fund_policy_clauses is the clause text the model reads, append-only, one row per fund policy version and clause id. The model writes
 // no quote: the app looks the text up here by the validated clause id. policy_model_results holds the arm C rows of a MODEL run
 // (policy_check_results cannot: its shape checks and its guard are rules only, and migration 0015 stays unchanged). Both tables are
@@ -434,7 +434,7 @@ export const policyModelResults = pgTable("policy_model_results", {
     or (${t.entry} = 'SKIPPED' and ${t.fundId} is not null and ${t.reasonCode} = 'GENERAL_FUND' and ${t.model} is null and ${t.lineId} is null and ${t.verdict} is null and ${t.clauseId} is null and ${t.requestDigest} is null and ${t.stopReason} is null and ${t.inputTokens} is null and ${t.outputTokens} is null)
     or (${t.entry} = 'RUN_END' and ${t.fundId} is null and ${t.model} is null and ${t.lineId} is null and ${t.verdict} is null and ${t.clauseId} is null and ${t.reasonCode} is null and ${t.requestDigest} is null and ${t.stopReason} is null and ${t.inputTokens} is null and ${t.outputTokens} is null)`)]);
 
-// IAC-440 Package A (docs/plans/AI_DRAFTED_RULES_SCOPE.md section 5; docs/ASSUMPTIONS.md section 70). Migration 0018.
+// IAC-440 Package A. Migration 0018.
 // policy_drafts is one immutable row per AI draft, refused AI draft or human edit. An edit is a new row that points at its parent, so the
 // model output and every human change stay separately visible. Status is never stored: it is derived from policy_draft_events, which is
 // append-only. Both tables are outside the financial hash set and move no money. Neither stores the key, headers or raw model text.
@@ -486,7 +486,7 @@ export const policyDraftEvents = pgTable("policy_draft_events", {
   uniqueIndex("draft_event_one_bound").on(t.draftId).where(sql`${t.kind} = 'BOUND'`),
   uniqueIndex("draft_event_one_withdrawn").on(t.draftId).where(sql`${t.kind} = 'WITHDRAWN'`)]);
 
-// IAC-405 step 2 PR F (docs/plans/FUND_MODES_SCOPE.md section 3; docs/ASSUMPTIONS.md section 76). Migration 0019. Four append-only tables.
+// IAC-405 step 2 PR F. Migration 0019. Four append-only tables.
 // A fund mode is proposed by one approver and approved by a second, distinct approver of the fund organization. A decision records its
 // effective mode once, at freeze. An automated record is the audit trail of a check outcome: it is never an approval and is never
 // written to the approvals table. AUTOPILOT is a legal stored value so a later package needs no schema change, and the server refuses to
@@ -529,7 +529,7 @@ export const automatedDecisions = pgTable("automated_decisions", {
   check("automated_decision_inputs", sql`jsonb_typeof(${t.inputs}) = 'object' and octet_length(${t.inputs}::text) <= 8000`),
   check("automated_decision_no_holds_runs", sql`${t.kind} <> 'NO_HOLDS' or (${t.rulesRunId} is not null and ${t.modelRunId} is not null and ${t.ruleSetVersion} is not null and ${t.model} is not null and ${t.promptVersion} is not null)`)]);
 
-// IAC-405 step 3 PR P (docs/plans/FUND_MODES_SCOPE.md section 5; docs/ASSUMPTIONS.md section 78). Migration 0020. Three append-only tables.
+// IAC-405 step 3 PR P. Migration 0020. Three append-only tables.
 // payee_email_history: one row each time a claim version is created (a database trigger writes it with source CLAIM), plus the demo fixture row the
 // seed writes (source FIXTURE, design decision 5). Guardrail G6 reads it. automation_switch_events: the per-organization kill switch. No row means OFF.
 // Turning it ON takes a proposal by one approver and a confirmation by a different approver. disbursement_origins: who sent a payout, a human signer or

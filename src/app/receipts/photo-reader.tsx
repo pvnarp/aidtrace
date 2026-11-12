@@ -1,5 +1,5 @@
 "use client";
-// IAC-384 (docs/ASSUMPTIONS.md section 83). The receipt photo control. The chosen photo goes to this app's own photo route once, and the transcript that comes back
+// IAC-384. The receipt photo control. The chosen photo goes to this app's own photo route once, and the transcript that comes back
 // fills the draft form beside it. The preview is the browser's own copy of the file (an object URL): the server never sends the image back. Program and the
 // sample-data checkbox stay for the person, and nothing is submitted until the person presses Create receipt draft.
 import { useEffect, useRef, useState, type ChangeEvent } from "react";

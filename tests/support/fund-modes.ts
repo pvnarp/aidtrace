@@ -5,7 +5,7 @@ import type { AppDatabase } from "../../src/server/db";
 import type { ClaudeMessagesClient } from "../../src/ai/claude-client";
 import type { ComplianceRequest } from "../../src/policy/compliance";
 
-// IAC-405 step 2 PR F test helpers (docs/plans/FUND_MODES_SCOPE.md). Real Postgres in the isolated check project. A model call goes only to a stub that a test defines.
+// IAC-405 step 2 PR F test helpers. Real Postgres in the isolated check project. A model call goes only to a stub that a test defines.
 // Nothing here reaches the network, a key or a provider.
 export const FLAG_ON = { FUND_MODES_ENABLED: "true" };
 export const AI_ENV = { AI_COMPLIANCE_ENABLED: "true", ANTHROPIC_API_KEY: "test-key-not-real" };

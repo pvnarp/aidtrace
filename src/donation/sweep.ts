@@ -4,7 +4,7 @@ import type { AppDatabase } from "../server/db";
 import { maskTail } from "./display";
 import { expireDonationOrders, reconcileDonationOrder, type DonationOrderPayments, type DonationOrderResult } from "./orders";
 
-// IAC-379 step 3a, owner answer 3 (docs/decisions.md): one worker pass. It expires abandoned orders with no provider call,
+// IAC-379 step 3a, owner answer 3: one worker pass. It expires abandoned orders with no provider call,
 // then, only in a KEYED session, reconciles rows that may hold money. The single same-ID capture retry lives inside
 // reconcileDonationOrder and is not reimplemented here. Logs carry counts and IDs masked to six characters, nothing else.
 export const SWEEP_BATCH = 25;

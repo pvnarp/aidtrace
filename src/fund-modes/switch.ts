@@ -1,4 +1,4 @@
-// IAC-405 step 3 PR P (docs/plans/FUND_MODES_SCOPE.md section 5 guardrail G8; docs/ASSUMPTIONS.md section 78). The per-organization automation kill switch. Append-only events
+// IAC-405 step 3 PR P, guardrail G8. The per-organization automation kill switch. Append-only events
 // (migration 0020). No row means OFF. Turning it ON takes a proposal by one approver and a confirmation by a different approver of the same organization, the same two-step shape as a
 // fund mode change. Turning it OFF takes one approver. It also trips on its own: an approver's "Disagree" with an automated payment, and any UNKNOWN result of an automated send.
 // Automation is blocked while the switch is not ON, and also while any automated attempt of the organization is still UNKNOWN (an unresolved outcome), even if the trip row was lost.

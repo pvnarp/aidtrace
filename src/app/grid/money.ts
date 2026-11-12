@@ -3,7 +3,7 @@ import { usd } from '../../analytics/model';
 import { COLUMN_FILTER_DEBOUNCE_MS } from './timing';
 
 /**
- * Money for the shared grid foundation (docs/plans/GRID_SURFACES_SCOPE.md section 2.4).
+ * Money for the shared grid foundation.
  * Cents cross the server boundary as decimal strings. Inside the grid they are bigint. Nothing here converts to a floating point value.
  */
 export class InvalidCentsError extends Error {

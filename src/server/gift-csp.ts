@@ -1,4 +1,4 @@
-// IAC-413 PR A (docs/plans/DONOR_TRAIL_SCOPE.md section 3.3): the Content Security Policy for /gift/[token].
+// IAC-413 PR A: the Content Security Policy for /gift/[token].
 // The page loads nothing from another origin: no PayPal host, no font host, no frame, no form target. Scripts are the Next runtime
 // from this origin plus its nonce-tagged inline payload. Styles are this origin only, with no 'unsafe-inline' (a test proves the
 // Next markup needs none, and if it ever does the scope names the fallback). The nonce rule is the one give-csp.ts applies.

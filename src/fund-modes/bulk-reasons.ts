@@ -1,4 +1,4 @@
-// IAC-405 step 2 PR A (docs/plans/FUND_MODES_SCOPE.md section 4, docs/ASSUMPTIONS.md section 77). The closed list of reasons the bulk approval route skips a claim, with the
+// IAC-405 step 2 PR A. The closed list of reasons the bulk approval route skips a claim, with the
 // plain sentence each one shows. No imports: the browser queue and the server service both read this file, and only these fixed sentences cross the HTTP boundary.
 export const BULK_LIMIT = 25;
 export const BULK_SKIP_REASONS = ["STALE_VERSION", "NOT_FOUND", "NOT_WAITING", "NOT_ASSISTED", "HOLD_FOUND", "NOT_CHECKED", "OWN_CLAIM", "ALREADY_APPROVED", "CHANGED", "FAILED"] as const;

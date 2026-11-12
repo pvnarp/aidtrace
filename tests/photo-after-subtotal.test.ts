@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { afterSubtotal, checkArithmetic, type Transcript } from "../src/ai/claude-photo";
 import { photoAfterSubtotal } from "../src/app/receipts/photo-copy";
 
-// IAC-384, PH-77 to PH-83 (docs/GATE_REPORT.md section 79, docs/ASSUMPTIONS.md section 87): the "added after the subtotal" note. Pure functions over fixed transcripts.
+// IAC-384, PH-77 to PH-83: the "added after the subtotal" note. Pure functions over fixed transcripts.
 const make = (amounts: number[], subtotalCents: number | null, totalCents: number, taxCents: number | null = null): Transcript =>
   ({ vendor: "V", datePrinted: "", lines: amounts.map((amountCents, i) => ({ text: `line ${i + 1}`, amountCents })), subtotalCents, taxCents, totalCents });
 const note = (transcript: Transcript) => afterSubtotal(transcript, checkArithmetic(transcript));

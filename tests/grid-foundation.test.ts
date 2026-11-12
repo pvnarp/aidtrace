@@ -12,7 +12,7 @@ import { GRID_STATE_MAX_CHARACTERS, GRID_STATE_VERSION, clearGridState, gridStat
 import { statusInfo } from "../src/app/grid/status";
 import { formatUsd } from "../src/donation/note";
 
-// IAC-380 step 2, the shared grid foundation (docs/plans/GRID_SURFACES_SCOPE.md sections 2 and 5). GS-01 to GS-12 run here as unit and static
+// IAC-380 step 2, the shared grid foundation. GS-01 to GS-12 run here as unit and static
 // tests with no database and no browser. GS-13 to GS-17 run in e2e/ledger.spec.ts. The e2e suite also reads the real computed theme values,
 // because GS-03 and GS-04 model the browser's var() fallback chain in code and do not run a browser.
 // GS-02 (the Studio-free guard) and GS-04 (the Trust mock) moved unchanged to the owner-only tests/grid-foundation-owner.test.ts (IAC-442): they need
@@ -75,7 +75,7 @@ describe("GS-03 the theme resolves against the current stylesheet", () => {
     const { theme, missing } = buildGridTheme(resolve);
     expect(missing).toEqual([]);
     expect(theme).toBeTruthy();
-    // Trust v2 (PR #74) replaced the teal palette; these are the Trust v2 column of docs/DESIGN_LANGUAGE.md section 2, the same as GS-04.
+    // Trust v2 (PR #74) replaced the teal palette; these are the Trust v2 values, the same as GS-04.
     expect(Object.fromEntries(GRID_ALIASES.map(name => [name, resolve(name)]))).toEqual({
       "--gx-ink": "#0b1f3a", "--gx-muted": "#5b6b80", "--gx-paper": "#ffffff", "--gx-soft": "#f4f6fa", "--gx-line": "#e6eaf0", "--gx-accent": "#0a66ff",
       "--gx-tint": "#f0f5ff", "--gx-hold": "#8a4b08", "--gx-stop": "#b42318", "--gx-ok": "#05603a",

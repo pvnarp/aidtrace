@@ -3,7 +3,7 @@ import { eq } from "drizzle-orm";
 import * as s from "../../db/schema";
 import type { AppDatabase } from "../server/db";
 
-// IAC-413 PR A (docs/plans/DONOR_TRAIL_SCOPE.md sections 2 and 5.3): the private gift link.
+// IAC-413 PR A: the private gift link.
 // The token is a bearer secret: 32 random bytes as base64url, shown once and never stored. Only its hash is stored, so a link
 // cannot be recovered or regenerated. This module never logs, throws on, or returns a token except from a fresh issue.
 // It imports no ledger writer and no PayPal adapter. The only write is the gift_links insert in issueGiftLink.

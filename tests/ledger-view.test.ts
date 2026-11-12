@@ -5,7 +5,7 @@ import { LEDGER_ROW_CAP, REQUIRED_APPROVALS, approvalsText, entryTypeOf, mapLedg
 import { LEDGER_PHONE_COLUMNS, LEDGER_TOTAL_FIELDS, ledgerColumns, ledgerTotalLabel } from "../src/app/ledger/columns";
 import { leafColumns } from "../src/app/grid/columns";
 
-// IAC-380 step 2, the read-only /ledger view (docs/plans/LEDGER_GRID_SCOPE.md as amended by docs/plans/GRID_SURFACES_SCOPE.md 3.1).
+// IAC-380 step 2, the read-only /ledger view.
 // LG-01 runs here as a pure unit test of the row mapper. The static source checks below back the read-only claim. No database, no browser.
 
 const BIG = 9007199254740993n; // 2^53 + 1: the first integer a JavaScript number cannot hold

@@ -4,7 +4,7 @@ import { appOrigin, expiredSessionCookie, isSameOrigin, sessionCookie } from "..
 import { hostedSession } from "../src/server/hosted-mode";
 import { paymentConfigured } from "../src/server/judge-mode";
 
-// HOST-01 to HOST-06 (hosted judging bundle, docs/HOSTED_RUNBOOK.md). Pure: no database, no network, no clock beyond Date.
+// HOST-01 to HOST-06 (hosted judging bundle). Pure: no database, no network, no clock beyond Date.
 // Hosted mode is AIDTRACE_HOSTED=true, set only by release/hosted/compose.yaml. It admits exactly one https://<host> APP_ORIGIN, sets Secure on the session
 // cookie, and requires a judge session. Owner mode and plain judge sessions are unchanged (tests/owner-origin.test.ts holds their set).
 const KEYS = ["AIDTRACE_HOSTED", "AIDTRACE_JUDGE_SESSION", "APP_ORIGIN"] as const;

@@ -11,7 +11,7 @@ import { ensureFixtureOpening } from "../src/ledger/opening";
 import * as s from "../db/schema";
 
 // IAC-403 still capture. Not part of the default run: only playwright.mock-capture.config.ts matches it.
-// Run it by explicit command (see docs/GATE_REPORT.md section 40). Stills go to local/mock-stills/ (ignored by Git).
+// Run it by explicit command. Stills go to local/mock-stills/ (ignored by Git).
 // The one practice claim is created through the form, then its status is set directly in the isolated database as a presentation
 // fixture. No provider call, no approval, no payment attempt.
 const OUT = "local/mock-stills";

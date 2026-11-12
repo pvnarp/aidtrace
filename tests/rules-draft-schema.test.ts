@@ -15,7 +15,7 @@ import { DRAFTED_FIELDS, EXPECTED_KEYS, PARTS, UNION_LIMIT, expectClosedObjects,
 // because they import scripts/support/rules-draft-eval, donor-note-eval, donor-note-reason and donor-note-3c, which the judge export omits. The schema model and the per-grant
 // checks are in tests/support/rules-draft-schema.ts and run here over the planted grants and there over every dataset grant.
 
-// IAC-440 Package A schema fix, DR-61, DR-62, DR-77 and DR-78 (docs/GATE_REPORT.md section 58): a union count and a shape guard over every JSON schema that
+// IAC-440 Package A schema fix, DR-61, DR-62, DR-77 and DR-78: a union count and a shape guard over every JSON schema that
 // is sent as a structured output.
 //
 // Why this file exists. The first real evaluation (November 1, 24 of 24 calls) was refused by the API before any model ran, HTTP 400 invalid_request_error:

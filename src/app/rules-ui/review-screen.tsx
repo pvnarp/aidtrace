@@ -1,4 +1,4 @@
-// IAC-440 Package B (docs/plans/AI_DRAFTED_RULES_SCOPE.md section 5, docs/ASSUMPTIONS.md section 72). The review screen of one AI-drafted rule set. Presentation only:
+// IAC-440 Package B. The review screen of one AI-drafted rule set. Presentation only:
 // it takes one stored draft (DraftReview), the viewer's id and an optional notice, and renders them. No hook, no fetch, no model call. Grant text and quotes are
 // rendered as plain React text (never as markup). A REFUSED draft renders no drafted value at all, because reviewRows returns none for it.
 // November 10 calm rules pages: the screen reads top down as "what needs you, what changes, approve". A field the grant does not settle is asked for first, in a

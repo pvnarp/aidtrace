@@ -5,7 +5,7 @@ import { AiRecommendation } from "../src/app/receipts/ai-recommendation";
 import { CLAUDE_EFFORT } from "../src/ai/claude-receipt";
 import type { ReceiptAudit } from "../src/ai/audit";
 
-// FT-04 (IAC-415 PR 5, "flow tidy", docs/GATE_REPORT.md section 52). Static markup of the AI recommendation header. No database, no network, no browser.
+// FT-04 (IAC-415 PR 5, "flow tidy"). Static markup of the AI recommendation header. No database, no network, no browser.
 // The browser checks are FT-02 and FT-02b (the receipt page says the instruction once) and FT-03 (the re-check after changed terms).
 const SENTENCE = "Edit the receipt to request a new review.";
 const audit: ReceiptAudit = { provider: "claude", model: "claude-haiku-5-5", responseModel: "claude-haiku-5-5", effort: CLAUDE_EFFORT, promptVersion: "receipt-p1", schemaVersion: "receipt-s1",

@@ -11,7 +11,7 @@ import { stubClient } from "./support/claude-stub";
 import { createPolicyDatabase, financialHash, receiptClaim, tableHash, type PolicyDatabase } from "./support/policy-db";
 import { AGREEMENT, GRANT, RULE_ENV, answerWithAllThresholds, answerWithThresholds, draftMessage, flatAnswer, goodAnswer, unsureList } from "./support/rules-draft";
 
-// IAC-440 Package A, DR-22 to DR-37 (docs/GATE_REPORT.md section 58) on real Postgres with a stubbed model. The service is the only writer of the draft
+// IAC-440 Package A, DR-22 to DR-37 on real Postgres with a stubbed model. The service is the only writer of the draft
 // tables and the only path to a bound policy. Every model call here goes to a stub that this file defines: no network, no key, no real model.
 vi.setConfig({ testTimeout: 60_000, hookTimeout: 60_000 });
 let ctx: PolicyDatabase;
@@ -589,7 +589,7 @@ describe("DR-36 a draft is re-checked against the catalogs as they are at approv
   });
 });
 
-// IAC-440 Package A, November 1 fixes (docs/GATE_REPORT.md section 58, DR-51 to DR-60). Real Postgres, stubbed model.
+// IAC-440 Package A, November 1 fixes (DR-51 to DR-60). Real Postgres, stubbed model.
 const ORG = "cedar-hollow";
 const THREE = ["robot_kits_parts", "classroom_supplies", "books"];
 const breadthAnswer = (categories: string[]) => { const answer = goodAnswer(); answer.allowedCategories.value = categories; answer.breadth = categories.length; return answer; };
@@ -949,7 +949,7 @@ describe("DR-60 the draft module still reaches no money, claim approval, payout 
   });
 });
 
-// IAC-440 Package A second evaluation blocker (docs/GATE_REPORT.md section 58, DR-76): the model answers in the flat wire shape, and a flat answer whose
+// IAC-440 Package A second evaluation blocker (DR-76): the model answers in the flat wire shape, and a flat answer whose
 // key set is not exactly the expected one is stored as a refusal with the existing SHAPE code. Real Postgres, stubbed model.
 describe("DR-76 a flat answer with a missing or extra key is stored as a SHAPE refusal, and a whole one still becomes a draft", () => {
   const textOf = (answer: unknown) => ({ content: [{ type: "text", text: JSON.stringify(answer) }] });

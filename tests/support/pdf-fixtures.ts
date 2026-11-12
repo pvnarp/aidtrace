@@ -1,4 +1,4 @@
-// IAC-440 Package B test helper (docs/GATE_REPORT.md section 60): builds small, valid, synthetic PDF files byte for byte, so no binary fixture has to be trusted.
+// IAC-440 Package B test helper: builds small, valid, synthetic PDF files byte for byte, so no binary fixture has to be trusted.
 // Every file is ASCII, so a string offset is a byte offset and the cross-reference table is exact. Nothing here reads a network, a key or the clock.
 export type PdfSpec = {
   // One entry per page: the lines of text, drawn top to bottom. A page with no lines draws one rectangle and no text, which is what an image-only scan looks like to a text extractor.

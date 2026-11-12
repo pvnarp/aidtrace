@@ -8,7 +8,7 @@ import { aiCard, paypalCard, railLines, RAIL_RECEIPT_PHOTO, type Stage } from ".
 import { FAKE_ENV, claudeMessage, stubClient } from "./support/claude-stub";
 import { goodWire, pngBytes } from "./support/photo";
 
-// IAC-384 review round, PH-46 to PH-58 (docs/GATE_REPORT.md section 72): the pure and stub-client parts of the provenance fix. No network, no key, no real model.
+// IAC-384 review round, PH-46 to PH-58: the pure and stub-client parts of the provenance fix. No network, no key, no real model.
 const ENV = { ...FAKE_ENV, AI_RECEIPT_ENABLED: "true", AI_RECEIPT_PHOTO_ENABLED: "true" };
 const base = { vendor: "Cedar Science Shop", lines: [{ description: "Science kit", amountCents: 600n }], totalCents: 600n, source: "Science kit $6.00\nTotal $6.00" };
 

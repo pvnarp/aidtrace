@@ -7,7 +7,7 @@ import { rulesNotice, type NoticeParams } from "../../../../../../server/rules-n
 import { AppHeader } from "../../../../../app-header";
 import { ReviewScreen } from "../../../../../rules-ui/review-screen";
 
-// IAC-440 Package B (docs/plans/AI_DRAFTED_RULES_SCOPE.md section 5, docs/ASSUMPTIONS.md section 72). The review screen of one drafted rule set. Approver only.
+// IAC-440 Package B. The review screen of one drafted rule set. Approver only.
 // A draft of another organization, or one that belongs to a different fund than the path names, reads as not found.
 export const dynamic = "force-dynamic";
 const ID = /^[A-Za-z0-9_-]{1,64}$/;

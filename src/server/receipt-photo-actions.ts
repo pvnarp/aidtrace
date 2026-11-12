@@ -1,4 +1,4 @@
-// IAC-384 (docs/plans/CLAUDE_AI_SCOPE.md feature A2, docs/ASSUMPTIONS.md section 83). POST /api/receipts/photo-text: one receipt photo as a raw body, one hosted AI read, a JSON transcript.
+// IAC-384. POST /api/receipts/photo-text: one receipt photo as a raw body, one hosted AI read, a JSON transcript.
 // Checks run in one fixed order: flag, method, origin, session, role, per-user rate limit, byte bound, magic bytes, AI status and budget, model call. A failing check never reaches a later one.
 // The photo is read into memory, hashed, sent as base64 and dropped: nothing here stores it, logs it or returns it. Nothing here imports PayPal, the ledger, a claim approval or a payout module.
 // Every refusal body is a fixed sentence. A handler never answers with an error, a stack, a library message or a model answer.
@@ -60,7 +60,7 @@ export function photoPrefill(transcript: Transcript) {
   const iso = /^\d{4}-\d{2}-\d{2}$/.test(transcript.datePrinted) && Number.isFinite(Date.parse(transcript.datePrinted)) && new Date(transcript.datePrinted).toISOString().slice(0, 10) === transcript.datePrinted ? transcript.datePrinted : null;
   return { vendor: transcript.vendor, incurredOn: iso, lines, total: centsToInput(transcript.totalCents), source: text };
 }
-// A hand-added amount after the subtotal gets a neutral note instead of the subtotal warning (ASSUMPTIONS section 87). The stored arithmetic result is not touched.
+// A hand-added amount after the subtotal gets a neutral note instead of the subtotal warning. The stored arithmetic result is not touched.
 function afterNote(transcript: Transcript, result: Arithmetic): string | null {
   const after = afterSubtotal(transcript, result);
   return after ? photoAfterSubtotal(transcript.subtotalCents!, after.printedCount, after.afterCents, transcript.totalCents) : null;

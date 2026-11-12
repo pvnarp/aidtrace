@@ -1,4 +1,4 @@
-// Process-wide hard cap on hosted Claude requests (docs/plans/CLAUDE_ONLY_SCOPE.md section 4).
+// Process-wide hard cap on hosted Claude requests.
 // One counter covers receipt, preparation and analytics calls. The cap is a constant on purpose:
 // no environment variable, setting or request can raise it, and nothing resets it except a
 // process restart. The counter lives on globalThis under a registered symbol so that bundles

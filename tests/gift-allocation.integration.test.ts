@@ -3,7 +3,7 @@ import * as s from "../db/schema";
 import type { AppDatabase } from "../src/server/db";
 import { createTestDatabase, pause, recognizeClaim, recordGift } from "./support/attribution-db";
 
-// DON-06 (docs/plans/DONATION_LOOP_SCOPE.md sections 4, 5 and 10, IAC-379 step 2): allocation, freeze, confirmation and the
+// DON-06 (IAC-379 step 2): allocation, freeze, confirmation and the
 // two approvals are identical with and without gifts. Each run uses a fresh database: seed, optional COMPLETED gifts recorded
 // first through recordDesignatedDonation (stubbed observation, no network), then the USD 500 fixture claim C-104.
 // Confirmation: C-104 is not an R- receipt claim, so requireReceiptConfirmation returns without a stored confirmation in every

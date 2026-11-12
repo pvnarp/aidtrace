@@ -3,7 +3,7 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { PAYPAL_NOTE, PAYPAL_TAKEOVER_WAITING, paypalCard, type PayPalInput } from "../src/app/shell-copy";
 
-// AU-52 and AU-53 (IAC-405 takeover wording, docs/ASSUMPTIONS.md section 82). Pure functions and a static source pin: no database, network or clock.
+// AU-52 and AU-53 (IAC-405 takeover wording). Pure functions and a static source pin: no database, network or clock.
 const attempt = { state: "SUBMITTED", itemStatus: null, payoutBatchId: null };
 const base = (claimStatus: string, payout: PayPalInput["payout"], extra: Partial<PayPalInput> = {}): PayPalInput => ({ claimStatus, approvals: 1, payout, amount: "$69.00", ...extra });
 const keyless = { attempt: null, keyless: true };

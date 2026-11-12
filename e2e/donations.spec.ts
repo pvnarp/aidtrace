@@ -18,7 +18,7 @@ import { financialHash, tableHash } from '../tests/support/policy-db';
 import { centerOverflow, EDGE_TOLERANCE, measureEdge, measureFilters, measureLongCell, measureWrap, MIN_FILTER_INPUT, rowOverlaps, scrollSideways } from './grid-edge';
 
 // IAC-413 PR B: the approver-only /donations grid in a real browser against a real isolated PostgreSQL and a production build
-// (docs/plans/DONOR_TRAIL_SCOPE.md section 6: GT-27, GT-31 and the grid part of GT-32). Every provider is a scripted stand-in written
+// (GT-27, GT-31 and the grid part of GT-32). Every provider is a scripted stand-in written
 // in this file: gifts are stubbed provider observations recorded through the existing ledger path, and the one payout is a stubbed
 // transport whose send never answers, so its outcome is UNKNOWN. No PayPal request is made and nothing below is a provider result.
 // Each test starts a fresh browser context, so saved grid state never leaks.
@@ -576,7 +576,7 @@ test('GE-10: an approver with no gifts reads the none copy, and a search or filt
 });
 
 // IAC-232 wrapped names. WR-05 and WR-06 on /donations: the Donor, Fund and Vendor cells show their whole text, sideways and vertically, no data row is
-// shorter than 44 px, and the longest seeded fund name wraps and grows its row. The fixture has no donor name long enough to wrap (GATE_REPORT section 107).
+// shorter than 44 px, and the longest seeded fund name wraps and grows its row. The fixture has no donor name long enough to wrap.
 test('WR-05 and WR-06: the donations Donor, Fund and Vendor cells wrap, nothing is cut at 1440 and 1280, and no data row is shorter than 44 px', async ({ page }, testInfo) => {
   await login(page, 'tara');
   for (const size of [{ width: 1440, height: 900 }, { width: 1280, height: 900 }]) {

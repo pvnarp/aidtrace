@@ -2,7 +2,7 @@ import { readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
-// IAC-413 PR A static checks (docs/plans/DONOR_TRAIL_SCOPE.md section 6, GT-30 for the modules this package adds, and the read-only
+// IAC-413 PR A static checks (GT-30 for the modules this package adds, and the read-only
 // parts of GT-21 and GT-26). Source text only: no database, no network.
 const source = (path: string) => readFileSync(path, "utf8");
 // Code only: whole-line comments are removed so a comment that names a forbidden thing does not trip a check on code.

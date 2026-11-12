@@ -1,4 +1,4 @@
-// IAC-405 step 3 PR P (docs/ASSUMPTIONS.md section 78). The organization's Autopilot kill switch on the fund rules page: its state, a pending proposal and the two-step turn on, and one-click off.
+// IAC-405 step 3 PR P. The organization's Autopilot kill switch on the fund rules page: its state, a pending proposal and the two-step turn on, and one-click off.
 // Shown only to an approver and only when the second flag (FUND_AUTOPILOT_ENABLED) is on. Presentation only: it reads the stored view. It never approves a claim or pays.
 import type { SwitchView } from "../../fund-modes/automation-read";
 import { reviewTime } from "../../server/display";

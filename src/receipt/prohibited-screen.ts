@@ -1,4 +1,4 @@
-// Receipt text screen for alcohol and gift card wording (IAC-394, docs/plans/PROHIBITED_SCREEN.md).
+// Receipt text screen for alcohol and gift card wording (IAC-394).
 // Pure and dependency free on purpose: no database, no framework, no network. It only reads text.
 // It flags. It never blocks an allocation, relabels a line or touches money.
 

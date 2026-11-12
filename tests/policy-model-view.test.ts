@@ -7,7 +7,7 @@ import * as copy from "../src/policy/copy";
 import { modelStatusOf, type ModelRunState, type StoredModelLine, type StoredModelPair, type StoredModelRun } from "../src/policy/model-read";
 import type { StoredPolicyRun } from "../src/policy/service";
 
-// IAC-405 piece G render and status cases (docs/plans/POLICY_CHECK_SCOPE.md section 5). No database, no clock, no network, no model.
+// IAC-405 piece G render and status cases. No database, no clock, no network, no model.
 const HASH = "a".repeat(64);
 const text = (markup: string) => markup.replace(/<[^>]+>/g, " ").replace(/&quot;/g, "\"").replace(/&#x27;/g, "'").replace(/&amp;/g, "&").replace(/\s+/g, " ");
 const line = (over: Partial<StoredModelLine> = {}): StoredModelLine => ({ lineId: "L2", description: "Classroom markers", verdict: "OK", clauseId: null, clauseText: null, ...over });
@@ -185,7 +185,7 @@ describe("PC-23 the AI-off line and the applicability line", () => {
   });
 });
 
-// FO-06 and FO-07 (IAC-415 PR 4, docs/GATE_REPORT.md section 51). The OK lines of a fund collapse into one sentence. A CONFLICT or UNSURE line keeps its
+// FO-06 and FO-07 (IAC-415 PR 4). The OK lines of a fund collapse into one sentence. A CONFLICT or UNSURE line keeps its
 // own row first, a CONFLICT keeps its quoted clause, and "This is not an approval." stays once in the model status line.
 describe("FO-06 modelOkSentence names every OK line in one sentence", () => {
   const ok = (lineId: string, description: string) => ({ lineId, description });

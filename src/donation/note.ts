@@ -7,7 +7,7 @@ import type { LedgerTransaction } from "../ledger/journal";
 import { GIFT_ATTRIBUTION_POLICY, type AttributionResult, type GiftApplication } from "./attribution";
 import { readGiftAttribution } from "./attribution-reader";
 
-// IAC-379 step 3b (docs/plans/DONATION_LOOP_SCOPE.md section 6): the deterministic template donor impact note.
+// IAC-379 step 3b: the deterministic template donor impact note.
 // The facts loader and the renderer issue SELECT statements and compute text only. Nothing here writes a row, posts a
 // journal entry, calls PayPal or calls a model. The approval write lives in note-approval.ts.
 // Claim line descriptions, the vendor and the donor's typed display name are untrusted text. They are carried as data:
@@ -17,7 +17,7 @@ export const NOTE_FACT_SET = "donor-note-facts-v1" as const;
 export const TEMPLATE_LABEL = "Template, no AI used";
 export const DEFAULT_DONOR_NAME = "A donor";
 // Step 4 adds the AI selection on top of this seam: it may choose up to two optional facts and one of the fixed template IDs.
-// IAC-379 Option A (docs/ASSUMPTIONS.md section 47): "thanks-first" is the default for new notes. "default" stays renderable so stored notes still display.
+// IAC-379 Option A: "thanks-first" is the default for new notes. "default" stays renderable so stored notes still display.
 export const NOTE_TEMPLATE_IDS = ["default", "thanks-first"] as const;
 export const OPTIONAL_FACT_IDS = ["fund-policy", "claim-total", "method"] as const;
 export type OptionalFactId = (typeof OPTIONAL_FACT_IDS)[number];
@@ -46,7 +46,7 @@ export type NoteFactsResult =
 // ---- Payout wording (scope section 6 table), from the stored disbursement attempt only ----
 export interface PayoutAttemptView { state: string; itemStatus: string | null; payoutBatchId: string | null }
 const SAFE_BATCH_ID = /^[A-Za-z0-9_-]{1,64}$/;
-// Pure. The cautious reading wins whenever a stored state does not fit a row cleanly (docs/ASSUMPTIONS.md section 41):
+// Pure. The cautious reading wins whenever a stored state does not fit a row cleanly:
 // "Paid" needs a SETTLED attempt, which the ledger writes only after an independently fetched item reports SUCCESS, and a
 // usable PayPal batch ID. An attempt with no stored state we know, or a claim already past APPROVED with no attempt row, reads
 // as "outcome being verified", never as paid and never as "no payment".
@@ -66,7 +66,7 @@ export const PAYOUT_WORDING: Record<Exclude<PayoutNoteStatus, "NO_PAYMENT" | "PA
   UNKNOWN: "Approved. The PayPal payout outcome is being verified.",
   NEEDS_ATTENTION: "Approved. The payout needs attention.",
 };
-// IAC-379 Option A (docs/ASSUMPTIONS.md section 47): the "thanks-first" payout sentences. The approval sentence precedes them, so there is no
+// IAC-379 Option A: the "thanks-first" payout sentences. The approval sentence precedes them, so there is no
 // "Approved." prefix, and none names a provider because the note facts carry a status and a batch ID, not a provider. PAID is built by paidSentence.
 export const THANKS_FIRST_PAYOUT_WORDING: Record<Exclude<PayoutNoteStatus, "PAID">, string> = {
   NO_PAYMENT: "No payment has been sent in this environment.",
@@ -111,7 +111,7 @@ export function validateSelection(selection: NoteSelection): void {
     || selection.optional.some(id => !(OPTIONAL_FACT_IDS as readonly string[]).includes(id))) throw new Error("Optional facts must be at most two distinct known fact IDs");
 }
 
-// The Option A template (docs/ASSUMPTIONS.md section 47). It is the run 3 candidate "thanks-first" of scripts/support/donor-note-eval.ts
+// The Option A template. It is the run 3 candidate "thanks-first" of scripts/support/donor-note-eval.ts
 // except for the payout sentence, and tests prove that equality. Optional facts are written in OPTIONAL_FACT_IDS order, as in that candidate.
 // The shares line of the page is built from the same current facts, never from this text.
 function renderThanksFirst(facts: NoteFacts, selection: NoteSelection): string {
