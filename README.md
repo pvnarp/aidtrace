@@ -215,6 +215,21 @@ The private development repository runs 2,900 tests in 160 files; this public ex
 └── docs/             architecture, judging guide, licensing
 ```
 
+Root files:
+
+- `compose.yaml` runs the app, Postgres and the two workers. `compose.setup.yaml` installs
+  dependencies, `compose.review.yaml` adds a production build, `compose.ui.yaml` runs the
+  browser checks, and `compose.session.yaml` with `compose.session-subnet.yaml` runs a judge
+  session. `scripts/aidtrace` picks the right files.
+- `playwright*.config.ts` are the browser suites. `scripts/run-ui-check.mjs` loads them.
+- `Dockerfile` builds the app image and `Dockerfile.browser` the browser image.
+- `LICENSE`, `NOTICE`, `THIRD_PARTY_NOTICES.txt`, `DEPENDENCY_LICENSES.json` and
+  `UPSTREAM_LICENSE_SOURCES.json` are the license and notice files.
+- `package.json`, `pnpm-lock.yaml`, `.npmrc`, `tsconfig.json`, `next.config.ts`,
+  `next-env.d.ts`, `vitest.config.ts`, `drizzle.config.ts` and `.dockerignore` are tool
+  configs that pnpm, TypeScript, Next.js, Vitest, Drizzle and Docker read from the root.
+- `.env.example` lists the settings a local run reads.
+
 ## Limits
 
 1. Sandbox payments only. Nothing here moves real money.
