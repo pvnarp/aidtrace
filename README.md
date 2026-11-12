@@ -23,9 +23,7 @@
 </p>
 
 <p align="center">
-  <a href="VIDEO_URL_TODO"><b>Demo video</b></a> ·
-  <a href="TEASER_URL_TODO"><b>Teaser</b></a> ·
-  <a href="https://98-89-192-170.sslip.io/"><b>Live demo</b></a> ·
+  <a href="https://youtu.be/m7TSm0lgbVI"><b>1-minute overview</b></a> ·
   <a href="DEVPOST_URL_TODO"><b>Devpost</b></a>
 </p>
 
@@ -86,22 +84,6 @@ flowchart TD
   P -->|item SUCCESS| L[(Ledger)]
   L --> D[Donor page: the lines a gift paid for]
 ```
-
-## Try the hosted demo
-
-Open https://98-89-192-170.sslip.io/ and choose Open workspace for any workspace from 1 to 7.
-Each workspace is a private copy of the app with sample data and its own AI request limit. The
-passwords for the three demo users (maria, tara and ben) come with the judging instructions,
-not in this repository.
-
-1. Sign in as maria and open Review Maria's $500 receipt. Create the draft, confirm the
-   categories, continue to funding and freeze the terms.
-2. Sign in as tara, open the awaiting claim and approve.
-3. Sign in as ben and approve the same terms. The claim shows approved and unpaid.
-4. For AI-drafted rules, sign in as tara and use Draft rules from a grant on the home page.
-
-Hosted workspaces have no PayPal credentials, so nothing is sent to PayPal. Fund modes,
-Autopilot, Checkout gifts, the donor page and the Paid state are shown in the demo video.
 
 ## Screenshots
 
