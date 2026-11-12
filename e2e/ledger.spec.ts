@@ -162,17 +162,17 @@ test('LG-04, LG-06, LG-07, GS-14 and GS-15: the contract holds at 1280 and at 39
       expect(ids).toEqual(PHONE_COLUMNS);
       const hidden = view.rows[0]!; const first = await page.getByTestId('gx-phone-extras').locator('details').first().evaluate(element => element.textContent ?? '');
       for (const text of [hidden.effectiveOn, hidden.account, hidden.fund || 'None', hidden.claim, hidden.approvals, hidden.paypalReference]) expect(first).toContain(text);
-      // The summary line names the side of its amount (orchestrator addition).
+      // The summary line names the side of its amount.
       const summary = await page.getByTestId('gx-phone-extras').locator('summary').first().textContent();
       expect(summary).toContain(hidden.debitCents ? `Debit ${usd(hidden.debitCents)}` : `Credit ${usd(hidden.creditCents)}`);
     } else {
       for (const id of ['recordedAt', 'effectiveOn', 'entryType', 'account', 'fund', 'debitCents', 'creditCents']) expect(ids).toContain(id);
       await expect(page.getByTestId('gx-phone-extras')).toHaveCount(0);
       expect(await page.getByRole('grid').getAttribute('aria-colcount')).toBe('10');
-      // The money columns sit fully inside the grid frame at 1280 before any horizontal scroll (orchestrator addition at the main merge).
+      // The money columns sit fully inside the grid frame at 1280 before any horizontal scroll.
       const frame = await page.locator('.ag-root-wrapper').boundingBox(); const credit = await page.locator('[role="columnheader"][col-id="creditCents"]').boundingBox();
       expect(credit!.x + credit!.width).toBeLessThanOrEqual(frame!.x + frame!.width);
-      // Amounts align right in data rows and in the pinned total, and both date columns show their full text (orchestrator addition).
+      // Amounts align right in data rows and in the pinned total, and both date columns show their full text.
       const align = (cell: ReturnType<Page['locator']>) => cell.evaluate(element => getComputedStyle(element).textAlign);
       for (const id of ['debitCents', 'creditCents'] as const) {
         expect(await align(dataRows(page).first().locator(`[col-id="${id}"]`)), `data ${id}`).toBe('right');

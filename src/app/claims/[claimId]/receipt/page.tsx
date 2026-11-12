@@ -62,7 +62,7 @@ export default async function ReceiptPage({ params, searchParams }: { params: Pr
   const stage = claimStage(claim.status, Boolean(confirmation));
   // IAC-373 shell cards: the same saved suggestion, run state and confirmation this page already reads. No new query.
   const aiAccepted = Boolean(confirmation?.selections.some(line => line.provenance === "AI_ACCEPTED"));
-  // One model line per section (Pavan, November 5): when the AI recommendation header (before confirmation) or the confirmation section (an accepted suggestion) already names the model, the evidence note beside it does not repeat it.
+  // One model line per section: when the AI recommendation header (before confirmation) or the confirmation section (an accepted suggestion) already names the model, the evidence note beside it does not repeat it.
   const modelLineShown = confirmation ? aiAccepted : evidence.grounded;
   const reviews = knownReviews(claim.status);
   const shellState: ShellState = { typedReceipt: true, ...(review.photoReadId ? { photoReceipt: true } : {}),

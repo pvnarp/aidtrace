@@ -9,8 +9,8 @@ import { entryTypeOf } from "../src/ledger/view";
 import { GIFT_STATE_SENTENCES } from "../src/donation/trail";
 import { claimFailureNotices } from "../src/server/claim-notices";
 
-// CW-01 and CW-02 (IAC-416, docs/GATE_REPORT.md section 49). Pavan, October 31: remove the word "sandbox" and the "AI turned off" wording from
-// the screens so the recording reads like a product. Static checks only: no database, no network, no browser. The browser check is
+// CW-01 and CW-02 (IAC-416, docs/GATE_REPORT.md section 49). Screen copy avoids the word "sandbox" and the "AI turned off" wording in headings;
+// the sandbox status is stated once on /give and in the README. Static checks only: no database, no network, no browser. The browser check is
 // e2e/copy-words.spec.ts (CW-03). Payments stay sandbox-only in code; these tests cover visible words.
 const claude: AiConfig = { name: "Claude Haiku 5.5", shellName: "Claude Haiku" };
 const sonnet: AiConfig = { name: "Claude Sonnet 5.5", shellName: "Claude Sonnet 5.5" };

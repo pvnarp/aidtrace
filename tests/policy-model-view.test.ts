@@ -119,7 +119,7 @@ describe("PC-14 the model rows on the claim page", () => {
     expect(interrupted).toContain(copy.MODEL_INTERRUPTED); expect(interrupted).toContain(copy.MODEL_STATUS_TEXT.HOLD);
   });
 
-  // IAC-416 PR 2 (Pavan, November 1: "we need to just say AI"): the rows say "AI (Haiku 5.5)" and one line names the provider and each model that was asked.
+  // IAC-416 PR 2: the rows say "AI (Haiku 5.5)" and one line names the provider and each model that was asked.
   it("the model check section carries one disclosure line naming the provider and each asked model once, and the rows say AI", () => {
     const both = text(render({ run: rules(modelRun("DONE", [pair(), pair({ fundId: "fund_b", fundName: "Fund B", model: "claude-sonnet-5-5" }), pair({ fundId: "fund_c", fundName: "Fund C", model: "claude-haiku-5-5" })])) }));
     expect(both.match(/Claim line and clause text was sent to Anthropic\./g)).toHaveLength(1);

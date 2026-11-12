@@ -2,7 +2,7 @@ import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
-// SW-01 to SW-06 (IAC-232, Pavan, November 7: the app says "toy" on screen). The facts behind the old wording stay true and stay disclosed once (README, code comments, the
+// SW-01 to SW-06 (IAC-232, November 7: screen copy avoids the word "toy"). The facts behind the old wording stay true and stay disclosed once (README, code comments, the
 // /architecture page, the login notice); the screens stop repeating them. Static checks only: no database, no network, no browser. The browser checks are the e2e specs
 // that click through the renamed controls. The privacy checkbox and its server check stay exactly as they were (SW-05).
 const walk = (dir: string): string[] => readdirSync(dir).flatMap(name => { const path = join(dir, name); return statSync(path).isDirectory() ? walk(path) : [path]; });

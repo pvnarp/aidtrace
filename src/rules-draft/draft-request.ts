@@ -4,7 +4,7 @@
 // balance, ledger id, hash, approval or secret has a field here, so none can reach a request. The model drafts text and values only. This module
 // writes nothing: it returns the raw JSON of an answer, and src/rules-draft/draft-validate.ts decides whether it may be stored.
 //
-// It is gated like the model check: the AI_RULE_DRAFTS_ENABLED flag (off by default and in every compose file except release/judge/compose.session.yaml, which turns it on: Pavan, November 5, docs/decisions.md), a configured key and request budget.
+// It is gated like the model check: the AI_RULE_DRAFTS_ENABLED flag (off by default and in every compose file except release/judge/compose.session.yaml, which turns it on), a configured key and request budget.
 // When AI is not available it returns an honest UNAVAILABLE result and never fabricates a draft. A request that is refused by the budget is never sent.
 // Any change to the prompt or the schema needs a new version string and a new eval before the app may rely on it.
 import { CATEGORY_DEFINITIONS, BUDGET_LINE } from "../ai/categories";

@@ -1,7 +1,7 @@
 import { CLAUDE_NAMES } from "../ai/audit";
 
-// IAC-416 PR 2 (Pavan, November 1: "we need to just say AI"): running copy says "AI". November 5 amendment (Pavan: "We should mention 'Powered by [insert model name]'
-// whenever a specific model is used ... Call it out."): every place a model's output is shown, or a request is about to be sent, carries one line that starts
+// IAC-416 PR 2: running copy says "AI". November 5 amendment: whenever a specific model is used, the screen names it.
+// Every place a model's output is shown, or a request is about to be sent, carries one line that starts
 // "Powered by " and names each model that was or will be sent a request. The names come only from the stored model ids through CLAUDE_NAMES, never from page code.
 // The Anthropic data-sent sentences stay and sit in the same line as the "Powered by" sentence.
 

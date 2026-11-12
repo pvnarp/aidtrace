@@ -1,4 +1,4 @@
-// Fixed words for the receipt photo reader (IAC-384, docs/decisions.md orchestrator decisions D7). The server and the browser component both read them from here.
+// Fixed words for the receipt photo reader (IAC-384, docs/decisions.md decision D7). The server and the browser component both read them from here.
 // No "verified", "approved" or "accurate": the person compares the form with the photo.
 export const PHOTO_CONTROL_LABEL = "Read a photo of a sample receipt";
 export const PHOTO_HINT = "JPEG, PNG or WebP, up to 3.75 MB. The photo is sent to the AI once to read it and is not kept. Use a photo of a sample receipt only.";

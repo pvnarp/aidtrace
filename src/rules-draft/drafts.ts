@@ -272,7 +272,7 @@ export async function approveDraft(db: AppDatabase, actor: DraftActor, draftId: 
 // pay order, then the BOUND event. A bind that changes a fund's breadth changes the order the funds pay in, and the receipt path refuses every receipt
 // while the stored order differs from the formula. So when the recomputed order differs from the latest stored one, the existing ledger revision runs here,
 // signed by the binding approver: it writes the next solver priority version and sends every frozen, not yet fully approved decision of the organization
-// back to draft (Pavan's choice, November 1). Paid claims are untouched. No new formula is applied: it is the one src/domain/model.ts already defines.
+// back to draft (a design choice, November 1). Paid claims are untouched. No new formula is applied: it is the one src/domain/model.ts already defines.
 // Any failure throws and the transaction rolls every row back, the priority row included.
 type Bound = { policyVersion: number; priorityVersion: number | null; invalidatedDecisions: number };
 async function bind(tx: Tx, actorId: string, organizationId: string, draft: typeof s.policyDrafts.$inferSelect, rules: RulesDraft, policy: BindablePolicy, thresholds: Resolution): Promise<Bound> {

@@ -8,7 +8,7 @@ import { findGiftLinkCapture, issueGiftLink } from "../src/donation/gift-link";
 import { recordGift } from "./support/attribution-db";
 import { createPolicyDatabase, financialHash, tableHash, type PolicyDatabase } from "./support/policy-db";
 
-// IAC-413 PR A, GT-33 (added by the orchestrator at the merge; GATE_REPORT section 46 limit 6 named the gap): migration 0016 on a
+// IAC-413 PR A, GT-33 (added at the merge; GATE_REPORT section 46 limit 6 named the gap): migration 0016 on a
 // database that already holds a frozen claim, an approval and two gifts. Same method as PC-24 for 0015. Real Postgres, no network.
 vi.setConfig({ testTimeout: 60_000, hookTimeout: 60_000 });
 const open: PolicyDatabase[] = []; const folders: string[] = [];

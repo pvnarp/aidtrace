@@ -86,7 +86,7 @@ describe("the token is never logged or stored by the server code", () => {
   });
 });
 
-// Added by the orchestrator at the merge: a rewrite of the opening comment once dropped its closing "*/", which turned the whole
+// Added at the merge: a rewrite of the opening comment once dropped its closing "*/", which turned the whole
 // stylesheet into a comment and left the page unstyled while every browser check still passed.
 describe("the gift stylesheets close every comment and keep their rules", () => {
   it("gift.css and gift-link-panel.css have balanced comments and their key selectors outside comments", () => {

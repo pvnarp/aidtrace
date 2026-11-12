@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, test } from "vitest";
 import { appOrigin, isSameOrigin } from "../src/server/auth";
 
 // OO-01 to OO-03 (IAC-418, owner loopback origin, docs/GATE_REPORT.md section 54). Pure: no database, no network, no clock.
-// Pavan approved the rule on October 31: owner mode accepts the same extra loopback origins as a judge session, so a second owner-mode instance
+// Rule since October 31: owner mode accepts the same extra loopback origins as a judge session, so a second owner-mode instance
 // (the recording instance on 3120) can sign in. OO-04 is the route-level case in tests/owner-origin.integration.test.ts.
 const saved = { mode: process.env.AIDTRACE_JUDGE_SESSION, origin: process.env.APP_ORIGIN };
 const restore = (name: "AIDTRACE_JUDGE_SESSION" | "APP_ORIGIN", value: string | undefined) => { if (value === undefined) delete process.env[name]; else process.env[name] = value; };

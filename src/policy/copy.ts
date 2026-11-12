@@ -45,7 +45,7 @@ export const modelNotChecked = (reason: string | null) => `Not checked by the mo
 export const modelSkipped = (fundName: string) => `${fundName}: not checked by the model. The General fund has no clauses to check.`;
 // Display name from the stored model id, for example "vendor-family-5-5" becomes "Vendor Family 5.5". It formats the stored string and names no
 // model itself, because PC-14 allows only the model module and the pinned request copy to name a model.
-// IAC-416 PR 2 (Pavan, November 1): the per-row lines say "AI" and keep the model in brackets without its first word ("AI (Family 5.5)"). The full
+// IAC-416 PR 2: the per-row lines say "AI" and keep the model in brackets without its first word ("AI (Family 5.5)"). The full
 // name, modelFullName, is for the one disclosure line of the model check section (src/app/ai-disclosure.ts), which also names the provider. This file
 // holds no provider name, because PC-14 allows only the model module to name one.
 const word = (text: string) => text.charAt(0).toUpperCase() + text.slice(1);

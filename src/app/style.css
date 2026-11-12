@@ -11,7 +11,7 @@
   --radius-panel: 14px; --radius-control: 10px; --radius-small: 8px; --focus: 2px solid #0a66ff;
 }
 :root { color-scheme: light; font-family: var(--font-aidtrace), Arial, sans-serif; color: var(--navy); background: var(--bg); font-variant-numeric: tabular-nums; text-rendering: geometricPrecision; -webkit-text-size-adjust: 100%; }
-/* DESIGN_LANGUAGE rule 3.1, amended November 10 by Pavan: tabular figures stay on :root, but running text uses normal figures, because
+/* DESIGN_LANGUAGE rule 3.1, amended November 10: tabular figures stay on :root, but running text uses normal figures, because
    Inter's tabular feature also widens the hyphen ("read-only" read as "read - only"). Money, tables and amounts keep tabular figures.
    Both lists use :where() so any rule that names an element or class still wins. */
 :where(p, li, dt, label, summary, legend, blockquote, figcaption, h1, h2, h3, h4, h5, h6, th, a, button) { font-variant-numeric: normal; }
@@ -794,7 +794,7 @@ fieldset.rules-field-group { padding: 0; }
   .report-page a { color: inherit; text-decoration: none; }
 }
 
-/* November 10 motion pass (docs/DESIGN_LANGUAGE.md section 3 rule 8, Pavan November 10: "simple animations and visual transitions").
+/* November 10 motion pass (docs/DESIGN_LANGUAGE.md section 3 rule 8: simple animations and visual transitions).
    Every move sits inside prefers-reduced-motion: no-preference, so reduced motion keeps the still app. Motion uses opacity and transform only,
    at 240 ms or less, except the pending spinner and the one-time fund meter fill. Nothing fades the body or the page background: no whole-screen wash. */
 @media (prefers-reduced-motion: no-preference) {
@@ -893,7 +893,7 @@ input:focus-visible, textarea:focus-visible, select:focus-visible { box-shadow: 
 .give-panel > details:last-child { margin-bottom: 0; }
 /* November 11 calm pass: the receipt page confirms a suggestion request in one muted line under the AI card. */
 .notice.notice-quiet { padding: 0; border: 0; border-radius: 0; background: none; color: var(--muted); font-size: 14px; }
-/* November 11 eye-flow pass (Fable review, ranks 1 to 8). One rule per screen: the tint marks the Next decision card and the accent fill
+/* November 11 eye-flow pass (review ranks 1 to 8). One rule per screen: the tint marks the Next decision card and the accent fill
    marks the one primary button; nothing else borrows either. Labels read quieter than values; headings sit on 28, 18 and 16 px. */
 .dec .actions.lead { margin: 4px 0 16px; padding: 0; border-top: 0; }
 .ai-tag.confirmed { background: var(--bg); color: var(--navy); box-shadow: none; }

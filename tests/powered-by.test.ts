@@ -13,7 +13,7 @@ import { calledModelsOf, modelStatusOf, type StoredModelLine, type StoredModelPa
 import { modelAskedBy, modelCheckedBy } from "../src/policy/copy";
 import type { StoredPolicyRun } from "../src/policy/service";
 
-// PB-01 to PB-05 (November 5, Pavan: "We should mention 'Powered by [insert model name]' whenever a specific model is used ... Call it out."). Static and render checks only:
+// PB-01 to PB-05 (November 5: a line that starts "Powered by" names the model wherever a specific model is used). Static and render checks only:
 // no database, no network, no browser, no model. The database part (CALL rows read back from a real run) is PB-07 and PB-08 in tests/model-check.integration.test.ts, and the
 // rendered pages are PB-09 to PB-12 in the e2e specs.
 const HAIKU = "claude-haiku-5-5", SONNET = "claude-sonnet-5-5";

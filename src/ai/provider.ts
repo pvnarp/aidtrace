@@ -55,8 +55,8 @@ export const AI_OFF_MESSAGES: Record<AiOffReason, string> = {
 };
 export type AiStatus = { on: true; model: ClaudeModel; name: string; shellName: string } | { on: false; reason: AiOffReason };
 // AI_COMPLIANCE_ENABLED (IAC-405 piece G) gates the approver's model compliance check. Off by default like the others.
-// AI_RULE_DRAFTS_ENABLED (IAC-440 Package A) gates the approver's AI-drafted fund rules request. Off by default and in every compose file except release/judge/compose.session.yaml, which turns it on (Pavan, November 5, docs/decisions.md).
-// AI_RECEIPT_PHOTO_ENABLED (IAC-384) gates the claimant receipt photo reader: on only when exactly "true" and only when AI_RECEIPT_ENABLED is also on. Off by default and in every compose file except release/judge/compose.session.yaml, which turns it on (Pavan, November 5, docs/decisions.md).
+// AI_RULE_DRAFTS_ENABLED (IAC-440 Package A) gates the approver's AI-drafted fund rules request. Off by default and in every compose file except release/judge/compose.session.yaml, which turns it on (November 5, docs/decisions.md).
+// AI_RECEIPT_PHOTO_ENABLED (IAC-384) gates the claimant receipt photo reader: on only when exactly "true" and only when AI_RECEIPT_ENABLED is also on. Off by default and in every compose file except release/judge/compose.session.yaml, which turns it on (November 5, docs/decisions.md).
 export type AiFlag = "AI_RECEIPT_ENABLED" | "AI_ANALYTICS_ENABLED" | "AI_EXPENSE_PROPOSALS_ENABLED" | "AI_COMPLIANCE_ENABLED" | "AI_RULE_DRAFTS_ENABLED" | "AI_RECEIPT_PHOTO_ENABLED";
 
 // Display and gating: is Claude usable for this surface right now? On only with the surface's flag, a valid configuration, a

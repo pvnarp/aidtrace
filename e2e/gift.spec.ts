@@ -122,7 +122,7 @@ async function contained(page: Page) {
     expect(rect.x).toBeGreaterThanOrEqual(0); expect(rect.x + rect.width).toBeLessThanOrEqual(width + 0.5);
   }
 }
-// The app's trace stepper hides its step text at 900 px and below (the orchestrator found this after the merge with Trust v2), and the
+// The app's trace stepper hides its step text at 900 px and below (found after the merge with Trust v2), and the
 // gift trail must not: every step title and detail keeps a real box and no clip at every width. The page stylesheet must also have
 // applied, or unstyled text passes the clip check trivially: the list is a flex row above 640 px and a column at 640 and below, and
 // the gift panel carries its card shadow.

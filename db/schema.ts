@@ -531,7 +531,7 @@ export const automatedDecisions = pgTable("automated_decisions", {
 
 // IAC-405 step 3 PR P (docs/plans/FUND_MODES_SCOPE.md section 5; docs/ASSUMPTIONS.md section 78). Migration 0020. Three append-only tables.
 // payee_email_history: one row each time a claim version is created (a database trigger writes it with source CLAIM), plus the demo fixture row the
-// seed writes (source FIXTURE, Pavan's decision 5). Guardrail G6 reads it. automation_switch_events: the per-organization kill switch. No row means OFF.
+// seed writes (source FIXTURE, design decision 5). Guardrail G6 reads it. automation_switch_events: the per-organization kill switch. No row means OFF.
 // Turning it ON takes a proposal by one approver and a confirmation by a different approver. disbursement_origins: who sent a payout, a human signer or
 // an automated decision, exactly one of the two. None of these tables is an approval.
 export const payeeEmailSources = ["CLAIM", "FIXTURE"] as const;

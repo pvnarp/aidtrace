@@ -166,7 +166,7 @@ test("TV-15: honest states on the approver home, the claimant home and the claim
   const after = await compareMeters(page); await page.goto("/");
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("One expense needs your review."); await expect(page.locator("h1 .act")).toHaveText("One");
   expect([...after.values()].reduce((sum, meter) => sum + meter.reserved, 0n)).toBeGreaterThan([...before.values()].reduce((sum, meter) => sum + meter.reserved, 0n));
-  // November 10 (Pavan, "Show money still available"): the bar shows the available share, so the reservation makes the summed bar widths shrink.
+  // November 10: the bar shows the available share, so the reservation makes the summed bar widths shrink.
   expect([...after.values()].reduce((sum, meter) => sum + meter.percent, 0)).toBeLessThan([...before.values()].reduce((sum, meter) => sum + meter.percent, 0));
   // IAC-414 Q1: the awaiting claim is a row of the queue grid, once, at Approvals with no approval yet, and its Review link opens the claim.
   await expect(page.locator("article[data-claim]")).toHaveCount(0);

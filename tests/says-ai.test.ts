@@ -12,8 +12,8 @@ import { CLAUDE_LIMIT_MESSAGE } from "../src/ai/budget";
 import { AI_OFF_MESSAGES } from "../src/ai/provider";
 import { modelAskedBy, modelCheckedBy, modelFullName } from "../src/policy/copy";
 
-// AW-01 (IAC-416 PR 2, docs/GATE_REPORT.md section 57). Pavan, November 1: "drop sanbox, drop fictional, drop the word "claude" we need to just say "AI"
-// so drive home the point". Static checks only: no database, no network, no browser. The rendered-text check at 1440 px is e2e/says-ai.spec.ts (AW-02),
+// AW-01 (IAC-416 PR 2, docs/GATE_REPORT.md section 57). Screen copy says "AI" and avoids the words sandbox, fictional and "claude" in running text;
+// the model is named only in disclosure lines. Static checks only: no database, no network, no browser. The rendered-text check at 1440 px is e2e/says-ai.spec.ts (AW-02),
 // which is the real guard, because model names are built at run time (CLAUDE_NAMES, stored model ids) and no scan of string literals can see them.
 // What these tests pin: screens say "AI", never "Claude" or "fictional" in a visible literal; the provider is named in the disclosure lines only;
 // "No real money moves." is on Give alone; the old header tag and the old gift footer line are gone.

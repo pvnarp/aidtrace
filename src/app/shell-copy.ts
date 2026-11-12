@@ -44,7 +44,7 @@ export type AiConfig = { name: string; shellName: string } | null;
  * The header tag and footer line follow what the server reads, so they never claim AI that is not running. configured is
  * null when AI is not available. IAC-416: the shell then says nothing about AI (an empty tag renders no tag element) and the
  * footer names only PayPal Payouts. The true reason still shows on the receipt and proposal panels, where AI would act.
- * IAC-416 PR 2 (Pavan, November 1: "we need to just say AI"): the shell names no model or vendor, only "AI". The model and its
+ * IAC-416 PR 2: the shell names no model or vendor, only "AI". The model and its
  * provider are named once, in the disclosure lines where receipt or clause text leaves the app.
  */
 export function shellWording(configured: AiConfig): { tag: string; line: string } {

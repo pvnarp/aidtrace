@@ -3,7 +3,7 @@ import { usd, type AnalyticsSnapshot } from "../analytics/model";
 // Trust v2 PR 2 (IAC-415): the approver home fund meter. Pure and presentation only. It reads one analytics snapshot fund
 // (decimal-string cents), computes integer percents with bigint division and formats amounts with the analytics usd().
 // It states what the snapshot holds: book balance, reserved and available. It says nothing about modes, awards or cash.
-// November 10 (Pavan, "Show money still available"): the bar now shows the share still available, nearly full and shrinking as claims reserve money.
+// November 10: the bar shows the share still available, nearly full and shrinking as claims reserve money.
 // The reserved share is still computed (percent) so its figures stay checkable; only the bar and its accessible label moved to the available share.
 
 export type SnapshotFund = AnalyticsSnapshot["funds"][number];
