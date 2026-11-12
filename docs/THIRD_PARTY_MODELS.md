@@ -4,8 +4,7 @@
 
 No AI model, model weights or model runtime ship with this source or run in a session. Earlier
 versions of this package pinned a small open-weight model and its runtime image. Both were retired
-when the AI moved to the hosted Claude API (see docs/plans/CLAUDE_ONLY_SCOPE.md in the owner
-repository). Nothing in this export downloads them, and no container needs their network.
+when the AI moved to the hosted Claude API. Nothing in this repository downloads them.
 
 ## 2. Record hosted use: one fixed endpoint
 
@@ -19,7 +18,7 @@ application MIT license. This package grants no rights to Anthropic services.
 ## 3. Bound the cost: sixty requests per process
 
 One app process sends at most 60 Claude requests in total. Every hosted surface shares that
-count in a judge session: receipt suggestions, expense proposals, the analytics explainer, the
+count in one process: receipt suggestions, expense proposals, the analytics explainer, the
 compliance (model) check, AI-drafted rules and receipt photo reads. Photo reads also have their
 own sub-cap of 20 reads per process (PHOTO_PROCESS_CAP in src/ai/claude-photo.ts), and each read
 still counts toward the 60. A photo or grant-text request costs more tokens than a category

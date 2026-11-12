@@ -1,6 +1,6 @@
 # Preserve local typography: Inter 4.1
 
-IAC-372 was adopted October 29, 2026. The application self-hosts the upstream unmodified
+The application self-hosts the upstream unmodified
 normal variable font through next/font/local, with swap loading and an adjusted Arial
 fallback. No CDN, runtime font request to another host, native Mac font installation,
 package dependency or italic asset is introduced. Receipt source text keeps its monospace
@@ -35,4 +35,3 @@ This records the retained upstream terms, not blanket rights clearance for the p
 Cost: 352240 font bytes plus the 4380-byte notice and maintained source/export checks.
 Next adds a generated preload and local CSS. Font fallback can still reflow if loading
 fails; verify it independently. No file is installed in a system font directory.
-See [IAC-372 verification](IAC372_VISUAL_POLISH.md) for actual browser evidence and limits.

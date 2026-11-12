@@ -1,96 +1,53 @@
-# Preserve licensing boundaries
+# Licensing
 
-The one bundled unmodified Inter 4.1 WOFF2 retains SIL OFL 1.1 at src/app/fonts/OFL.txt.
-Exact immutable upstream paths, size and hashes are in docs/FONT_PROVENANCE.md. This is a
-font-only exception to historical source-only/binary inventory statements below. It does
-not relicense the font under MIT or grant clearance for other binary/image distribution.
+## 1. Application source: MIT
 
-## 1. Retain MIT: application source
+The application source is under the MIT License in [LICENSE](../LICENSE), Copyright (c) 2026
+Pavan Aripakula. `package.json` also declares MIT. MIT permits commercial reuse and does not
+require publishing modifications. It has no express patent grant. Third-party code is not
+relicensed under these terms.
 
-The repository already contained an MIT LICENSE, Copyright (c) 2026 Pavan Aripakula,
-introduced during AidTrace bootstrap. This candidate retains that exact file and records
-MIT in package.json. Earlier private judge exports omitted LICENSE; this candidate corrects
-the omission. Final publication remains subject to owner review and explicit direction.
+## 2. The bundled font: SIL OFL 1.1
 
-Pavan approved MIT with "yeah MIT works". This is the selected application license:
-simple reuse terms and continuity with the existing file. It permits commercial reuse and does not require users
-to publish modifications. That permissiveness is the cost. MIT contains no express patent
-grant; Apache-2.0 provides one with additional redistribution/notice terms. If an explicit
-patent grant becomes the priority, reconsider Apache-2.0 before public release. Do not
-describe third-party code as relicensed under the application MIT terms.
+The one bundled binary asset is the unmodified Inter 4.1 variable font. It stays under the SIL
+Open Font License 1.1, retained at [src/app/fonts/OFL.txt](../src/app/fonts/OFL.txt). Exact
+upstream paths, size and hashes are in [FONT_PROVENANCE.md](FONT_PROVENANCE.md). The font is not
+relicensed under MIT.
 
-Primary terms: https://opensource.org/license/mit and
-https://www.apache.org/licenses/LICENSE-2.0 . Rules requiring a visible open-source license:
-https://paypalaihackathon.devpost.com/rules . These were checked October 22, 2026.
+## 3. Dependencies: retained notices
 
-## 2. Retain dependency notices: bounded inventory
+[DEPENDENCY_LICENSES.json](../DEPENDENCY_LICENSES.json) lists 100 installed packages, including
+development dependencies, with 227 notice-file entries.
+[THIRD_PARTY_NOTICES.txt](../THIRD_PARTY_NOTICES.txt) retains the discovered notices plus five
+supplemental license texts, verified against the hashes in
+[UPSTREAM_LICENSE_SOURCES.json](../UPSTREAM_LICENSE_SOURCES.json). This is an inventory. It is not
+a legal compatibility opinion, an image SBOM or a vulnerability scan.
 
-The fallback's fresh offline Linux ARM64 install recorded 82 installed packages, including
-development dependencies, and 208 discovered license/notice files. The lockfile, fresh named
-dependency volume and compiled browser assets are checked separately for named AG package
-references. The original Studio inventory of 98 packages and 224 notices remains in its
-preserved source. THIRD_PARTY_NOTICES.txt retains discovered fallback notices and the five
-previously fetched supplemental texts, verified against their recorded hashes in
-UPSTREAM_LICENSE_SOURCES.json. This is an inventory, not an exhaustive legal compatibility
-opinion, source-ownership certification, image filesystem SBOM or vulnerability scan.
+Known gaps, kept rather than filled with invented text:
 
-Fourteen package archives contain declared license metadata but no discovered separate
-notice file. Preserve that gap rather than inventing copyright text. They are brocli,
-two esbuild ARM64 versions, two sharp-libvips ARM64 variants, three @next packages, two
-Rollup ARM64 variants, client-only, drizzle-kit, drizzle-orm and postgres. Supplemental
-pinned texts cover postgres and drizzle-orm; absent notices are not silently marked found.
-Two guessed versioned license URLs for brocli/drizzle-kit returned 404 and are recorded.
-Parent-package notices are also retained for Next, esbuild and Rollup, without claiming
-that they exhaust the native binaries' embedded third-party content.
+1. Fourteen package archives declare a license but ship no separate notice file: brocli, two
+   esbuild ARM64 versions, two sharp-libvips ARM64 variants, three @next packages, two Rollup
+   ARM64 variants, client-only, drizzle-kit, drizzle-orm and postgres. Supplemental texts cover
+   postgres and drizzle-orm.
+2. The sharp-libvips binary packages declare LGPL-3.0-or-later. The Apache-2.0 license of their
+   build scripts does not replace that.
+3. `THIRD_PARTY_NOTICES.txt` may still carry license texts of an earlier open-weight model and
+   runtime that the project no longer uses, until it is regenerated.
 
-In particular sharp-libvips binary packages declare LGPL-3.0-or-later. The fetched
-sharp-libvips build repository LICENSE is Apache-2.0; that build-script license does not
-replace the binaries' LGPL terms. This source-only candidate distributes no installed
-packages, compiled application, browser binaries or container images. Setup pulls
-them from their original pinned sources. Before distributing any built image or binary,
-review that artifact's complete license/source/notice obligations separately. Do not treat
-this package inventory as approval to redistribute an image.
+This repository distributes source only. It ships no installed packages, compiled application,
+browser binaries or container images. Setup pulls them from their pinned upstream sources.
+Review a built image's own license obligations before distributing it.
 
-## 3. Preserve runtime terms: separate downloads
+## 4. AG Grid Community
 
-No model weights or model runtime are distributed or run: AI suggestions use the hosted Claude API
-under Anthropic's own terms (docs/THIRD_PARTY_MODELS.md). The earlier open-weight model and its
-runtime were retired. THIRD_PARTY_NOTICES.txt may still carry their historical license texts until it is regenerated.
-Node, PostgreSQL, pnpm, Chromium and operating-system image components retain their own
-terms. They are downloaded, not bundled here. No logo or screenshot permissions are implied.
+The ledger, donations and approver queue views use ag-grid-community 36.2.0 and ag-grid-react
+36.2.0, both MIT. The project uses AG Grid Community only. It uses no AG Grid Enterprise, charts
+or Studio package. `release/variant.json` records the same claim.
 
-## 4. Review before public release: owner authority
+## 5. Hosted services and other terms
 
-The MIT choice is approved. Confirm authority to license the original application, the
-exact candidate hash and destination, third-party/AI-assistance attribution and judging
-access. The source inventory cannot determine employment or other ownership obligations.
-Public repository creation, push, hosting, video upload and submission are unperformed.
-
-## 5. Separate the variants: no fabricated clearance
-
-The owner authorized this separate Studio-free fallback on October 23, 2026. Ordinary React
-replaces the Studio presentation and client harness; server authentication, exact snapshots,
-model validators and financial boundaries remain unchanged. The locked dependency tree and
-installed declared-license inventory then contained no named AG packages or Commercial declarations (see the AG Grid note below for the current state).
-That bounded inspection is not exhaustive provenance, legal or binary/image clearance.
-
-The original Studio checkout retains its packages, notices, private evaluation and unresolved
-IAC-240 licensing question. Its export guard continues to refuse absent clearance. This
-fallback does not set publicJudgingApproved or fabricate sponsor evidence. It claims no Studio clearance.
-It needs no Studio key. Its source preparation still requires final owner
-review, a separately selected public destination and independent judging-access validation.
-
-## 6. State the AG Grid Community claim: one package pair, no Studio
-
-The app now uses two AG Grid Community packages for the ledger, donations and approver queue
-views: ag-grid-community 36.2.0 and ag-grid-react 36.2.0, both declared MIT in
-DEPENDENCY_LICENSES.json. That file currently lists 100 installed packages, including
-development dependencies, with 227 notice-file entries. The earlier 82 package and 208 notice
-count above belongs to the October 23 fallback and is superseded by this inventory.
-
-release/variant.json has kind STUDIO_FREE_COMMUNITY_GRID with sponsorUseClaimed true,
-studioClearanceClaimed false and publicationAuthorized false. The owner chose that wording on
-November 2 (docs/decisions.md in the owner repository, "Flip sponsorUseClaimed for the AG Grid
-Community variant", IAC-380).
-The claim covers AG Grid Community only. It makes no Studio, Enterprise or charts claim and does
-not say a prize is won or likely.
+No model weights or model runtime ship or run here. AI features call the hosted Claude API under
+Anthropic's own terms; see [THIRD_PARTY_MODELS.md](THIRD_PARTY_MODELS.md). PayPal Checkout and
+Payouts are used in sandbox under PayPal's terms. Node, PostgreSQL, pnpm, Chromium and operating
+system image components keep their own terms. They are downloaded, not bundled. Product names
+identify integrations. No sponsorship or endorsement is claimed.

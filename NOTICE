@@ -10,14 +10,12 @@ Hosted AI use (no model ships) is described in docs/THIRD_PARTY_MODELS.md.
 The one bundled font, Inter 4.1, remains under SIL OFL 1.1. Its unmodified license is
 src/app/fonts/OFL.txt; exact upstream bytes and hashes are in docs/FONT_PROVENANCE.md.
 No other dependency binaries, container images or model weights are distributed here.
-This is the separately prepared native dashboard variant. The Studio implementation and
-its commercial notices remain preserved in the original private source/history. This
-variant makes no AG sponsor-use claim and grants no rights in the separate Studio version.
+AG Grid Community (MIT) is used for the read-only grid views. No AG Grid Enterprise
+or Studio package is used.
 
-Codex assisted implementation, testing and documentation under Pavan's direction.
-Pavan performed the recorded owner acceptance and assigned gate verdicts.
-This does not assert that Pavan manually reviewed every line or certify ownership
-of all third-party components. Those components retain their original attribution.
+Claude Code and Codex helped write, test and review the code under the author's
+direction. This does not certify ownership of all third-party components. Those
+components retain their original attribution.
 
 PayPal and other product names identify integrations and their respective owners.
 No sponsorship or endorsement is claimed. This is a sandbox demonstration with
