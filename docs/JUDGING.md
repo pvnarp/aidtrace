@@ -76,7 +76,7 @@ With your own key, add:
    check that runs with the policy checks on a frozen claim.
 3. AI selection of snapshot facts under "Explain this snapshot" on Funding and cash.
 
-Shown only in the demo video, because a session has no PayPal keys and no fund modes:
+Shown only in the demo video on the Devpost page, because a session has no PayPal keys and no fund modes:
 
 1. Sending the payout with PayPal and the settled "Paid, verified" state.
 2. A donor gift through PayPal Checkout and the donor page.

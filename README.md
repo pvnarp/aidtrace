@@ -216,7 +216,7 @@ The private development repository runs 2,900 tests in 160 files; this public ex
 
 Root files:
 
-- `compose.yaml` runs the app, Postgres and the two workers. `compose.setup.yaml` installs
+- `compose.yaml` runs the app and Postgres. It also defines two optional background workers whose entry scripts are not in this repository. `compose.setup.yaml` installs
   dependencies, `compose.review.yaml` adds a production build, `compose.ui.yaml` runs the
   browser checks, and `compose.session.yaml` with `compose.session-subnet.yaml` runs a judge
   session. `scripts/aidtrace` picks the right files.
