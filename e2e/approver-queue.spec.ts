@@ -183,8 +183,8 @@ test("AQ-21 to AQ-25: the approver queue grid in the real flow, wide and on a ph
     for (const [width, height] of [[1440, 900], [1280, 800]] as const) {
       await page.setViewportSize({ width, height }); await page.goto("/");
       await expect(dataRows(page)).toHaveCount(1); await expect(page.getByTestId("fund-meter").first()).toBeVisible();
-      const lede = await boxOf(page, ".home-head-text .reference-intro"), funds = await boxOf(page, '[aria-label="Fund balances"]'), queue = await boxOf(page, '[data-testid="aq-queue"]'), column = await boxOf(page, ".reference-screen.home-grid");
-      // No empty band: the queue starts within 48 px of the bottom of the lede, and the fund meters within 48 px of the bottom of the queue (judge thread: the queue comes before the meters).
+      const lede = await boxOf(page, ".home-head-text"), funds = await boxOf(page, '[aria-label="Fund balances"]'), queue = await boxOf(page, '[data-testid="aq-queue"]'), column = await boxOf(page, ".reference-screen.home-grid");
+      // No empty band: the queue starts within 48 px of the bottom of the heading block (lede plus, since the November 11 eye-flow pass, the one filled link), and the fund meters within 48 px of the bottom of the queue (judge thread: the queue comes before the meters).
       const bandUnderLede = queue.y - (lede.y + lede.height), bandUnderQueue = funds.y - (queue.y + queue.height);
       expect(bandUnderLede, `${width}: lede to the queue`).toBeGreaterThanOrEqual(0); expect(bandUnderLede, `${width}: lede to the queue`).toBeLessThanOrEqual(48);
       expect(bandUnderQueue, `${width}: queue to the fund meters`).toBeGreaterThanOrEqual(0); expect(bandUnderQueue, `${width}: queue to the fund meters`).toBeLessThanOrEqual(48);

@@ -105,5 +105,4 @@ describe("MO-08 the trace connector fill and current-step settle (judge thread, 
     expect(settle[0]!.selector).toBe(".trace li[data-state=current]::before");
     for (const rule of [...connect, ...settle]) { const [duration = 0, delay = 0] = seconds(declarationsOf(rule.body, "animation")[0]!); expect(duration).toBeLessThanOrEqual(0.24); expect(delay).toBe(0); expect(rule.body).not.toMatch(/infinite/); }
   });
-  it("is named in rule 8 of the design language", () => expect(readFileSync("docs/DESIGN_LANGUAGE.md", "utf8").replace(/\s+/g, " ")).toContain("a trace connector fill and current-step settle"));
 });

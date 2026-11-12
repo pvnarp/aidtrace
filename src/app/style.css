@@ -893,3 +893,29 @@ input:focus-visible, textarea:focus-visible, select:focus-visible { box-shadow: 
 .give-panel > details:last-child { margin-bottom: 0; }
 /* November 11 calm pass: the receipt page confirms a suggestion request in one muted line under the AI card. */
 .notice.notice-quiet { padding: 0; border: 0; border-radius: 0; background: none; color: var(--muted); font-size: 14px; }
+/* November 11 eye-flow pass (Fable review, ranks 1 to 8). One rule per screen: the tint marks the Next decision card and the accent fill
+   marks the one primary button; nothing else borrows either. Labels read quieter than values; headings sit on 28, 18 and 16 px. */
+.dec .actions.lead { margin: 4px 0 16px; padding: 0; border-top: 0; }
+.ai-tag.confirmed { background: var(--bg); color: var(--navy); box-shadow: none; }
+.receipt-panel .status-card.ai-card { padding: 12px 0 0; background: none; border-radius: 0; box-shadow: inset 0 1px 0 var(--line); }
+.paypal-card[data-paypal-state="not-ready"], .paypal-card[data-paypal-state="see-claim"] { background: none; }
+.ai-recommendation, .ai-recommendation.ai-strip { background: none; border: 0; border-radius: 0; padding: 0; }
+.home-primary { margin: 16px 0 0; }
+.action-footer h2, .comparison-card h2, .analytics-widget h2, .architecture-page .reference-note h2 { font-size: 18px; }
+.expense-review h3, .category-form h3, .analytics-widget h3 { font-size: 16px; }
+.payment-details dt, .dec .paypal-handoff .payment-details dt { font-weight: 500; color: var(--muted); }
+.payment-details dd, .dec .paypal-handoff .payment-details dd { font-weight: 600; }
+.analytics-widget dt { color: var(--muted); }
+.analytics-widget dd { font-weight: 600; }
+summary, .hybrid-case-details summary { font-weight: 500; }
+.rules li[data-state=ok] .rule-state { font-weight: 500; color: var(--muted); }
+.proposal-panel .eyebrow, .fund-type { text-transform: none; letter-spacing: 0; font-weight: 500; }
+.ai-label { margin: 8px 0 0; color: var(--muted); }
+.ai-label strong { display: block; font-size: 18px; line-height: 1.3; font-weight: 600; color: var(--navy); }
+.reasons { list-style: none; padding-left: 0; }
+.reasons li { padding: 8px 12px; }
+.reasons li[data-severity="HOLD"], .reasons li[data-verdict="CONFLICT"] { background: var(--warm); box-shadow: inset 3px 0 0 var(--dot-hold); border-radius: var(--radius-small); }
+.analytics-funds dl dt:last-of-type { color: var(--navy); font-weight: 600; }
+.analytics-funds dl dd:last-of-type { font-size: 16px; }
+.analytics-funds dl dd:not(:last-of-type) { font-weight: 500; }
+.reference-intro { max-width: 640px; }

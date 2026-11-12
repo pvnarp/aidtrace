@@ -212,15 +212,15 @@ describe("FO-07 the model rows collapse OK lines and keep every CONFLICT and UNS
     const okLine = "No conflict found by the model on Line L1 (Robot kit) and Line L3 (Sandwiches).";
     for (const part of [conflict, unsure, okLine]) { expect(body).toContain(part); expect(body.split(part).length - 1, part).toBe(1); }
     expect(body.indexOf(conflict)).toBeLessThan(body.indexOf(unsure)); expect(body.indexOf(unsure)).toBeLessThan(body.indexOf(okLine));
-    expect(markup.match(/<li>/g)).toHaveLength(4); // the rule Hold row, then the CONFLICT row, the UNSURE row and the one OK sentence
+    expect(markup.match(/<li[ >]/g)).toHaveLength(4); // the rule Hold row (data-severity since the November 11 eye-flow pass), then the CONFLICT row, the UNSURE row and the one OK sentence
     expect(body).toContain(copy.MODEL_STATUS_TEXT.HOLD); expect(body).not.toContain("This is not an approval"); // a Hold rule row, so the rule part has no "No rule flags. This is not an approval." either
     expect(body).not.toMatch(/Line L1 \(Robot kit\): no conflict|Line L3 \(Sandwiches\): no conflict/);
   });
   it("prints no OK sentence when no line is OK, and one row only when every line is OK", () => {
     const none = render({ run: rules(modelRun("DONE", [pair({ lines: [mixed[1]!, mixed[3]!] })]), [hold()]) });
-    expect(text(none)).not.toMatch(/No conflict found by the model on/); expect(none.match(/<li>/g)).toHaveLength(3);
+    expect(text(none)).not.toMatch(/No conflict found by the model on/); expect(none.match(/<li[ >]/g)).toHaveLength(3);
     const all = render({ run: rules(modelRun("DONE", [pair({ lines: [mixed[0]!, mixed[2]!] })]), [hold()]) });
-    expect(all.match(/<li>/g)).toHaveLength(2); expect(text(all).match(/This is not an approval\./g)).toHaveLength(1);
+    expect(all.match(/<li[ >]/g)).toHaveLength(2); expect(text(all).match(/This is not an approval\./g)).toHaveLength(1);
   });
   it("writes one sentence per fund, and a skipped or unchecked fund adds none", () => {
     const body = text(render({ run: rules(modelRun("DONE", [

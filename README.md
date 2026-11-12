@@ -1,141 +1,97 @@
-# AidTrace: AI receipt review and PayPal reimbursements
+# AidTrace
 
-A nonprofit has USD 500 of expenses and three funds with different promises. AI proposes
-receipt categories with source quotes. Rules compute USD 430 restricted and USD 70 General
-on the fresh example. Two people approve the same terms. A read-only PayPal handoff shows
-what an explicitly authorized reimbursement would require. This judging session stays unpaid.
+Claude turns a grant PDF into rules two people approve. Small clean expenses then pay through PayPal on their own, and donors see the receipt lines their gift was applied to.
 
-Typography is self-hosted: one pinned Inter 4.1 font and its OFL notice travel with the source.
-No CDN or system font installation is needed. See docs/FONT_PROVENANCE.md.
+All payments are PayPal sandbox payments. The nonprofit, grants and receipts are invented, and the accounting model has not been reviewed by a nonprofit accountant.
 
-## 1. Prepare Docker: keep execution in containers
+Try it: https://98-89-192-170.sslip.io/
 
-Use an existing Docker Engine or Docker Desktop with Compose v2, Linux ARM64 or AMD64,
-a POSIX shell and upstream network access for pinned images and packages.
-No native Node, pnpm, Python or Postgres is needed. The launcher uses the current Docker
-context, or an explicit AIDTRACE_DOCKER_CONTEXT. The owner's execution stays in OrbStack.
-Windows users need an existing WSL2 POSIX shell with Docker integration.
+## 1. Understand the problem: restricted grants, one treasurer
 
-Native ARM app execution has evidence. Physical Docker Desktop, a fresh full AMD64 app
-installation, another machine/network and Safari remain unverified. See [access requirements](docs/ACCESS.md).
+A small nonprofit runs on restricted grants, each with its own caps, dates and exclusions. The treasurer retypes every agreement's rules, matches each receipt line to a fund, chases a second signature, sends the reimbursement and later proves to the funder that no restricted dollar paid for an ineligible line. Paying from the wrong fund quietly burns unrestricted money. Donors rarely learn what their gift bought.
 
-AI features come from the hosted Claude API and need your own Anthropic API key, read
-from the shell that starts a session: category suggestions, AI-drafted fund rules, the
-receipt photo reader, the policy model check and analytics fact selection. No key is
-required to review the app: without one, the AI features are off and the manual path works
-end to end. [What a session shows with and without a key](docs/JUDGING.md) lists each one.
+## 2. Follow the workflow: grant to rules, receipt to payment
 
-From this extracted folder, prepare dependencies once:
+```text
+Grant PDF --> Claude drafts rules, each beside its exact quote --> two people approve --> binding rules
+Receipt   --> Claude reads it and proposes categories --> the claimant confirms
+              --> min-cost flow picks the funds (no model decides the split)
+              --> rules checks and a Claude policy check
+              --> Manual, Assisted or Autopilot --> PayPal Payouts --> ledger --> donor page
+```
+
+1. Grant PDF to rules. Claude Sonnet 5.5 drafts caps, dates and categories, each beside the exact quote it came from, and code checks every quote. Unsupported values stay empty. Two different approvers bind the draft.
+2. Receipt to categories. Claude Haiku 5.5 reads the receipt, code checks the arithmetic to the cent, Claude proposes a category per line with a quote, and the claimant confirms each one.
+3. Funding split. A min-cost flow solver in integer cents applies each fund's restrictions and uses as little unrestricted money as the rules allow. No model decides the split.
+4. Checks before money moves. Rules checks and a Claude policy check with clause citations can hold a claim. A model answer alone never pays one.
+5. Three fund modes. Manual: two people approve every claim. Assisted: bulk approval of clean claims. Autopilot: a small clean claim pays itself under eight guardrails, including caps, a 5 percent random audit and a kill switch. Two approvers turn automation on.
+6. PayPal on both sides. Checkout (Orders v2) for gifts, Payouts for reimbursements and verified webhooks. An uncertain payout stays UNKNOWN until a person authorizes a retry, so a network failure cannot become a second payment.
+7. Books in AG Grid Community. Read-only ledger, donations and approver queue views, an analytics dashboard and a funder report that ties out to the books.
+
+## 3. Know the AI boundaries: people decide, the AI never pays
+
+1. Every Claude call has no tools, a closed JSON schema and code-side validation.
+2. The AI suggests categories. The claimant confirms them.
+3. The AI drafts fund rules. Two different people bind them. The model never writes a binding rule.
+4. The AI never freezes a claim, approves it, allocates funds or pays.
+5. A quote that matches the source does not prove that a value is right. A person checks it.
+6. One running app allows at most 60 Claude requests, then turns the AI off until it restarts.
+7. Every AI screen names the model that answered.
+
+Without an Anthropic API key, the AI features are off and the manual path still works end to end.
+
+## 4. Open the hosted demo: one private workspace per judge
+
+Open https://98-89-192-170.sslip.io/ and choose Open workspace for any workspace from 1 to 7. Each workspace is a private copy of the app with sample data and its own AI request limit. The sign-in passwords for the three demo users (maria, tara and ben) are given with the judging instructions, not in this repository.
+
+1. Sign in as maria and open Review Maria's $500 receipt. Create the draft, confirm the categories, continue to funding and freeze the terms.
+2. Sign out, sign in as tara, open the awaiting claim and approve.
+3. Sign out, sign in as ben and approve the same terms. The claim then shows approved and unpaid.
+4. For the AI-drafted rules, sign in as tara and use Draft rules from a grant on the home page.
+
+Hosted workspaces have no PayPal credentials, so nothing is sent to PayPal. Fund modes, Autopilot, Checkout gifts, the donor page and the Paid state are shown only in the video.
+
+## 5. Run it locally: Docker only
+
+You need Docker with Compose v2 on Linux ARM64 or AMD64, and a POSIX shell. No native Node, pnpm, Python or Postgres is needed. No PayPal account is needed: local judging sessions never pay. See `docs/ACCESS.md` for requirements and recovery steps.
 
 ```sh
 sh scripts/aidtrace doctor
 sh scripts/aidtrace setup
-```
-
-Dependency setup uses a separate declaration with no environment file, database or port.
-No model is downloaded. Each session app permits 3 GiB/two CPUs; its database
-permits 384 MiB/one CPU, plus a 128 MiB local relay. Allow additional engine/build/image/package storage. Run heavy
-builds and browser checks sequentially. These caps are not a total machine memory budget.
-
-## 2. Create one session: preserve every earlier run
-
-Choose a new lowercase session name, 3 to 24 characters, and an unused loopback port:
-
-```sh
 sh scripts/aidtrace judge-new review-one 3102
 sh scripts/aidtrace judge-up review-one
 ```
 
-To turn AI suggestions on, export your key in the same shell first (export ANTHROPIC_API_KEY
-with your own value, not saved in a file) and then run judge-up. Typing the value on the command
-line stores it in your shell history file. To avoid that, run `read -rs ANTHROPIC_API_KEY` (bash
-or zsh) and paste the value, then `export ANTHROPIC_API_KEY`, or delete the history line afterwards. The
-launcher passes the variable by name to the session app container only. The launcher never
-writes it to session.env or any other file and never prints it. The container engine keeps the
-value in the app container's configuration, including after judge-stop, until that container is
-recreated or removed. Without it the app says AI suggestions are off in
-this session and everything except the AI features still works. One process allows at most 60 Claude
-requests in total, then AI turns itself off until the app restarts. The session turns the rule draft
-and photo reader flags on, and leaves fund modes and Autopilot off.
+Open http://127.0.0.1:3102/login. The launcher generates the three passwords into the `session.env` file under `local/judge-sessions/review-one/`. Do not share that file.
 
-Open http://127.0.0.1:3102/login. Private generated passwords are in
-local/judge-sessions/review-one/session.env. Use SEED_PASSWORD_MARIA, SEED_PASSWORD_TARA
-and SEED_PASSWORD_BEN privately. Do not share that file or include it in screenshots.
-No PayPal login, key, tunnel or owner account is needed.
+To turn the AI features on, export your own `ANTHROPIC_API_KEY` in the same shell before `judge-up`. Use `read -rs ANTHROPIC_API_KEY` and then `export ANTHROPIC_API_KEY` so the value stays out of your shell history. The launcher passes the key to the app container by name and never writes it to a file. `docs/JUDGING.md` lists what a session shows with and without a key.
 
-judge-new refuses existing names. judge-up validates configuration, starts a separately
-named database, applies migrations, initializes a new fixture once, builds and serves the
-production app. A database comment binds the generated configuration for later retention without reseeding.
-An unbound database containing later work is refused, never adopted or reset automatically.
-The comment is lifecycle metadata, not a financial journal or schema migration. The app does
-not read local/.env. Provider credentials are forced empty, its
-recipient is non-payable, and payment actions are disabled server-side. Internal application
-networks connect the app to its session database, which has no outside route. The app also
-has outbound HTTPS to the Claude API on one session-local edge network, shared only with a fixed
-loopback relay. The relay has no credentials and forwards only to this app.
-The shared dependency volume is read-only; each session has its own database and compiled build volume.
-
-## 3. Review Maria's receipt: finish at the unpaid handoff
-
-[JUDGING.md](docs/JUDGING.md) gives the full keyed path, with AI-drafted rules first, and names what is shown only in the
-video. The shorter receipt path: sign in as maria. Choose Review Maria's $500 receipt. Create the default fictional receipt:
-USD 280 kits, USD 150 notebooks and USD 70 refreshments. Select Prepare expense proposal
-once. Check the Claude suggestions (or choose each category yourself when AI is off) against highlighted saved receipt text, confirm each
-category and choose View allocation. The fresh unchanged example computes Tallow Creek Robot Kit Initiative USD 200,
-Ashmere County Afterschool STEM Subgrant USD 230 and General Operating USD 70. The ordered first-eligible comparison uses USD 200
-General Operating. The USD 130 difference is specific to this fixture and ordering, not measured
-customer savings. Changes to categories or capacity can change the result.
-
-Freeze the reviewed allocation as maria. Sign out, sign in as tara and approve the same
-claim once. Sign out and repeat as ben. Two approvals recognize USD 500 payable but do not
-pay it. Inspect PayPal handoff, its masked request structure and possible future states.
-Expect Approved, Not submitted and Unassigned IDs. There is no Send control in this session.
-Neither opening a panel nor refreshing the page creates an attempt or journal.
-
-AI has no financial tools. UNKNOWN requires human categories/reasons. An organization-wide
-prohibition blocks the whole expense, including General. Separate logins, confirmation,
-freeze and two approvals remain deliberate. One session permits one receipt; its edits need
-fresh review before freeze. C-104 remains a separate test fixture, outside this judge story.
-
-## 4. Restart or repeat: do not reset data
+Optional checks run on synthetic fixtures with a scripted stand-in for the AI. They are not evidence about PayPal or the Claude API.
 
 ```sh
-sh scripts/aidtrace judge-stop review-one
-sh scripts/aidtrace judge-up review-one
+sh scripts/aidtrace check
+sh scripts/aidtrace ui-check
 ```
 
-Restart retains the same receipt, approvals and balances. For fresh opening funds, stop the
-old app and create a new name, for example judge-new review-two 3102, then judge-up review-two.
-The earlier database/configuration/build remains preserved. No prune or volume deletion.
-A busy port is an error to investigate, never permission to stop unrelated apps.
-If the engine reports exhausted address pools, preserve the error. An operator may inspect
-Docker subnets and host/VPN routes, then pass one checked unused private /28 as judge-new's
-fourth argument after the port. It affects only that session and is retained in its config.
-The helper validates syntax, not global routing availability. Never prune networks or change
-global address pools automatically. Omit the subnet argument on an engine with normal capacity.
-Browser cookies share a loopback hostname across ports; use a separate browser profile or
-sign in again when switching between sessions. Do not reuse owner passwords.
+`check` runs the Vitest suite (135 test files in this repository) and the TypeScript compiler.
 
-Optional checks: sh scripts/aidtrace check and sh scripts/aidtrace ui-check use isolated
-synthetic fixtures. They use a scripted stand-in for the AI and are not PayPal or Claude API evidence.
-To switch AI off, restart the session from a shell without ANTHROPIC_API_KEY. Manual review stays available.
+## 6. Review the evidence: results and limits
 
-## 5. Review evidence and rights: no publication follows
+| Check | Result | Limit |
+|---|---|---|
+| Rules drafter, four agreements | 69 of 69 determinate fields right, 0 fabricated values | Invented agreements |
+| Policy check, 840 calls | 0 of 72 risky receipt runs cleared; at least 32 of 96 clean receipt runs held for a person | Synthetic receipts, labels written by Claude; a zero is a bound, not a rate |
+| Receipt photo reader | 5 of 5 photos and 5 of 5 injection receipts | Ten invented images, one run each |
+| Sandbox payments | $500.00 after two approvals; a $50.00 gift; a $42.00 claim paid under Autopilot | One rehearsal run each |
 
-[The detailed access guide](docs/ACCESS.md) covers failure recovery and independent access.
-The native analytics dashboard is available to tara/ben at /analytics; its facts come from
-local journals, not current PayPal cash. AI selects validated snapshot facts with a manual
-fallback. This variant contains no Studio SDK. It uses AG Grid Community (MIT) for the ledger, donations
-and queue views, and release/variant.json records sponsorUseClaimed true for that package only (docs/LICENSING.md section 6).
+The evaluation harnesses and their datasets are not in this repository. Not done: scanned-PDF grants, a pilot with a real treasurer and an accountant's review. The donor link is shown once, with no recovery flow.
 
-The owner's separately observed sandbox payout, capture and webhook evidence is not this
-session's payment history. Its private database, identifiers, keys and media are excluded.
-A later real sandbox run requires separate configuration and authorization outside this
-non-payable session. Do not edit its guard settings to enable payment.
+## 7. Read the license: MIT
 
-The application MIT license is included. Dependency/model rights remain separate: review
-LICENSE, NOTICE, THIRD_PARTY_NOTICES.txt, DEPENDENCY_LICENSES.json, UPSTREAM_LICENSE_SOURCES.json,
-docs/LICENSING.md and docs/THIRD_PARTY_MODELS.md. The accounting model awaits accountant review.
-SOURCE_MANIFEST.json identifies the prepared source, excluding Git history, local secrets
-and backups. No AI model weights ship with it. Exact candidate, ownership, access and publication remain owner decisions.
-This source is unpublished. Nothing here authorizes hosting, recording, contact or submission.
+The application is released under the MIT license. See `LICENSE`. Copyright (c) 2026 Pavan Aripakula.
+
+Dependencies and model services keep their own terms. See `NOTICE`, `THIRD_PARTY_NOTICES.txt`, `DEPENDENCY_LICENSES.json`, `UPSTREAM_LICENSE_SOURCES.json`, `docs/LICENSING.md` and `docs/THIRD_PARTY_MODELS.md`. AG Grid Community 36.2.0 is under the MIT license. The bundled Inter font is under the SIL Open Font License; see `docs/FONT_PROVENANCE.md`.
+
+Built with TypeScript, Node.js 22, Next.js 16, React 19, PostgreSQL, Drizzle ORM, Claude Haiku 5.5 and Claude Sonnet 5.5 through the Anthropic API, PayPal Checkout (Orders v2) and PayPal Payouts, AG Grid Community 36.2.0, unpdf, Docker Compose, Vitest and Playwright. Codex and Claude models assisted the implementation, testing and documentation under the author's direction.
+
+Author: Pavan Aripakula

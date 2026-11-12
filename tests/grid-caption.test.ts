@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { CAPTION_PREFIX, gridCaption } from "../src/app/grid/caption";
 import { GRID_SURFACES } from "../src/app/architecture/grid-surfaces";
 
-// GV-01 to GV-04 (November 10, "make it really obvious where AG Grid is being used"): static and pure tests, no browser, no database.
+// GV-01 to GV-04 (November 10, "make it really obvious where AG Grid is being used"): static and pure tests, no browser, no database. GV-04 reads the private README and is in the owner-only tests/grid-caption-owner.test.ts.
 // The browser checks are GV-05 to GV-08 inside e2e/ledger.spec.ts, e2e/donations.spec.ts, e2e/approver-queue.spec.ts and e2e/fund-modes-bulk.spec.ts.
 const BOOLS = [false, true];
 
@@ -51,13 +51,5 @@ describe("GV-03 the How it works section lists the four surfaces", () => {
     expect(page).toContain("Where AG Grid works");
     expect(page).toContain('user.role === "APPROVER"');
     expect(page).toMatch(/read only: no editing, no write path, and they never approve or pay/);
-  });
-});
-
-describe("GV-04 the README names all four surfaces", () => {
-  it("lists them with the caption and the How it works section", () => {
-    const readme = readFileSync("README.md", "utf8");
-    const section = readme.slice(readme.indexOf("### AG Grid Community"), readme.indexOf("## 1. Identify this checkout"));
-    for (const word of ["Approver queue", "Assisted queue", "Ledger (/ledger)", "Donations (/donations)", "Where AG Grid works", "four read-only approver tables"]) expect(section, word).toContain(word);
   });
 });

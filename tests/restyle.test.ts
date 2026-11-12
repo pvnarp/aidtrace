@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
-// RS-01 and RS-02 (November 10 analytics and landing restyle, docs/GATE_REPORT.md section 121). Static checks of source text. No database, no network, no browser.
+// RS-01 (November 10 analytics restyle, docs/GATE_REPORT.md section 121). Static checks of source text. No database, no network, no browser. The RS-01 design language line and RS-02 (the hosted landing) are in the owner-only tests/restyle-owner.test.ts.
 // RS-03 is the computed-style check in e2e/analytics.spec.ts.
 const source = (path: string) => readFileSync(path, "utf8");
 const css = source("src/app/style.css").replace(/\/\*[\s\S]*?\*\//g, "");
@@ -12,7 +12,6 @@ describe("RS-01 figures and the analytics page", () => {
     expect(css).toContain(":where(p, li, dt, label, summary, legend, blockquote, figcaption, h1, h2, h3, h4, h5, h6, th, a, button) { font-variant-numeric: normal; }");
     expect(css).toContain(":where(dd, td, strong, b, output, time, .amount, .big-amount, .case-amount, .meter) { font-variant-numeric: tabular-nums; }");
     expect(css.indexOf("font-variant-numeric: normal; }")).toBeLessThan(css.indexOf(".meter) { font-variant-numeric: tabular-nums; }"));
-    expect(source("docs/DESIGN_LANGUAGE.md").replace(/\s+/g, " ")).toContain("running text (paragraphs, list items, labels, headings, links and buttons) uses normal figures");
   });
   it("aligns analytics amounts right, draws the home page bar on each fund and rules off the bridge total", () => {
     expect(css).toContain(".analytics-widget dd { text-align:right; font-variant-numeric:tabular-nums; }");
@@ -23,26 +22,6 @@ describe("RS-01 figures and the analytics page", () => {
     expect(dashboard).toContain('<span className="meter analytics-meter" role="img" aria-label={meter.ariaLabel}><i style={{ width: `${meter.availablePercent}%` }} /></span>');
     expect(dashboard).toContain("</div><FundBar fund={fund}/><dl><dt>Book balance</dt>");
     expect(dashboard).toContain('<dt className="bridge-total">Book cash</dt><dd className="bridge-total">');
-  });
-});
-
-describe("RS-02 the hosted landing page", () => {
-  const gen = source("release/hosted/gen.sh");
-  const page = gen.slice(gen.indexOf('l="$out/landing/index.html"'), gen.indexOf('} > "$l"'));
-  it("uses the app's tokens and trace mark, with no script and no external resource", () => {
-    for (const token of ["--navy:#0b1f3a", "--accent:#0a66ff", "--bg:#f4f6fa", "--paypal:#003087", "--radius-panel:14px"]) expect(page).toContain(token);
-    const root = source("src/app/style.css");
-    for (const token of ["--navy: #0b1f3a", "--accent: #0a66ff", "--bg: #f4f6fa", "--paypal: #003087", "--radius-panel: 14px"]) expect(root).toContain(token);
-    expect(page).toContain('<path class="mark-line" d="M7.2 6h13.6"/><circle class="mark-start" cx="4" cy="6" r="3"/><circle class="mark-end" cx="24" cy="6" r="3"/>');
-    expect(page).not.toMatch(/<script|https?:\/\/|<link |@import|url\(/);
-  });
-  it("shows the six trace steps in the login legend's words and three short lines, the first naming maria", () => {
-    expect(page.match(/<li>[^<]*(<span class="pp">PayPal<\/span>)?[^<]*<small>/g)?.length).toBe(6);
-    for (const words of ["Typed text and amounts", "Suggests categories with quotes", "Rules, not AI", "Computed from fund policy", "Two different people", "Separate decision"]) {
-      expect(page).toContain(`<small>${words}</small>`); expect(source("src/app/trace.tsx")).toContain(`"${words}"`);
-    }
-    expect(page).toContain("<b>1. Pick a workspace</b>"); expect(page).toContain("<b>2. Start as maria</b>"); expect(page).toContain("<b>3. Follow the money</b>");
-    expect(page).toContain("@media (prefers-reduced-motion:reduce){a.open{transition:none}a.open:hover{transform:none}}");
   });
 });
 
@@ -80,5 +59,33 @@ describe("CP-01 the calm pass", () => {
     expect(source("src/app/claims/[claimId]/receipt/page.tsx")).toContain('className={notice === "suggested" ? "notice notice-quiet" : "notice"}');
     expect(css).toContain(".notice.notice-quiet { padding: 0; border: 0; border-radius: 0; background: none; color: var(--muted); font-size: 14px; }");
     expect(css).toContain(".give-panel > details:last-child { margin-bottom: 0; }");
+  });
+});
+
+// EF-01 (November 11 eye-flow pass, docs/GATE_REPORT.md section 127): the viewer's one decision leads the Decision panel, the approver home
+// has one filled way in, a Hold reads as a Hold, and the tint and accent fill are kept for the next decision and the primary button.
+describe("EF-01 the eye-flow pass", () => {
+  it("puts the lead forms first in the Decision panel and the payout first once approved", () => {
+    const panel = source("src/app/workspace.tsx");
+    const body = panel.slice(panel.indexOf('<h2 id="decision-title">Decision</h2>'));
+    expect(body.indexOf('{lead && <div className="actions lead">{lead}</div>}')).toBeLessThan(body.indexOf("{split}"));
+    expect(body.indexOf("{payoutFirst && payout}")).toBeLessThan(body.indexOf("{split}"));
+    expect(body.indexOf("{!payoutFirst && payout}")).toBeGreaterThan(body.indexOf("{approvals}"));
+    const page = source("src/app/claims/[claimId]/page.tsx");
+    const lead = page.slice(page.indexOf("const leadForms = <>"), page.indexOf("const claimForms = <>"));
+    expect(lead).toContain('action="freeze" button={decision ? "Confirm current allocation" : "Freeze allocation for approval"}');
+    expect(lead.indexOf('data-testid="checks-status"')).toBeLessThan(lead.indexOf('action="approve"'));
+    expect(page.slice(page.indexOf("const claimForms = <>"))).not.toContain('action="approve"');
+    expect(page).toContain('payoutFirst={["APPROVED", "PAYOUT_PROCESSING", "PAID", "PAYOUT_ISSUE"].includes(claim.status)}');
+  });
+  it("adds one filled link on the approver home, marks holds and moves the give page's way out below the content", () => {
+    expect(source("src/app/page.tsx")).toContain('<Link className="button-link" href={queue.rows[0]!.href} prefetch={false} data-testid="home-primary">Open {queue.rows[0]!.vendor}</Link>');
+    const checks = source("src/app/claims/[claimId]/policy-checks.tsx");
+    expect(checks).toContain("<li key={flag.sequence} data-severity={flag.severity}>"); expect(checks).toContain("<li key={line.lineId} data-verdict={line.verdict}>");
+    const give = source("src/app/give/page.tsx");
+    expect(give.indexOf('data-testid="give-back"')).toBeGreaterThan(give.indexOf("No real money moves."));
+    expect(css).toContain(".dec .actions.lead { margin: 4px 0 16px; padding: 0; border-top: 0; }");
+    expect(css).toContain(".ai-tag.confirmed { background: var(--bg); color: var(--navy); box-shadow: none; }");
+    expect(css).toContain('.reasons li[data-severity="HOLD"], .reasons li[data-verdict="CONFLICT"] { background: var(--warm);');
   });
 });

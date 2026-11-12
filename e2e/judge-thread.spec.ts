@@ -105,11 +105,12 @@ test("TH-07 to TH-11: the handoff ends the session, lands on a prefilled sign-in
   await page.goto(claim);
   await expect(page.locator(".action-footer .journey-actor")).toHaveText("Your move, Tara. Run the checks, then approve.");
   expect(await filledPrimaries(page), "claim, first approver").toEqual(["Approve these terms"]);
-  const status = page.getByTestId("checks-status"); await expect(status).toContainText("Checks not run yet."); await expect(status.getByRole("link", { name: "See the checks" })).toHaveAttribute("href", "#policy-checks");
+  const status = page.getByTestId("checks-status"); await expect(status).toContainText("Checks not run yet."); await expect(status.getByRole("link", { name: "Run the checks" })).toHaveAttribute("href", "#policy-checks");
   const approve = page.getByRole("button", { name: "Approve these terms", exact: true }); await expect(approve).toBeEnabled();
   expect((await status.boundingBox())!.y).toBeLessThan((await approve.boundingBox())!.y);
   await page.locator("#policy-checks").getByRole("button", { name: "Run policy checks" }).click();
   await expect(page.getByTestId("checks-status")).toContainText(/Checks run: (no flags|\d+ flags?)\./);
+  await expect(page.getByTestId("checks-status").getByRole("link", { name: "See the checks" })).toHaveAttribute("href", "#policy-checks");
   await expect(approve).toBeEnabled(); await approve.click();
   await expect(journey).toContainText("Hand this claim to a different approver."); await expect(journey.locator(".journey-actor")).toHaveText("Ben acts next.");
   await expect(journey.locator(".journey-critical")).toContainText("another authorized approver");
@@ -119,8 +120,8 @@ test("TH-07 to TH-11: the handoff ends the session, lands on a prefilled sign-in
   await page.getByRole("button", { name: "Approve these terms", exact: true }).click();
 
   // TH-11: the closing card. No Next decision card, the PayPal card says not paid, approvers get the two quiet links, the claimant gets the card alone.
-  const closing = page.getByLabel("Trace complete", { exact: true });
-  await expect(closing.locator(".kicker")).toHaveText("Trace complete"); await expect(closing.getByRole("heading", { level: 2 })).toHaveText("Approval is complete.");
+  const closing = page.getByLabel("Approved, unpaid", { exact: true });
+  await expect(closing.locator(".kicker")).toHaveText("Approved, unpaid"); await expect(closing.getByRole("heading", { level: 2 })).toHaveText("Approval is complete. Payout is a separate step.");
   await expect(page.getByLabel("Expense journey", { exact: true })).toHaveCount(0);
   await expect(closing.getByRole("link", { name: "See it in the ledger" })).toHaveAttribute("href", "/ledger"); await expect(closing.getByRole("link", { name: "Open the funder report" })).toHaveAttribute("href", "/analytics/report");
   await expect(page.locator(".paypal-card")).toContainText("Approved does not mean paid.");
@@ -128,7 +129,7 @@ test("TH-07 to TH-11: the handoff ends the session, lands on a prefilled sign-in
   await fits(page);
   await closing.getByRole("link", { name: "See it in the ledger" }).click(); await expect(page).toHaveURL(/\/ledger$/);
   await page.goto("/"); await page.getByRole("button", { name: "Sign out", exact: true }).click(); await login(page, "maria"); await page.goto(claim);
-  await expect(page.getByLabel("Trace complete", { exact: true })).toBeVisible(); await expect(page.getByLabel("Trace complete", { exact: true }).getByRole("link")).toHaveCount(0);
+  await expect(page.getByLabel("Approved, unpaid", { exact: true })).toBeVisible(); await expect(page.getByLabel("Approved, unpaid", { exact: true }).getByRole("link")).toHaveCount(0);
   expect(await connection.db.select().from(s.approvals)).toHaveLength(2);
   expect(await connection.db.select().from(s.disbursementAttempts)).toHaveLength(0);
 });

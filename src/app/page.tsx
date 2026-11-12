@@ -50,6 +50,7 @@ export default async function Home() {
         <div className="home-head-text">
           <h1 className="screen-heading">{queue.rows.length > 0 ? <><span className="act">{firstWord}</span> {restWords.join(" ")}</> : approverHeading(0)}</h1>
           <p className="reference-intro">{approverLede(queue.rows.length, assisted !== undefined)}</p>
+          {queue.rows.length > 0 && <p className="home-primary"><Link className="button-link" href={queue.rows[0]!.href} prefetch={false} data-testid="home-primary">Open {queue.rows[0]!.vendor}</Link></p>}
         </div>
         {queue.rows.length > 0 && <ApproverQueueClient rows={queue.rows} observedAt={queue.observedAt} userId={user.id} assisted={assisted} />}
         {continuing.length > 0 && <section aria-labelledby="other-expenses"><h2 id="other-expenses">Other expenses</h2><ul className="draft-list">{continuing.map(claim => <li key={`${claim.id}:${claim.version}`}><Link href={`/claims/${claim.id}`} prefetch={false}>{claim.vendor}<small className="claim-reference">Claim {shortClaimRef(claim.id)}{money(claim) ? ` · ${money(claim)}` : ""}</small></Link><span>{statusLabel(claim.status)}</span></li>)}</ul></section>}

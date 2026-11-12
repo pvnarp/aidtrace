@@ -28,10 +28,11 @@ export function Journey({ title, detail, href, action, aside, emphasizeDetail = 
 /**
  * The closing card of the thread: an approved or paid claim says the trace is done and points an approver to the two places to look next.
  * It is not the Next decision card (no "Expense journey" label), so approved and paid claims still have no Next decision. Links are for approvers only.
+ * November 11 eye-flow follow-up: an approved claim that is not paid says "Approved, unpaid", because the PayPal step is still open; only a paid claim says "Trace complete".
  */
-export function TraceComplete({ title, detail, links }: { title: string; detail?: string; links: readonly { href: string; label: string }[] }) {
-  return <aside className="action-footer trace-complete" aria-label="Trace complete">
-    <div className="footer-copy"><p className="kicker">Trace complete</p><h2>{title}</h2>{detail && <p className="journey-actor">{detail}</p>}</div>
+export function TraceComplete({ kicker = "Trace complete", title, detail, links }: { kicker?: "Trace complete" | "Approved, unpaid"; title: string; detail?: string; links: readonly { href: string; label: string }[] }) {
+  return <aside className="action-footer trace-complete" aria-label={kicker}>
+    <div className="footer-copy"><p className="kicker">{kicker}</p><h2>{title}</h2>{detail && <p className="journey-actor">{detail}</p>}</div>
     {links.length > 0 && <p className="trace-complete-links">{links.map(link => <Link key={link.href} className="journey-link" href={link.href} prefetch={false}>{link.label}<span aria-hidden="true"> →</span></Link>)}</p>}
   </aside>;
 }

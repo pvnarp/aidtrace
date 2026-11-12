@@ -50,17 +50,20 @@ export function ClaimHeader({ claimId, kicker, heading, data }: { claimId: strin
 }
 
 /**
- * The Decision panel of the review layout. The page supplies its sections as slots: Fund split, Approvals, Payout, then the action
- * forms. The details disclosure keeps the earlier summary facts. Layout only: nothing here approves, freezes or pays.
+ * The Decision panel of the review layout. The page supplies its sections as slots. November 11 eye-flow pass: the one decision the
+ * viewer can make (lead) sits first, level with the Next decision card; then Fund split, Approvals and Payout (Payout first once the
+ * claim is approved, because that is then the live question), then the secondary forms. Layout only: nothing here approves, freezes or pays.
  */
-export function DecisionPanel({ data, split, approvals, payout, actions, more }: {
-  data: SummaryData; split?: React.ReactNode; approvals?: React.ReactNode; payout?: React.ReactNode; actions?: React.ReactNode; more?: React.ReactNode;
+export function DecisionPanel({ data, split, approvals, payout, lead, payoutFirst, actions, more }: {
+  data: SummaryData; split?: React.ReactNode; approvals?: React.ReactNode; payout?: React.ReactNode; lead?: React.ReactNode; payoutFirst?: boolean; actions?: React.ReactNode; more?: React.ReactNode;
 }) {
   return <aside className="hybrid-summary panel dec" aria-labelledby="decision-title">
     <h2 id="decision-title">Decision</h2>
+    {lead && <div className="actions lead">{lead}</div>}
+    {payoutFirst && payout}
     {split}
     {approvals}
-    {payout}
+    {!payoutFirst && payout}
     {actions && <div className="actions">{actions}</div>}
     <details className="hybrid-case-details"><summary>Expense details</summary><dl>{data.details.map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}</dl></details>
     {more}

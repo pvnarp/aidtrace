@@ -39,7 +39,7 @@ function ModelRows({ model }: { model: StoredModelRun }) {
         {pair.state === "NOT_CHECKED" && <p>{modelNotChecked(pair.reasonCode)}</p>}
         {pair.state === "CHECKED" && <ul className="reasons">{pair.lines.filter(line => line.verdict !== "OK").map(line => {
           const shown = modelLineText(line);
-          return <li key={line.lineId}><strong>{shown.label}:</strong>{" "}{shown.text}{shown.quote ? <>{" "}&quot;{shown.quote}&quot;</> : null}</li>;
+          return <li key={line.lineId} data-verdict={line.verdict}><strong>{shown.label}:</strong>{" "}{shown.text}{shown.quote ? <>{" "}&quot;{shown.quote}&quot;</> : null}</li>;
         })}{pair.lines.some(line => line.verdict === "OK") && <li>{modelOkSentence(pair.lines.filter(line => line.verdict === "OK"))}</li>}</ul>}
       </>}
     </div>)}
@@ -54,7 +54,7 @@ export function PolicyChecks({ claimId, decisionHash, run, canRun, aiOff = null,
     {!run && <p>{POLICY_NOT_RUN}</p>}
     {!run && canRun && <ActionForm action="run" claimId={claimId} decisionHash={decisionHash} endpoint="policy-checks" button={POLICY_RUN_BUTTON} />}
     {run && run.flags.length === 0 && <p>{POLICY_NO_FLAGS}</p>}
-    {run && run.flags.length > 0 && <ul className="reasons">{run.flags.map(flag => <li key={flag.sequence}><strong>{SEVERITY_LABEL[flag.severity]}:</strong>{" "}{flag.flagText}</li>)}</ul>}
+    {run && run.flags.length > 0 && <ul className="reasons">{run.flags.map(flag => <li key={flag.sequence} data-severity={flag.severity}><strong>{SEVERITY_LABEL[flag.severity]}:</strong>{" "}{flag.flagText}</li>)}</ul>}
     {run && run.notChecked.length > 0 && <>
       <p>{run.notChecked[0]!.flagText}</p>
       <p>Rules not checked: {run.notChecked.map(row => THRESHOLD_RULE_NAMES[row.ruleId] ?? row.ruleId).join(", ")}.</p>

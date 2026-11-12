@@ -162,14 +162,18 @@ export default async function ClaimPage({ params, searchParams }: { params: Prom
       {attempt && <p>No automatic retry is available. Unknown outcomes require manual reconciliation. Unclaimed and held payments require polling; a confirmed terminal failure requires separate retry authorization.</p>}
     </div>
   );
-  const claimForms = <>
+  // November 11 eye-flow pass: the viewer's one decision (freeze, or the checks line and approve) leads the Decision panel; re-check and reject stay below.
+  const leadForms = <>
     {view.feasible && !policyBlocked && user.id === claim.claimantId && claim.status === "DRAFT" && <ActionForm claimId={claimId} action="freeze" button={decision ? "Confirm current allocation" : "Freeze allocation for approval"} />}
+    {approver && decision && claim.status === "AWAITING_APPROVAL" && !approvedByMe && view.policyChecks && <p className="checks-line" data-testid="checks-status">{checksStatus(view.policyChecks.run)} <a href="#policy-checks">{view.policyChecks.run ? "See the checks" : "Run the checks"}</a></p>}
+    {approver && decision && claim.status === "AWAITING_APPROVAL" && !approvedByMe && <ActionForm claimId={claimId} action="approve" decisionId={decision.id} decisionHash={decision.decisionHash} button="Approve these terms" />}
+  </>;
+  const hasLead = (view.feasible && !policyBlocked && user.id === claim.claimantId && claim.status === "DRAFT") || Boolean(approver && decision && claim.status === "AWAITING_APPROVAL" && !approvedByMe);
+  const claimForms = <>
     {/* Awaiting claim: the freeze is a re-check, not a step. The copy states what freezeDecision does (tests/ledger.integration.test.ts FRZ-01). */}
     {view.feasible && !policyBlocked && user.id === claim.claimantId && claim.status === "AWAITING_APPROVAL" && <details className="refreeze"><summary>Receipt or fund policy changed? Re-check the frozen terms</summary>
       <p>If nothing changed, the same frozen terms and their approvals stay. If the receipt or fund policy changed, the old terms and their reservations are released, new terms are frozen when funds cover them, and earlier approvals no longer apply.</p>
       <ActionForm claimId={claimId} action="freeze" button="Re-check the frozen terms" /></details>}
-    {approver && decision && claim.status === "AWAITING_APPROVAL" && !approvedByMe && view.policyChecks && <p className="checks-line" data-testid="checks-status">{checksStatus(view.policyChecks.run)} <a href="#policy-checks">See the checks</a></p>}
-    {approver && decision && claim.status === "AWAITING_APPROVAL" && !approvedByMe && <ActionForm claimId={claimId} action="approve" decisionId={decision.id} decisionHash={decision.decisionHash} button="Approve these terms" />}
     {approver && ["DRAFT", "AWAITING_APPROVAL"].includes(claim.status) && <details><summary>Reject this claim instead</summary><ActionForm claimId={claimId} action="reject" button="Reject claim"><label htmlFor="reason">Reason for rejection</label><input id="reason" name="reason" required maxLength={500} /></ActionForm></details>}
   </>;
   // Say it once: the Next decision card only guides a claim that still needs a decision or has a payment in flight. Approved, paid and rejected claims
@@ -186,6 +190,8 @@ export default async function ClaimPage({ params, searchParams }: { params: Prom
         <ul>{approvals.map(row => <li key={row.approverId}>{row.displayName} approved at <time dateTime={row.approvedAt.toISOString()}>{reviewTime(row.approvedAt)}</time>.</li>)}</ul>
         {view.rejections.map((rejection, index) => <p key={index}>Rejected by {rejection.rejectedBy}: {rejection.reason}</p>)}</section>}
       payout={paymentSection}
+      {...(hasLead ? { lead: leadForms } : {})}
+      payoutFirst={["APPROVED", "PAYOUT_PROCESSING", "PAID", "PAYOUT_ISSUE"].includes(claim.status)}
       actions={claimForms}
       more={<>
         <details className="hybrid-case-details accounting"><summary>Accounting</summary><p>Organization-wide open payable: {usd(report.openPayableCents)}.</p><p>Restricted funds: {usdGrouped(report.restrictedCents)}. General: {usdGrouped(report.generalCents)}.</p>{view.fixtureNotStarted ? <p className="notice">Opening journals have not been created yet. No ledger tie-out is claimed for this untouched fixture.</p> : <p className={report.matches ? "notice" : "notice warning"}>Ledger tie-out: {report.matches ? "Matches" : "Needs investigation"}.</p>}<p>Opening fixture cash: {usdGrouped(report.fixtureCashCents)}. Recorded provider activity: {usdGrouped(report.providerActivityCashDeltaCents)}. Book cash: {usdGrouped(report.bookCashCents)}. These are accounting figures, not PayPal available funds.</p></details>
@@ -198,7 +204,7 @@ export default async function ClaimPage({ params, searchParams }: { params: Prom
       href={policyBlocked ? `/claims/${claimId}/receipt` : claim.status === "DRAFT" ? "#funding-review" : claim.status === "AWAITING_APPROVAL" ? "#approvals" : "#payment"}
       action={policyBlocked ? "Review the receipt" : claim.status === "DRAFT" ? "Inspect funding and terms" : claim.status === "AWAITING_APPROVAL" ? "Inspect the approvals" : "Inspect payment status"}
       aside={claimId === "C-104" ? "C-104 is a separate preclassified $500 example. It did not pass through the new receipt's AI review." : `You are still reviewing the same claim: ${claim.vendor}.`} />}
-    {closing && <TraceComplete title={claim.status === "PAID" ? "Approval and payout are complete." : "Approval is complete."} links={user.role === "APPROVER" ? [{ href: "/ledger", label: "See it in the ledger" }, { href: "/analytics/report", label: "Open the funder report" }] : []} />}
+    {closing && <TraceComplete kicker={claim.status === "PAID" ? "Trace complete" : "Approved, unpaid"} title={claim.status === "PAID" ? "Approval and payout are complete." : "Approval is complete. Payout is a separate step."} links={user.role === "APPROVER" ? [{ href: "/ledger", label: "See it in the ledger" }, { href: "/analytics/report", label: "Open the funder report" }] : []} />}
     <section aria-labelledby="expense-review-title" className="panel receipt-panel expense-review"><h2 id="expense-review-title">Review the expense terms</h2>
       <p className="sub">{claim.vendor} · {usd(total)}. Receipt dated {claim.incurredOn}. Program: {claim.program}.</p>
       <p>{decision ? "Both approvals bind these exact terms." : "Review the items and categories before freezing the allocation."}</p>

@@ -57,7 +57,7 @@ describe("TH-04 the checks status line reads stored data and never gates approva
   });
   it("renders the line above Approve with a link to #policy-checks and leaves the Approve form's condition alone", () => {
     const page = read("src/app/claims/[claimId]/page.tsx");
-    expect(page).toContain('<a href="#policy-checks">See the checks</a>');
+    expect(page).toContain('<a href="#policy-checks">{view.policyChecks.run ? "See the checks" : "Run the checks"}</a>');
     expect(page.indexOf("checks-status")).toBeLessThan(page.indexOf('button="Approve these terms"'));
     expect(page).toContain('{approver && decision && claim.status === "AWAITING_APPROVAL" && !approvedByMe && <ActionForm claimId={claimId} action="approve"');
   });
@@ -70,7 +70,8 @@ describe("TH-05 the thread keeps the existing titles and adds one kicker", () =>
     for (const title of ["Waiting for two approvers.", "Hand this claim to a different approver.", "Review the frozen terms.", "Check the split, then freeze these terms."]) expect(page).toContain(`"${title}"`);
   });
   it("adds the Trace complete kicker only on a separate card that is not labeled as the journey", () => {
-    expect(journey).toContain('aria-label="Trace complete"'); expect(journey).toContain('<p className="kicker">Trace complete</p>');
+    expect(journey).toContain('kicker = "Trace complete"'); expect(journey).toContain('aria-label={kicker}'); expect(journey).toContain('<p className="kicker">{kicker}</p>');
+    expect(page).toContain('kicker={claim.status === "PAID" ? "Trace complete" : "Approved, unpaid"}'); expect(page).toContain('"Approval is complete. Payout is a separate step."');
     expect(page).toContain('claim.status === "PAID" || (claim.status === "APPROVED" && !autoWaiting)');
     expect(page).toContain('href: "/ledger"'); expect(page).toContain('href: "/analytics/report"');
     expect(page).toContain('user.role === "APPROVER" ? [');
