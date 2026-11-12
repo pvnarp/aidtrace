@@ -5,7 +5,5 @@
   "ownerAuthorized": true,
   "studioClearanceClaimed": false,
   "sponsorUseClaimed": true,
-  "publicationAuthorized": false,
-  "scope": "docs/plans/STUDIO_FREE_FALLBACK_SCOPE.md",
-  "gridScope": "docs/plans/LEDGER_GRID_SCOPE.md"
+  "publicationAuthorized": false
 }
