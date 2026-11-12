@@ -87,6 +87,22 @@ flowchart TD
   L --> D[Donor page: the lines a gift paid for]
 ```
 
+## Try the hosted demo
+
+Open https://98-89-192-170.sslip.io/ and choose Open workspace for any workspace from 1 to 7.
+Each workspace is a private copy of the app with sample data and its own AI request limit. The
+passwords for the three demo users (maria, tara and ben) come with the judging instructions,
+not in this repository.
+
+1. Sign in as maria and open Review Maria's $500 receipt. Create the draft, confirm the
+   categories, continue to funding and freeze the terms.
+2. Sign in as tara, open the awaiting claim and approve.
+3. Sign in as ben and approve the same terms. The claim shows approved and unpaid.
+4. For AI-drafted rules, sign in as tara and use Draft rules from a grant on the home page.
+
+Hosted workspaces have no PayPal credentials, so nothing is sent to PayPal. Fund modes,
+Autopilot, Checkout gifts, the donor page and the Paid state are shown in the demo video.
+
 ## Screenshots
 
 From a funded PayPal sandbox rehearsal on November 12, 2026.
@@ -123,8 +139,9 @@ From a funded PayPal sandbox rehearsal on November 12, 2026.
 
 ## AI and its limits
 
-Models: Claude Sonnet 5.5 drafts fund rules. Claude Haiku 5.5 reads receipts, proposes
-categories and runs the policy check.
+Models: Claude Sonnet 5.5 drafts fund rules. Claude Haiku 5.5 reads receipts and proposes
+categories. The policy check runs Haiku 5.5 first and escalates to Sonnet 5.5 when a line is
+not clearly OK or the first answer fails (`src/policy/compliance.ts`).
 
 1. Every Claude call has no tools, a closed JSON schema and validation in code.
 2. The AI suggests categories. The claimant confirms them.
@@ -142,7 +159,7 @@ categories and runs the policy check.
 | Receipt photo reader | 5 of 5 photos, 5 of 5 injection receipts | Ten invented images, one run each; the prompt was revised after a first run scored 4 of 5 |
 | Sandbox payments | $500.00 after two approvals; a $50.00 gift; a $42.00 claim under Autopilot | One rehearsal run each |
 
-The evaluation harnesses and their datasets are not in this repository.
+The evaluation harnesses are not included; some datasets are under `ai/`.
 
 ## Tech stack
 
@@ -156,22 +173,6 @@ The evaluation harnesses and their datasets are not in this repository.
 | PDF text | unpdf |
 | Runtime | Docker Compose |
 | Tests | Vitest, fast-check, Playwright |
-
-## Try the hosted demo
-
-Open https://98-89-192-170.sslip.io/ and choose Open workspace for any workspace from 1 to 7.
-Each workspace is a private copy of the app with sample data and its own AI request limit. The
-passwords for the three demo users (maria, tara and ben) come with the judging instructions,
-not in this repository.
-
-1. Sign in as maria and open Review Maria's $500 receipt. Create the draft, confirm the
-   categories, continue to funding and freeze the terms.
-2. Sign in as tara, open the awaiting claim and approve.
-3. Sign in as ben and approve the same terms. The claim shows approved and unpaid.
-4. For AI-drafted rules, sign in as tara and use Draft rules from a grant on the home page.
-
-Hosted workspaces have no PayPal credentials, so nothing is sent to PayPal. Fund modes,
-Autopilot, Checkout gifts, the donor page and the Paid state are shown in the demo video.
 
 ## Run it locally with Docker
 
@@ -206,6 +207,8 @@ sh scripts/aidtrace check
 134 test files pass, with 4 tests and 1 file skipped. The tests run on synthetic fixtures with a
 scripted stand-in for the AI, so they are not evidence about PayPal or the Claude API. There is
 no CI.
+
+The private development repository runs 2,900 tests in 160 files; this public export runs the 2,489 that do not need owner-only files.
 
 ## Project structure
 

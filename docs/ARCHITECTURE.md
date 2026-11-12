@@ -78,7 +78,7 @@ string for PayPal.
    | G5 | The claimant has an earlier claim paid after two human approvals |
    | G6 | The payout email has been unchanged for 30 days |
    | G7 | A 5 percent random audit draw sends the claim to two approvers |
-   | G8 | The kill switch is on and no automated payment is unresolved |
+   | G8 | The automation switch is on and no automated payment is unresolved |
 
    Any approver can press Disagree, which turns automation off for the whole organization.
 6. **UNKNOWN outcomes.** A payout whose result is uncertain stays UNKNOWN. Nothing retries it

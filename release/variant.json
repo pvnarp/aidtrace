@@ -1,9 +1,6 @@
 {
   "schemaVersion": 1,
   "kind": "STUDIO_FREE_COMMUNITY_GRID",
-  "baseCommit": "23a0a6be6e8abf348a4b27cacd6daff98db7326a",
-  "ownerAuthorized": true,
   "studioClearanceClaimed": false,
-  "sponsorUseClaimed": true,
-  "publicationAuthorized": false
+  "sponsorUseClaimed": true
 }

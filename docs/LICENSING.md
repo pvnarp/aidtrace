@@ -42,7 +42,7 @@ Review a built image's own license obligations before distributing it.
 
 The ledger, donations and approver queue views use ag-grid-community 36.2.0 and ag-grid-react
 36.2.0, both MIT. The project uses AG Grid Community only. It uses no AG Grid Enterprise, charts
-or Studio package. `release/variant.json` records the same claim.
+or Studio package.
 
 ## 5. Hosted services and other terms
 
