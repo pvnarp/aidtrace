@@ -1,14 +1,52 @@
+# Local state: sessions, passwords, keys and scratch output
 local/
 .env
 .env.*
 !.env.example
 *.env
-.claude/settings.local.json
+*.pem
+*.key
+
+# Dependencies
 node_modules/
 .pnpm-store/
+.npm/
+
+# Next.js and TypeScript build output
 .next/
+out/
+build/
+dist/
+*.tsbuildinfo
+
+# Tests
 coverage/
 playwright-report/
 test-results/
-*.tsbuildinfo
+blob-report/
+playwright/.cache/
+.vitest/
+
+# Logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# Database dumps and backups
+*.dump
+*.sql.gz
+*.sql.bak
+*.backup
+backup*.sql
+dump*.sql
+pgdata/
+postgres_data/
+
+# Editors and OS
 .DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+*~
+.claude/settings.local.json
